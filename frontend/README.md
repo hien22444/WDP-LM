@@ -1,70 +1,170 @@
-# Getting Started with Create React App
+# Authentication System - SignIn & SignUp
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Complete authentication system with React, Redux, and SCSS.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- ✅ SignIn page with email/password authentication
+- ✅ SignUp page with user registration
+- ✅ Redux state management (useSelector, useDispatch)
+- ✅ React Router navigation (useNavigate)
+- ✅ Toast notifications (react-toastify)
+- ✅ OAuth integration (Google, Facebook icons)
+- ✅ Cookie-based token storage (js-cookie)
+- ✅ SCSS styling with glassmorphism effects
+- ✅ Form validation
+- ✅ Loading states
+- ✅ Responsive design
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Frontend**: React (JavaScript, function components + hooks)
+- **State Management**: Redux (@reduxjs/toolkit)
+- **Routing**: react-router-dom
+- **Notifications**: react-toastify
+- **Icons**: react-icons (FaGoogle, FaFacebook)
+- **Cookies**: js-cookie
+- **Styling**: SCSS with variables and nested selectors
+- **Build Tool**: Create React App
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Installation
 
-### `npm test`
+1. Install dependencies:
+\`\`\`bash
+npm install
+\`\`\`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+2. Add your images to the `public` folder:
+   - `signin-image.jpg` - Image for SignIn page right side
+   - `signup-image.jpg` - Image for SignUp page right side
 
-### `npm run build`
+3. Start development server:
+\`\`\`bash
+npm start
+\`\`\`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+4. Build for production:
+\`\`\`bash
+npm run build
+\`\`\`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Project Structure
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+\`\`\`
+src/
+├── index.js                 # App entry point
+├── App.js                   # Main app component with routes
+├── pages/
+│   ├── SignIn/
+│   │   ├── SignIn.js       # SignIn component
+│   │   └── SignIn.scss     # SignIn styles
+│   ├── SignUp/
+│   │   ├── SignUp.js       # SignUp component
+│   │   └── SignUp.scss     # SignUp styles
+│   └── Home/
+│       ├── Home.js         # Home/Dashboard component
+│       └── Home.scss       # Home styles
+├── redux/
+│   ├── store.js            # Redux store configuration
+│   ├── slices/
+│   │   └── userSlice.js    # User state slice
+│   └── actions/
+│       └── authActions.js  # Authentication actions
+└── styles/
+    └── global.scss         # Global styles
+\`\`\`
 
-### `npm run eject`
+## Backend API
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The app expects a backend API at `http://localhost:8080/api/v1` with these endpoints:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### POST /auth/login
+\`\`\`json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+\`\`\`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Response:
+\`\`\`json
+{
+  "accessToken": "...",
+  "refreshToken": "...",
+  "user": {
+    "account": {
+      "email": "user@example.com",
+      "role": "user"
+    }
+  }
+}
+\`\`\`
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### POST /auth/register
+\`\`\`json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "user@example.com",
+  "password": "password123"
+}
+\`\`\`
 
-## Learn More
+Response: Same as login
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Features Explained
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Redux State Management
+- `useSelector` to access authentication state
+- `useDispatch` to trigger login/register actions
+- Automatic token storage in cookies
 
-### Code Splitting
+### Form Validation
+- Email format validation
+- Password minimum 8 characters
+- Real-time form validation
+- Disabled submit button when invalid
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Auto-Navigation
+- Redirects to home when authenticated
+- Redirects to signin when not authenticated
 
-### Analyzing the Bundle Size
+### Loading States
+- Loading spinner during API calls
+- Disabled inputs during loading
+- Visual feedback for user actions
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### SCSS Styling
+- Glassmorphism effects
+- CSS variables for colors
+- Nested selectors
+- Keyframe animations (fadeIn, rotate)
+- Responsive design
 
-### Making a Progressive Web App
+## Customization
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Change API URL
+Edit `src/redux/actions/authActions.js`:
+\`\`\`javascript
+const API_URL = 'YOUR_API_URL';
+\`\`\`
 
-### Advanced Configuration
+### Change Colors
+Edit SCSS variables in component files:
+\`\`\`scss
+$primary-color: #1e3a5f;
+$link-color: #3b82f6;
+// ... etc
+\`\`\`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Add More OAuth Providers
+1. Import icon from react-icons
+2. Add button in OAuth section
+3. Create action in authActions.js
 
-### Deployment
+## Notes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Images should be placed in `/public` folder
+- Tokens are stored in cookies with 7-day (access) and 30-day (refresh) expiration
+- Form uses button onClick instead of form onSubmit
+- SCSS uses glassmorphism with backdrop-filter

@@ -1,0 +1,351 @@
+// Variables
+$primary-color: #162d3a;
+$primary-hover: #1e3a4d;
+$text-dark: #1a202c;
+$text-light: #4a5568;
+$text-muted: #a0aec0;
+$border-color: #e2e8f0;
+$white: #ffffff;
+$google-color: #4285f4;
+$facebook-color: #1877f2;
+$link-color: #3b82f6;
+
+$glass-bg: rgba(255, 255, 255, 0.98);
+$shadow-light: 0 10px 40px rgba(0, 0, 0, 0.08);
+$shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Main Container
+.signin-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7fafc;
+  padding: 0;
+
+  .signin-content {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    background: $white;
+    overflow: hidden;
+
+    @media (max-width: 968px) {
+      flex-direction: column;
+      height: auto;
+      min-height: 100vh;
+    }
+  }
+
+  .signin-form-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 80px;
+    background: $white;
+
+    @media (max-width: 1200px) {
+      padding: 48px 60px;
+    }
+
+    @media (max-width: 768px) {
+      padding: 40px 24px;
+    }
+
+    .form-wrapper {
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .form-header {
+      margin-bottom: 32px;
+
+      .form-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: $text-dark;
+        margin-bottom: 12px;
+        line-height: 1.3;
+        letter-spacing: -0.5px;
+
+        @media (max-width: 768px) {
+          font-size: 28px;
+        }
+      }
+
+      .form-subtitle {
+        font-size: 15px;
+        color: $text-light;
+        line-height: 1.6;
+        font-weight: 400;
+      }
+    }
+
+    .signin-form {
+      .form-group {
+        margin-bottom: 20px;
+
+        .form-label {
+          display: block;
+          font-size: 15px;
+          font-weight: 600;
+          color: $text-dark;
+          margin-bottom: 8px;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 13px 16px;
+          font-size: 15px;
+          color: $text-dark;
+          background: $white;
+          border: 1.5px solid $border-color;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          outline: none;
+          font-family: inherit;
+
+          &::placeholder {
+            color: $text-muted;
+            font-weight: 400;
+          }
+
+          &:focus {
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px rgba(22, 45, 58, 0.08);
+          }
+
+          &:disabled {
+            background: #f7fafc;
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
+        }
+      }
+
+      .forgot-password {
+        text-align: right;
+        margin-top: -8px;
+        margin-bottom: 24px;
+
+        .forgot-link {
+          font-size: 14px;
+          color: $link-color;
+          text-decoration: none;
+          font-weight: 600;
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: $primary-hover;
+          }
+        }
+      }
+
+      .submit-btn {
+        width: 100%;
+        padding: 15px;
+        font-size: 16px;
+        font-weight: 600;
+        color: $white;
+        background: $primary-color;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 28px;
+
+        &:hover:not(.disabled) {
+          background: $primary-hover;
+          box-shadow: $shadow-medium;
+        }
+
+        &:active:not(.disabled) {
+          transform: scale(0.98);
+        }
+
+        &.disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .loading-spinner {
+          width: 18px;
+          height: 18px;
+          border: 2.5px solid rgba(255, 255, 255, 0.3);
+          border-top-color: $white;
+          border-radius: 50%;
+          animation: rotate 0.7s linear infinite;
+        }
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        margin: 28px 0;
+        color: $text-muted;
+        font-size: 14px;
+        font-weight: 500;
+
+        &::before,
+        &::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: $border-color;
+        }
+
+        span {
+          padding: 0 16px;
+        }
+      }
+
+      .oauth-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 28px;
+
+        .oauth-btn {
+          width: 100%;
+          padding: 13px 16px;
+          font-size: 15px;
+          font-weight: 500;
+          color: $text-dark;
+          background: $white;
+          border: 1.5px solid $border-color;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+
+          .oauth-icon {
+            font-size: 20px;
+          }
+
+          &:hover:not(:disabled) {
+            border-color: darken($border-color, 10%);
+            background: #fafafa;
+          }
+
+          &:active:not(:disabled) {
+            transform: scale(0.98);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+
+          &.google-btn {
+            .oauth-icon {
+              color: $google-color;
+            }
+          }
+
+          &.facebook-btn {
+            .oauth-icon {
+              color: $facebook-color;
+            }
+          }
+        }
+      }
+
+      .signup-link {
+        text-align: center;
+        font-size: 15px;
+        color: $text-light;
+        font-weight: 400;
+
+        .link {
+          color: $link-color;
+          text-decoration: none;
+          font-weight: 600;
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: $primary-hover;
+          }
+        }
+      }
+    }
+
+    .footer-text {
+      margin-top: 48px;
+      text-align: center;
+      font-size: 12px;
+      color: $text-muted;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+  }
+
+  .signin-image-section {
+    flex: 1;
+    position: relative;
+    overflow: hidden; // hide any accidental overflow
+    background: #ffffff; // fallback background
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px; // give image some breathing room so contain mode isn't flush to edges
+
+    // Maintain aspect ratio area
+    .image-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 968px) {
+      display: none;
+    }
+
+    .signin-image {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain; // ensure the whole image is visible
+      object-position: center;
+      display: block;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+      border-radius: 12px;
+      transition: transform 0.6s ease;
+
+      &:hover {
+        transform: scale(1.02);
+      }
+    }
+  }
+}
