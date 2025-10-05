@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import OTP from "./components/Auth/Sign up/OTP/OTP";
 import ForgotPassword from "./components/Auth/ForgotPassword/ForgotPassword";
 import ResetPassword from "./components/Auth/ResetPassword/ResetPassword"; 
+import OAuthCallback from "./components/Auth/OAuthCallback";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -23,6 +24,7 @@ function App() {
       <Route path="/otp" element={<OTP />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/oauth-callback" element={<OAuthCallback />} />
     </Routes>
   );
 }
