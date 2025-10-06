@@ -45,6 +45,9 @@ const userSchema = new mongoose.Schema(
       default: "pending",
       index: true,
     },
+    // Numeric status flag: 1 = active, 0 = blocked (cannot log in)
+    status_flag: { type: Number, default: 1, index: true },
+    is_banned: { type: Boolean, default: false, index: true },
     date_of_birth: { type: Date, default: null },
     gender: { type: String, enum: Gender, default: null },
     address: { type: String, default: null, trim: true },

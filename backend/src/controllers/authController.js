@@ -46,6 +46,7 @@ const buildUserPayload = (user) => {
 			email: user.email,
 			role: user.role,
 			status: user.status,
+			status_flag: user.status_flag,
 		},
 		profile: {
 			full_name: user.full_name,
@@ -116,6 +117,9 @@ const sendMail = async ({ to, subject, html }) => {
 	}
 };
 
+// Export the helper for reuse in other routes
+exports.sendMailHelper = sendMail;
+
 // ---------- Controllers ----------
 exports.register = async (req, res) => {
 	try {
@@ -170,7 +174,9 @@ exports.login = async (req, res) => {
     if (!email || !password) return res.status(400).json({ message: 'Missing credentials' });
     const user = await User.findOne({ email }).select('+password_hash +refresh_tokens');
     if (!user) return res.status(401).json({ message: 'Invalid email or password' });
-		if (user.status !== 'active') return res.status(403).json({ message: 'Please verify your email before logging in.' });
+        if (user.is_banned) return res.status(403).json({ message: 'Your account has been permanently banned.' });
+        if (user.status_flag === 0) return res.status(403).json({ message: 'Your account is blocked.' });
+        if (user.status !== 'active') return res.status(403).json({ message: 'Please verify your email before logging in.' });
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ message: 'Invalid email or password' });
     const accessToken = signAccessToken(user._id.toString());

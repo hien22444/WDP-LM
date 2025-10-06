@@ -37,6 +37,12 @@ export default function OAuthCallback() {
         try {
           const res = await axios.get(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${data.accessToken}` } });
           dispatch(loginSuccess({ user: res.data.user }));
+          // Redirect based on role
+          const role = res.data.user?.account?.role;
+          if (role === 'admin') {
+            navigate('/admin');
+            return;
+          }
         } catch (e) {
           // If /me fails, still set minimal user placeholder
           dispatch(loginSuccess({ user: { account: { email: '', role: '', status: 'active' } } }));

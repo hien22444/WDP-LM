@@ -17,13 +17,15 @@ const SignIn = () => {
 
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const loading = useSelector((state) => state.user.loading);
+  const role = useSelector((state) => state.user.user?.account?.role);
 
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      if (role === "admin") return navigate("/admin");
+      return navigate("/");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, role, navigate]);
 
   // Validate form
   useEffect(() => {
@@ -42,6 +44,7 @@ const SignIn = () => {
     const result = await dispatch(doLogin(email, password));
 
     if (result.success) {
+      if (role === "admin") return navigate("/admin");
       navigate("/");
     }
   };
