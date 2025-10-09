@@ -25,9 +25,11 @@ app.get("/api/health", (req, res) => {
 // Routes
 const authRoutes = require("./src/routes/auth");
 const userRoutes = require("./src/routes/user");
+const dashboardRoutes = require("./src/routes/dashboard");
 const { googleStart, googleRedirect } = require('./src/controllers/authController');
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 // Root Google OAuth routes matching GOOGLE_APP_CLIENT_REDIRECT_LOGIN
 app.get('/google/start', googleStart);
 app.get('/google/redirect', googleRedirect);

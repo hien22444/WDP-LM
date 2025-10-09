@@ -41,7 +41,7 @@ export default function OAuthCallback() {
           // If /me fails, still set minimal user placeholder
           dispatch(loginSuccess({ user: { account: { email: '', role: '', status: 'active' } } }));
         }
-        navigate('/');
+        navigate('/home');
       } catch (e) {
         dispatch(loginFailure('OAuth callback failed'));
         navigate('/signin');

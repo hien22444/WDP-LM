@@ -1,0 +1,167 @@
+// Dashboard Component Styles
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding-top: 20px;
+}
+
+// Dashboard Section Styles
+.user-dashboard {
+  padding: 60px 10%;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  width: 100vw;
+  box-sizing: border-box;
+  margin: 0;
+
+  .dashboard-loading {
+    text-align: center;
+    padding: 40px;
+    
+    p {
+      font-size: 16px;
+      color: #6c757d;
+      margin: 0;
+    }
+  }
+
+  .dashboard-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      color: #121117;
+    }
+  }
+
+  .dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 30px;
+  }
+
+  .dashboard-card {
+    background: white;
+    border-radius: 16px;
+    padding: 30px 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    text-align: center;
+    border: 1px solid #f0f0f0;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .dashboard-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ff62ad;
+      margin: 16px 0;
+      line-height: 1;
+    }
+
+    button {
+      background: linear-gradient(135deg, #ff62ad 0%, #ff8cc8 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+
+      &:hover {
+        background: linear-gradient(135deg, #e55a9b 0%, #e580b8 100%);
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  // Role-specific styling
+  .dashboard-content {
+    &[data-role="learner"] .dashboard-card {
+      border-top: 4px solid #28a745;
+    }
+
+    &[data-role="tutor"] .dashboard-card {
+      border-top: 4px solid #007bff;
+    }
+
+    &[data-role="admin"] .dashboard-card {
+      border-top: 4px solid #dc3545;
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .user-dashboard {
+    padding: 40px 8%;
+    
+    .dashboard-content {
+      h2 {
+        font-size: 24px;
+        margin-bottom: 30px;
+      }
+    }
+    
+    .dashboard-cards {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding-top: 10px;
+  }
+
+  .user-dashboard {
+    padding: 30px 5%;
+    
+    .dashboard-content {
+      h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
+      }
+    }
+    
+    .dashboard-card {
+      padding: 20px 16px;
+      
+      h3 {
+        font-size: 14px;
+      }
+      
+      .dashboard-number {
+        font-size: 24px;
+      }
+      
+      button {
+        font-size: 12px;
+        padding: 8px 16px;
+      }
+    }
+  }
+}

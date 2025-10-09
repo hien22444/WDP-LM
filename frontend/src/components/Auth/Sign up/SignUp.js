@@ -23,7 +23,7 @@ const SignUp = () => {
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      navigate("/home");
     }
   }, [isAuthenticated, navigate]);
 

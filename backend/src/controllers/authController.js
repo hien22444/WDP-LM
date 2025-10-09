@@ -476,3 +476,46 @@ exports.resetPassword = async (req, res) => {
 		res.status(500).json({ message: "Failed to reset password" });
 	}
 };
+
+exports.changePassword = async (req, res) => {
+	try {
+		const { currentPassword, newPassword } = req.body;
+		if (!currentPassword || !newPassword) {
+			return res.status(400).json({ message: "Current password and new password are required" });
+		}
+
+		const user = await User.findById(req.user.id).select("+password_hash");
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		if (!user.password_hash) {
+			return res.status(400).json({ message: "Account doesn't have a password set. Please use social login or reset password." });
+		}
+
+		// Verify current password
+		const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+		if (!isCurrentPasswordValid) {
+			return res.status(400).json({ message: "Current password is incorrect" });
+		}
+
+		// Check if new password is different from current
+		const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+		if (isSamePassword) {
+			return res.status(400).json({ message: "New password must be different from current password" });
+		}
+
+		// Hash new password
+		const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+		
+		// Update password
+		await User.findByIdAndUpdate(req.user.id, {
+			password_hash: hashedNewPassword
+		});
+
+		res.json({ message: "Password changed successfully" });
+	} catch (err) {
+		console.error("Change password error:", err);
+		res.status(500).json({ message: "Failed to change password" });
+	}
+};

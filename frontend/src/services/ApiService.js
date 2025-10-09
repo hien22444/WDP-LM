@@ -127,12 +127,33 @@ export const resetPasswordApi = async (token, password) => {
   }
 };
 
+export const changePasswordApi = async (currentPassword, newPassword) => {
+  try {
+    const response = await apiClient.post("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Password change failed" };
+  }
+};
+
 export const getCurrentUserApi = async () => {
   try {
-    const response = await apiClient.get("/auth/me");
+    const response = await apiClient.get("/users/me");
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to get user data" };
+  }
+};
+
+export const updateUserProfileApi = async (profileData) => {
+  try {
+    const response = await apiClient.patch("/users/me", profileData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to update profile" };
   }
 };
 

@@ -21,7 +21,7 @@ const SignIn = () => {
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      navigate("/home");
     }
   }, [isAuthenticated, navigate]);
 
@@ -42,7 +42,7 @@ const SignIn = () => {
     const result = await dispatch(doLogin(email, password));
 
     if (result.success) {
-      navigate("/");
+      navigate("/home");
     }
   };
 
