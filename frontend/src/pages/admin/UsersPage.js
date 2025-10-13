@@ -32,9 +32,9 @@ const UsersPage = () => {
 
   const act = async (id, action) => {
     try {
-      if (action === 'block') {
+      if (action === 'block' || action === 'ban') {
         const user = items.find(x => x._id === id);
-        setPendingUser(user);
+        setPendingUser({ ...user, action });
         setReason("");
         setModalOpen(true);
         return;
@@ -53,7 +53,8 @@ const UsersPage = () => {
     if (!reason.trim()) return;
     try {
       setLoading(true);
-      const res = await apiClient.post(`/users/${pendingUser._id}/block`, { reason });
+      const action = pendingUser.action || 'block';
+      const res = await apiClient.post(`/users/${pendingUser._id}/${action}`, { reason });
       setModalOpen(false);
       setPendingUser(null);
       setReason("");
@@ -62,7 +63,8 @@ const UsersPage = () => {
       if (preview) alert(`Email sent. Preview: ${preview}`);
       fetchUsers();
     } catch (e) {
-      const msg = e?.response?.data?.message || "Failed to block user";
+      const action = pendingUser?.action || 'block';
+      const msg = e?.response?.data?.message || `Failed to ${action} user`;
       const detail = e?.response?.data?.detail;
       setError(detail ? `${msg}: ${detail}` : msg);
     } finally {
@@ -135,6 +137,7 @@ const UsersPage = () => {
           onSubmit={submitBlock}
           onClose={() => { setModalOpen(false); setPendingUser(null); }}
           loading={loading}
+          action={pendingUser?.action}
         />
 
         {error && (
@@ -290,45 +293,62 @@ const UsersPage = () => {
                     padding:'16px 20px', 
                     borderBottom:'1px solid #f1f5f9'
                   }}>
-                    {u.status_flag === 0 ? (
-                      <button 
-                        onClick={()=>act(u._id, 'unblock')}
-                        style={{
-                          background: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: '500',
-                          fontSize: '14px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseOver={(e) => e.target.style.background = '#059669'}
-                        onMouseOut={(e) => e.target.style.background = '#10b981'}
-                      >
-                        🔓 Mở khóa
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={()=>act(u._id, 'block')}
-                        style={{
-                          background: '#ef4444',
-                          color: 'white',
-                          border: 'none',
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: '500',
-                          fontSize: '14px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseOver={(e) => e.target.style.background = '#dc2626'}
-                        onMouseOut={(e) => e.target.style.background = '#ef4444'}
-                      >
-                        🔒 Khóa
-                      </button>
-                    )}
+                    <div style={{display: 'flex', gap: '8px'}}>
+                      {u.status_flag === 0 ? (
+                        <button 
+                          onClick={()=>act(u._id, 'unblock')}
+                          style={{
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            fontSize: '14px',
+                            transition: 'background 0.2s'
+                          }}
+                        >
+                          🔓 Mở khóa
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={()=>act(u._id, 'block')}
+                          style={{
+                            background: '#f59e0b',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            fontSize: '14px',
+                            transition: 'background 0.2s'
+                          }}
+                        >
+                          🔒 Tạm khóa
+                        </button>
+                      )}
+                      
+                      {!u.is_banned && (
+                        <button 
+                          onClick={()=>act(u._id, 'ban')}
+                          style={{
+                            background: '#ef4444',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            fontSize: '14px',
+                            transition: 'background 0.2s'
+                          }}
+                        >
+                          🚫 Cấm vĩnh viễn
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
