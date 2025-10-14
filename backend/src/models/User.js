@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema(
     gender: { type: String, enum: Gender, default: null },
     address: { type: String, default: null, trim: true },
     city: { type: String, default: null, trim: true },
+    image: { type: String, default: null, trim: true },
     is_default_address: { type: Boolean, default: true },
     // Auth / security fields
     refresh_tokens: [{ type: String }],

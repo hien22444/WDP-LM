@@ -4,6 +4,16 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
 const { OAuth2Client } = require('google-auth-library');
+let googleCodeClient = null;
+const getGoogleCodeClient = () => {
+	if (googleCodeClient) return googleCodeClient;
+	const clientId = resolveGoogleClientId();
+	const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_APP_CLIENT_SECRET;
+	const redirectUri = process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_APP_CLIENT_REDIRECT_LOGIN || `${process.env.BACKEND_PUBLIC_URL || 'http://localhost:5000'}/google/redirect`;
+	if (!clientId || !clientSecret) return null;
+	googleCodeClient = new OAuth2Client(clientId, clientSecret, redirectUri);
+	return googleCodeClient;
+};
 
 let googleClient = null;
 const resolveGoogleClientId = () => {
@@ -212,6 +222,68 @@ exports.googleConfig = async (req, res) => {
 	res.json({ clientId: cid });
 };
 
+// ---- Full-page Google OAuth (Authorization Code Flow) ----
+exports.googleStart = async (req, res) => {
+	try {
+		const client = getGoogleCodeClient();
+		if (!client) return res.status(500).send('Google OAuth not configured');
+		const state = crypto.randomBytes(16).toString('hex');
+		res.cookie('g_state', state, { maxAge: 5*60*1000, sameSite: 'lax' });
+		const url = client.generateAuthUrl({
+			scope: ['openid','email','profile'],
+			access_type: 'offline',
+			prompt: 'consent',
+			state
+		});
+		return res.redirect(302, url);
+	} catch (e) {
+		console.error('[googleStart]', e.message);
+		res.status(500).send('Failed to start Google login');
+	}
+};
+
+exports.googleRedirect = async (req, res) => {
+	try {
+		const { code, state, error } = req.query;
+		if (error) return res.status(400).send('Google authorization error');
+		if (!code) return res.status(400).send('Missing code');
+		if (!state || req.cookies?.g_state !== state) return res.status(400).send('Invalid state');
+		const client = getGoogleCodeClient();
+		if (!client) return res.status(500).send('Client not configured');
+		const tokenResp = await client.getToken(code);
+		const idToken = tokenResp.tokens.id_token;
+		if (!idToken) return res.status(401).send('No id_token');
+		const verifyClient = getGoogleClient();
+		let ticket;
+		try {
+			ticket = await verifyClient.verifyIdToken({ idToken, audience: resolveGoogleClientId() });
+		} catch (e) { return res.status(401).send('Invalid id_token'); }
+		const payload = ticket.getPayload();
+		const email = payload.email;
+		const fullName = payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim();
+		if (!email) return res.status(400).send('Email not available');
+		let user = await User.findOne({ email }).select('+refresh_tokens');
+		if (!user) {
+			user = await User.create({ full_name: fullName || 'Google User', email, status: 'active', email_verified_at: new Date() });
+		} else if (user.status !== 'active') {
+			user.status = 'active';
+			user.email_verified_at = user.email_verified_at || new Date();
+			user.verify_token = null; user.verify_token_expires = null;
+		}
+		const accessToken = signAccessToken(user._id.toString());
+		const refreshToken = signRefreshToken(user._id.toString());
+		if (!user.refresh_tokens.includes(refreshToken)) user.refresh_tokens.push(refreshToken);
+		await user.save();
+		const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+		res.clearCookie('g_state');
+		const redirect = `${frontend}/oauth-callback#provider=google&accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}`;
+		return res.redirect(302, redirect);
+	} catch (e) {
+		console.error('[googleRedirect]', e.message);
+		res.status(500).send('Google redirect failed');
+	}
+};
+
 // Google OAuth (credential from Google Identity Services)
 exports.googleLogin = async (req, res) => {
 	try {
@@ -402,5 +474,48 @@ exports.resetPassword = async (req, res) => {
 		res.json({ message: "Password updated" });
 	} catch (err) {
 		res.status(500).json({ message: "Failed to reset password" });
+	}
+};
+
+exports.changePassword = async (req, res) => {
+	try {
+		const { currentPassword, newPassword } = req.body;
+		if (!currentPassword || !newPassword) {
+			return res.status(400).json({ message: "Current password and new password are required" });
+		}
+
+		const user = await User.findById(req.user.id).select("+password_hash");
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		if (!user.password_hash) {
+			return res.status(400).json({ message: "Account doesn't have a password set. Please use social login or reset password." });
+		}
+
+		// Verify current password
+		const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+		if (!isCurrentPasswordValid) {
+			return res.status(400).json({ message: "Current password is incorrect" });
+		}
+
+		// Check if new password is different from current
+		const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+		if (isSamePassword) {
+			return res.status(400).json({ message: "New password must be different from current password" });
+		}
+
+		// Hash new password
+		const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+		
+		// Update password
+		await User.findByIdAndUpdate(req.user.id, {
+			password_hash: hashedNewPassword
+		});
+
+		res.json({ message: "Password changed successfully" });
+	} catch (err) {
+		console.error("Change password error:", err);
+		res.status(500).json({ message: "Failed to change password" });
 	}
 };

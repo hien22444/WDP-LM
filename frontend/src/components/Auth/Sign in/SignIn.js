@@ -4,11 +4,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { FaGoogle, FaFacebook } from "react-icons/fa";
-import {
-  doLogin,
-  doGoogleLogin,
-  doFacebookLogin,
-} from "../../../redux/actions/authActions";
+import { doLogin, doFacebookLogin } from "../../../redux/actions/authActions";
 import "./SignIn.scss";
 
 const SignIn = () => {
@@ -25,7 +21,7 @@ const SignIn = () => {
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      navigate("/home");
     }
   }, [isAuthenticated, navigate]);
 
@@ -46,28 +42,13 @@ const SignIn = () => {
     const result = await dispatch(doLogin(email, password));
 
     if (result.success) {
-      navigate("/");
+      navigate("/home");
     }
   };
 
   const handleGoogleLogin = () => {
-    // Ensure Google script loaded (Identity Services). If not, inject.
-    if (!window.google || !window.google.accounts) {
-      const scriptId = 'google-oauth';
-      if (!document.getElementById(scriptId)) {
-        const s = document.createElement('script');
-        s.src = 'https://accounts.google.com/gsi/client';
-        s.async = true;
-        s.defer = true;
-        s.id = scriptId;
-        s.onload = () => dispatch(doGoogleLogin());
-        document.head.appendChild(s);
-      } else {
-        document.getElementById(scriptId).addEventListener('load', () => dispatch(doGoogleLogin()), { once: true });
-      }
-    } else {
-      dispatch(doGoogleLogin());
-    }
+    const backendOrigin = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1$/, '');
+    window.location.href = backendOrigin + '/google/start';
   };
 
   const handleFacebookLogin = () => {
