@@ -1,0 +1,57 @@
+[33mcommit 6e1955e9dc590ee710cfc89a0130b1720228b260[m
+Author: Phan Nghia <appvn147@gmail.com>
+Date:   Sat Oct 18 00:09:20 2025 +0700
+
+    feat(admin): add admin entry in header, improve admin dashboard UI, add CSS fallback theme; add admin creation script; fix role detection and admin access
+
+WDP-LM/backend/.env
+backend/.env
+backend/package-lock.json
+backend/package.json
+backend/src/controllers/adminController.js
+backend/src/middlewares/auth.js
+backend/src/models/AppSetting.js
+backend/src/models/Booking.js
+backend/src/models/Category.js
+backend/src/models/Payment.js
+backend/src/routes/admin.js
+backend/src/routes/booking.js
+backend/src/rtc/index.js
+backend/src/rtc/server.js
+backend/src/scripts/createAdmin.js
+frontend/package-lock.json
+frontend/package.json
+frontend/src/App.js
+frontend/src/components/Admin/AdminLayout.js
+frontend/src/components/Auth/Sign in/SignIn.js
+frontend/src/components/Auth/Sign in/SignIn.scss
+frontend/src/components/Auth/Sign up/SignUp.js
+frontend/src/components/Layout/Header.js
+frontend/src/components/Layout/UniversalHeader.js
+frontend/src/pages/Admin/AdminBookings.js
+frontend/src/pages/Admin/AdminCategories.js
+frontend/src/pages/Admin/AdminDashboard.js
+frontend/src/pages/Admin/AdminPayments.js
+frontend/src/pages/Admin/AdminReports.js
+frontend/src/pages/Admin/AdminSettings.js
+frontend/src/pages/Admin/AdminSystem.js
+frontend/src/pages/Admin/AdminTutors.js
+frontend/src/pages/Admin/AdminUsers.js
+frontend/src/pages/Admin/admin.css
+frontend/src/pages/Admin/spark.css
+frontend/src/pages/LandingPage/AboutPage.js
+frontend/src/pages/LandingPage/AboutPage.scss
+frontend/src/pages/LandingPage/LandingPage.scss
+frontend/src/pages/LandingPage/NotFound.js
+frontend/src/pages/LandingPage/PublicLandingPage.js
+frontend/src/pages/LandingPage/ServerError.js
+frontend/src/pages/Room/JoinRoom.js
+frontend/src/pages/Room/Room.js
+frontend/src/pages/Tutor/TutorBookings.js
+frontend/src/pages/Tutor/TutorOpenCourses.js
+frontend/src/pages/Tutor/TutorProfilePage.js
+frontend/src/redux/store.js
+frontend/src/services/AdminService.js
+frontend/src/services/BookingService.js
+frontend/src/styles/global.scss
+frontend/styles/global.scss
