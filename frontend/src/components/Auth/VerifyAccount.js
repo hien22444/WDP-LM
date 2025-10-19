@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import "./VerifyAccount.scss";
 import { ImSpinner9 } from "react-icons/im";
-import { verifyAccountApi } from "../../services/ApiService";
+import {
+  verifyAccountApi,
+  resendVerification,
+} from "../../services/ApiService";
+import { toast } from "react-toastify";
 import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -17,6 +21,8 @@ const VerifyAccount = () => {
   const [status, setStatus] = useState("verifying"); // verifying | waiting | success | failed
   const [message, setMessage] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const resendBtnRef = useRef(null);
   const [email] = useState(location.state?.email || "");
 
   // Lắng nghe cross-tab success trong MỌI trạng thái
@@ -115,15 +121,55 @@ const VerifyAccount = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, navigate]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown((s) => s - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  // Tự động focus + scroll tới nút resend khi ở trạng thái waiting
+  useEffect(() => {
+    if (
+      status === "waiting" &&
+      resendBtnRef.current &&
+      cooldown === 0 &&
+      !resendLoading
+    ) {
+      try {
+        resendBtnRef.current.focus();
+        resendBtnRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      } catch {}
+    }
+  }, [status, cooldown, resendLoading]);
+
   const handleResend = async () => {
-    if (!email) return;
+    if (!email || resendLoading || cooldown > 0) return;
     setResendLoading(true);
     try {
-      await axios.post(`${API_URL}/auth/resend-verification`, { email });
+      await resendVerification(email);
       setMessage(`Verification email resent to ${email}. Please check again.`);
+      setCooldown(60);
+      toast.success("Resent verification email. Please check your inbox/spam.");
+      // Simple analytics: đếm số lần resend trong localStorage
+      try {
+        const k = "verify_resend_count";
+        const current =
+          parseInt(window.localStorage.getItem(k) || "0", 10) || 0;
+        window.localStorage.setItem(k, String(current + 1));
+      } catch {}
     } catch (err) {
       setMessage(
-        err?.response?.data?.message || "Failed to resend verification email"
+        err?.message ||
+          err?.response?.data?.message ||
+          "Failed to resend verification email"
+      );
+      toast.error(
+        err?.message ||
+          err?.response?.data?.message ||
+          "Failed to resend verification email"
       );
     } finally {
       setResendLoading(false);
@@ -153,10 +199,21 @@ const VerifyAccount = () => {
                 <button
                   className="retry-btn"
                   onClick={handleResend}
-                  disabled={resendLoading}
+                  disabled={resendLoading || cooldown > 0}
+                  ref={resendBtnRef}
                 >
-                  {resendLoading ? "Resending..." : "Resend Verification"}
+                  {resendLoading
+                    ? "Resending..."
+                    : cooldown > 0
+                    ? `Resend in ${cooldown}s`
+                    : "Resend Verification"}
                 </button>
+              )}
+              {!email && (
+                <p className="verify-hint">
+                  Không tìm thấy email từ bước đăng ký. Vui lòng quay lại trang
+                  đăng ký và nhập lại email để nhận liên kết xác minh.
+                </p>
               )}
             </div>
           )}

@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { FaGoogle, FaFacebook } from "react-icons/fa";
-import { doRegister, doFacebookLogin } from "../../../redux/actions/authActions";
+import {
+  doRegister,
+  doFacebookLogin,
+} from "../../../redux/actions/authActions";
 import "./SignUp.scss";
 
 const SignUp = () => {
@@ -13,6 +16,29 @@ const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
+  const passwordRules = useMemo(() => {
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    const hasMinLen = password.length >= 8;
+    const passed = [
+      hasMinLen,
+      hasUpper,
+      hasLower,
+      hasNumber,
+      hasSpecial,
+    ].filter(Boolean).length;
+    const strength =
+      passed >= 5
+        ? "strong"
+        : passed >= 3
+        ? "medium"
+        : password.length > 0
+        ? "weak"
+        : "none";
+    return { hasUpper, hasLower, hasNumber, hasSpecial, hasMinLen, strength };
+  }, [password]);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -23,7 +49,7 @@ const SignUp = () => {
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/home");
+      navigate("/");
     }
   }, [isAuthenticated, navigate]);
 
@@ -50,13 +76,41 @@ const SignUp = () => {
     );
 
     if (result.success) {
-      navigate("/verify-account", { state: { email, justRegistered: true, pending: true } });
+      navigate("/verify-account", {
+        state: { email, justRegistered: true, pending: true },
+      });
     }
   };
 
   const handleGoogleSignup = () => {
-    const backendOrigin = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1$/, '');
-    window.location.href = backendOrigin + '/google/start';
+    const backendOrigin = (
+      process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1"
+    ).replace(/\/api\/v1$/, "");
+    const googleAuthUrl = `${backendOrigin}/google/start`;
+
+    // Calculate center position
+    const width = 600;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    // Open popup window centered
+    const popup = window.open(
+      googleAuthUrl,
+      "google-signup",
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no`
+    );
+
+    // Listen for popup to close or receive message
+    const checkClosed = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(checkClosed);
+        // Check if user is logged in after popup closes
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    }, 1000);
   };
 
   const handleFacebookSignup = () => {
@@ -69,14 +123,14 @@ const SignUp = () => {
         <div className="signup-form-section">
           <div className="form-wrapper">
             <div className="form-header">
-              <h1 className="form-title">Create Account</h1>
+              <h1 className="form-title">Tạo tài khoản</h1>
             </div>
 
             <form className="signup-form" onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="firstName" className="form-label">
-                    First Name
+                    Tên
                   </label>
                   <input
                     type="text"
@@ -85,12 +139,13 @@ const SignUp = () => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     disabled={loading}
+                    placeholder="Nguyễn"
                   />
                 </div>
 
                 <div className="form-group">
                   <label htmlFor="lastName" className="form-label">
-                    Last Name
+                    Họ
                   </label>
                   <input
                     type="text"
@@ -99,6 +154,7 @@ const SignUp = () => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     disabled={loading}
+                    placeholder="Văn A"
                   />
                 </div>
               </div>
@@ -114,12 +170,13 @@ const SignUp = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
+                  placeholder="email@ví dụ.com"
                 />
               </div>
 
               <div className="form-group">
                 <label htmlFor="password" className="form-label">
-                  Password
+                  Mật khẩu
                 </label>
                 <input
                   type="password"
@@ -128,7 +185,41 @@ const SignUp = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
+                  placeholder="Tối thiểu 8 ký tự"
                 />
+                <div className="password-hints">
+                  <div className={`strength ${passwordRules.strength}`}>
+                    <span className="bar"></span>
+                    <span className="bar"></span>
+                    <span className="bar"></span>
+                    <span className="label">
+                      {passwordRules.strength === "strong"
+                        ? "Mạnh"
+                        : passwordRules.strength === "medium"
+                        ? "Trung bình"
+                        : passwordRules.strength === "weak"
+                        ? "Yếu"
+                        : ""}
+                    </span>
+                  </div>
+                  <ul className="rules">
+                    <li className={passwordRules.hasMinLen ? "ok" : ""}>
+                      Tối thiểu 8 ký tự
+                    </li>
+                    <li className={passwordRules.hasUpper ? "ok" : ""}>
+                      Có chữ hoa (A-Z)
+                    </li>
+                    <li className={passwordRules.hasLower ? "ok" : ""}>
+                      Có chữ thường (a-z)
+                    </li>
+                    <li className={passwordRules.hasNumber ? "ok" : ""}>
+                      Có số (0-9)
+                    </li>
+                    <li className={passwordRules.hasSpecial ? "ok" : ""}>
+                      Có ký tự đặc biệt (!@#$...)
+                    </li>
+                  </ul>
+                </div>
               </div>
 
               <button
@@ -141,25 +232,37 @@ const SignUp = () => {
                 {loading ? (
                   <span className="loading-spinner"></span>
                 ) : (
-                  "Create Account"
+                  "Tạo tài khoản"
                 )}
               </button>
 
               <div className="signin-link">
-                Already have an account?{" "}
+                Đã có tài khoản?{" "}
                 <Link to="/signin" className="link">
-                  Login
+                  Đăng nhập
                 </Link>
               </div>
 
               {/* Optional social signups retained but can be hidden until implemented */}
-              <div className="divider"><span>or</span></div>
+              <div className="divider">
+                <span>hoặc</span>
+              </div>
               <div className="oauth-buttons">
-                <button type="button" className="oauth-btn google-btn" onClick={handleGoogleSignup} disabled={loading}>
-                  <FaGoogle className="oauth-icon" /> Sign up with Google
+                <button
+                  type="button"
+                  className="oauth-btn google-btn"
+                  onClick={handleGoogleSignup}
+                  disabled={loading}
+                >
+                  <FaGoogle className="oauth-icon" /> Đăng ký với Google
                 </button>
-                <button type="button" className="oauth-btn facebook-btn" onClick={handleFacebookSignup} disabled={loading}>
-                  <FaFacebook className="oauth-icon" /> Sign up with Facebook
+                <button
+                  type="button"
+                  className="oauth-btn facebook-btn"
+                  onClick={handleFacebookSignup}
+                  disabled={loading}
+                >
+                  <FaFacebook className="oauth-icon" /> Đăng ký với Facebook
                 </button>
               </div>
             </form>

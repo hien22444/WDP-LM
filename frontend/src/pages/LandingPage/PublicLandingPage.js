@@ -9,13 +9,14 @@ const PublicLandingPage = () => {
 
   useEffect(() => {
     AOS.init({ duration: 1000 });
-    document.title = "Learnova - Tìm gia sư hoàn hảo";
-    
+    document.title = "EduMatch - Tìm gia sư hoàn hảo";
+
     // Add Font Awesome CSS if not already loaded
     if (!document.querySelector('link[href*="font-awesome"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href =
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css";
       document.head.appendChild(link);
     }
   }, []);
@@ -23,9 +24,13 @@ const PublicLandingPage = () => {
   return (
     <div className="home-container">
       <header className="header">
-        <div className="logo">Learnova</div>
+        <div className="logo">
+          <img src="/edumatch-logo.png" alt="EduMatch" className="brand-logo" />
+          <span className="brand-text">EduMatch</span>
+        </div>
         <nav className="nav">
           <a href="/tutor">Tìm gia sư</a>
+          <a href="/courses">Khóa học mở</a>
           <a href="/tutor-application">Trở thành gia sư</a>
           <a href="/about-us" className="about-us-link">
             Về Chúng Tôi
@@ -34,9 +39,9 @@ const PublicLandingPage = () => {
         <div className="right-section">
           {/* Search bar */}
           <div className="search-container">
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm gia sư, môn học..." 
+            <input
+              type="text"
+              placeholder="Tìm kiếm gia sư, môn học..."
               className="search-input"
             />
             <button className="search-btn">
@@ -71,24 +76,29 @@ const PublicLandingPage = () => {
                 Các lớp học của chúng tôi diễn ra trực tuyến theo lịch trình của
                 bạn.
               </p>
-              <button 
-                className="try-class-btn"
-                onClick={() => navigate("/signin")}
-              >
-                Tìm lớp Học →
-              </button>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <button
+                  className="try-class-btn"
+                  onClick={() => navigate("/courses")}
+                >
+                  Xem khóa học mở →
+                </button>
+                <button
+                  className="try-class-btn"
+                  onClick={() => navigate("/tutor")}
+                >
+                  Tìm gia sư →
+                </button>
+              </div>
               <div className="rating">
                 <div className="stars">⭐⭐⭐⭐⭐</div>
-                <span className="review-text">
-                  "Finally someone who gets my child."
-                </span>
               </div>
             </div>
             <div className="hero-right">
               <div className="tutor-images">
                 <div className="tutor-card">
                   <img
-                    src="https://images.unsplash.com/photo-1594736797933-d0f71d2a4af3?w=400&h=500&fit=crop&crop=face"
+                    src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760021803/giasu1_ehpjll.jpg"
                     alt="Female tutor"
                     className="tutor-img"
                   />
@@ -101,6 +111,59 @@ const PublicLandingPage = () => {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="stats" data-aos="fade-up">
+          <div className="stat-item">
+            <strong>+1200</strong>
+            <div>Gia sư đã xác thực</div>
+          </div>
+          <div className="stat-item">
+            <strong>+8000</strong>
+            <div>Buổi học hoàn thành</div>
+          </div>
+          <div className="stat-item">
+            <strong>4.9/5</strong>
+            <div>Mức hài lòng trung bình</div>
+          </div>
+        </section>
+
+        <section className="features-section" data-aos="fade-up">
+          <div className="features-container">
+            <div className="feature-item" data-aos="fade-right">
+              <div className="feature-icon personalized">
+                <i className="fas fa-star"></i>
+              </div>
+              <h3>Cá nhân hóa</h3>
+              <p>
+                Tất cả các buổi học kèm của chúng tôi đều theo hình thức 1-1,
+                giúp trẻ em nhận được sự quan tâm riêng biệt, cá nhân hóa.
+              </p>
+            </div>
+
+            <div className="feature-item" data-aos="fade-up">
+              <div className="feature-icon fully-online">
+                <i className="fas fa-laptop"></i>
+              </div>
+              <h3>Online và Offline</h3>
+              <p>
+                Các lớp học diễn ra trực tiếp hoặc online, với sự hỗ trợ tận
+                tình để giúp bạn bắt đầu và vận hành.
+              </p>
+            </div>
+
+            <div className="feature-item" data-aos="fade-left">
+              <div className="feature-icon experienced">
+                <i className="fas fa-graduation-cap"></i>
+              </div>
+              <h3>Gia sư giàu kinh nghiệm</h3>
+              <p>
+                Mỗi gia sư Learnova đều là những giáo viên giàu kinh nghiệm,
+                được tuyển chọn kỹ lưỡng vì khả năng truyền cảm hứng yêu thích
+                học tập.
+              </p>
             </div>
           </div>
         </section>
@@ -119,7 +182,7 @@ const PublicLandingPage = () => {
               </p>
               <div className="step-img">
                 <img
-                  src="https://res.cloudinary.com/djeilqn5r/image/upload/v1752488056/mother-giving-advice-son-flat-design-style_207579-1140_ujexkh.avif"
+                  src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760022509/giasu4_jq2kmi.jpg"
                   alt="Find your tutor"
                 />
               </div>
@@ -135,7 +198,7 @@ const PublicLandingPage = () => {
               </p>
               <div className="step-img">
                 <img
-                  src="https://res.cloudinary.com/djeilqn5r/image/upload/v1752488027/Video-Call-1024x768-1_qkogsr.jpg"
+                  src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760022897/giasu2_mzabfd.jpg"
                   alt="Start learning"
                 />
               </div>
@@ -151,7 +214,7 @@ const PublicLandingPage = () => {
               </p>
               <div className="step-img">
                 <img
-                  src="https://res.cloudinary.com/djeilqn5r/image/upload/v1752488060/learning-unicef_peroiz.jpg"
+                  src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760022509/giasu3_oyghtw.png"
                   alt="Repeat learning"
                 />
               </div>
@@ -163,7 +226,7 @@ const PublicLandingPage = () => {
           <section className="become-tutor">
             <div className="become-left">
               <img
-                src="https://res.cloudinary.com/djeilqn5r/image/upload/v1752487669/Tutorat-a-Winnipeg-Tuteurs-a-Winnipeg-SOSprof-Tutoring-in-Winnipeg-Tutors-in-Winnipeg-SOSteacher-1024x932_w7wgdr.jpg"
+                src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760022719/giasu7_txil1b.jpg"
                 alt="Trở thành gia sư"
               />
             </div>
@@ -171,24 +234,25 @@ const PublicLandingPage = () => {
               <h2>Trở thành gia sư</h2>
               <p>
                 Kiếm tiền bằng cách chia sẻ kiến thức chuyên môn với học viên.
-                Đăng ký ngay để bắt đầu dạy học trực tuyến cùng Learnova.
+                Đăng ký ngay để bắt đầu dạy học trực tuyến cùng FindTutor.
               </p>
               <ul>
-                <li>🌟 Tìm học viên mới</li>
-                <li>🚀 Phát triển sự nghiệp</li>
-                <li>💸 Nhận thanh toán an toàn</li>
+                <li> Tìm học viên mới</li>
+                <li> Phát triển sự nghiệp</li>
+                <li> Nhận thanh toán an toàn</li>
               </ul>
-              <button 
+              <button
                 className="btn-primary"
                 onClick={() => navigate("/signup")}
               >
-                Đăng ký ngay →
+                Trở thành gia sư →
               </button>
-              <button 
-                className="learn-more-btn"
+              <button
+                type="button"
+                className="learn-more-link"
                 onClick={() => navigate("/signin")}
               >
-                Đăng nhập để tìm hiểu thêm
+                Tìm hiểu cách hoạt động
               </button>
             </div>
           </section>
@@ -198,7 +262,7 @@ const PublicLandingPage = () => {
       <footer className="site-footer" data-aos="fade-up">
         <div className="footer-content">
           <div className="footer-logo">
-            <h3>Learnova</h3>
+            <h3>EduMatch</h3>
             <p>Kết nối học viên với gia sư hàng đầu trên việt nam.</p>
           </div>
           <div className="footer-links">
@@ -208,7 +272,9 @@ const PublicLandingPage = () => {
                 <button onClick={() => navigate("/signin")}>Giới thiệu</button>
               </li>
               <li>
-                <button onClick={() => navigate("/signin")}>Cơ hội nghề nghiệp</button>
+                <button onClick={() => navigate("/signin")}>
+                  Cơ hội nghề nghiệp
+                </button>
               </li>
               <li>
                 <button onClick={() => navigate("/signin")}>Blog</button>
@@ -219,13 +285,17 @@ const PublicLandingPage = () => {
             <h4>Hỗ trợ</h4>
             <ul>
               <li>
-                <button onClick={() => navigate("/signin")}>Trung tâm trợ giúp</button>
+                <button onClick={() => navigate("/signin")}>
+                  Trung tâm trợ giúp
+                </button>
               </li>
               <li>
                 <button onClick={() => navigate("/signin")}>Liên hệ</button>
               </li>
               <li>
-                <button onClick={() => navigate("/signin")}>Câu hỏi thường gặp</button>
+                <button onClick={() => navigate("/signin")}>
+                  Câu hỏi thường gặp
+                </button>
               </li>
             </ul>
           </div>
@@ -259,7 +329,7 @@ const PublicLandingPage = () => {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2025 Learnova. All rights reserved.</p>
+          <p>© 2025 EduMatch. All rights reserved.</p>
         </div>
       </footer>
     </div>

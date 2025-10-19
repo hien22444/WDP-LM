@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const auth = require("../middlewares/auth");
+const { auth } = require("../middlewares/auth");
 const dashboardController = require("../controllers/dashboardController");
 
 // Dashboard routes - yêu cầu authentication

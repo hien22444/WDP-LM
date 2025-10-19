@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../../redux/slices/userSlice";
 import {
   getCurrentUserApi,
   updateUserProfileApi,
   logoutApi,
 } from "../../services/ApiService";
+import TutorService from "../../services/TutorService";
 import { toast } from "react-toastify";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -19,11 +21,25 @@ const Profile = () => {
   const [editForm, setEditForm] = useState({});
   const [updating, setUpdating] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const [tutorProfile, setTutorProfile] = useState(null);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector((state) => state.user);
+
+  // Compute role using the same logic as LandingPage
+  const role = useMemo(() => {
+    return (
+      userProfile?.account?.role ||
+      userProfile?.profile?.role ||
+      user?.account?.role ||
+      user?.profile?.role ||
+      user?.role
+    );
+  }, [userProfile, user]);
 
   // Fetch user profile data
   const fetchUserProfile = async () => {
@@ -32,6 +48,13 @@ const Profile = () => {
       const response = await getCurrentUserApi();
       setUserProfile(response.user);
       setError(null);
+      // Fetch tutor onboarding status in parallel (ignore error silently)
+      try {
+        const tp = await TutorService.getMyTutorProfile();
+        setTutorProfile(tp);
+      } catch (e) {
+        // noop
+      }
     } catch (err) {
       setError("Không thể tải thông tin người dùng");
       console.error("Failed to fetch user profile:", err);
@@ -50,6 +73,44 @@ const Profile = () => {
 
     fetchUserProfile();
   }, [isAuthenticated, navigate]);
+
+  // Debug user role
+  useEffect(() => {
+    console.log("=== PROFILE ROLE DEBUG ===");
+    console.log("Current user data:", user);
+    console.log("User profile data:", userProfile);
+    console.log("User role (user.account.role):", user?.account?.role);
+    console.log("Computed role:", role);
+    console.log("==========================");
+  }, [user, userProfile, role]);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  const handleAvatarKeyDown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setDropdownOpen((prev) => !prev);
+    }
+    if (event.key === "Escape") {
+      setDropdownOpen(false);
+    }
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -130,11 +191,11 @@ const Profile = () => {
   const handleLogout = async () => {
     try {
       await logoutApi();
-      dispatch({ type: "DO_LOGOUT" });
+      dispatch(logout());
       navigate("/signin");
     } catch (error) {
       console.error("Logout error:", error);
-      dispatch({ type: "DO_LOGOUT" });
+      dispatch(logout());
       navigate("/signin");
     }
   };
@@ -414,9 +475,9 @@ const Profile = () => {
       </div>
 
       <div className="main-content">
-        <div className="profile-header">
+        <div className="profile-header" style={{ gap: 16 }}>
           <div className="welcome-section">
-            <h1>Welcome, {userProfile?.profile?.full_name || "User"}</h1>
+            <h1>Xin chào, {userProfile?.profile?.full_name || "User"}</h1>
             <p className="date">
               {new Date().toLocaleDateString("en-US", {
                 weekday: "short",
@@ -426,149 +487,59 @@ const Profile = () => {
               })}
             </p>
           </div>
-          <div className="header-controls">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Search"
-                className="search-input"
-              />
-              <i className="search-icon">
-                <svg
-                  width="23"
-                  height="23"
-                  viewBox="0 0 23 23"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M10.8599 19.7917C15.7713 19.7917 19.7529 15.8101 19.7529 10.8986C19.7529 5.98711 15.7713 2.00555 10.8599 2.00555C5.94835 2.00555 1.9668 5.98711 1.9668 10.8986C1.9668 15.8101 5.94835 19.7917 10.8599 19.7917Z"
-                    stroke="#ADA7A7"
-                    stroke-width="1.40417"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M20.6889 20.7278L18.8167 18.8556"
-                    stroke="#ADA7A7"
-                    stroke-width="1.40417"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </i>
+          {/* Đã có menu avatar ở header chung, bỏ avatar trong banner để tránh dư */}
+        </div>
+
+        {/* Tutor onboarding status banner */}
+        {tutorProfile?.status && (
+          <div className={`tutor-status-banner status-${tutorProfile.status}`}>
+            <div className="status-info">
+              <span className="status-dot" />
+              <strong>
+                {tutorProfile.status === "approved" &&
+                  "Hồ sơ gia sư đã được duyệt"}
+                {tutorProfile.status === "pending" &&
+                  "Hồ sơ gia sư đang chờ duyệt"}
+                {tutorProfile.status === "rejected" &&
+                  "Hồ sơ gia sư bị từ chối"}
+                {tutorProfile.status === "draft" &&
+                  "Bạn chưa hoàn tất đăng ký gia sư"}
+              </strong>
+              {tutorProfile?.verification?.adminNotes && (
+                <span className="admin-notes">
+                  {" "}
+                  — {tutorProfile.verification.adminNotes}
+                </span>
+              )}
             </div>
-            <div className="notification-icon">
-              <i>
-                <svg
-                  width="24"
-                  height="23"
-                  viewBox="0 0 24 23"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+            <div className="status-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => navigate("/tutor/onboarding")}
+              >
+                Cập nhật hồ sơ gia sư
+              </button>
+              {tutorProfile.status === "approved" ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => navigate("/dashboard")}
                 >
-                  <path
-                    d="M11.8167 6.1619V9.27915"
-                    stroke="#ADA7A7"
-                    stroke-width="1.40417"
-                    stroke-miterlimit="10"
-                    stroke-linecap="round"
-                  />
-                  <path
-                    d="M11.8352 2.00555C8.3903 2.00555 5.60069 4.79516 5.60069 8.24005V10.2059C5.60069 10.8424 5.33858 11.7973 5.01094 12.3402L3.82208 14.3248C3.09191 15.5511 3.59741 16.9178 4.94541 17.3671C9.42002 18.8556 14.2597 18.8556 18.7343 17.3671C19.9981 16.9459 20.541 15.4668 19.8577 14.3248L18.6688 12.3402C18.3412 11.7973 18.079 10.8331 18.079 10.2059V8.24005C18.0697 4.81389 15.2614 2.00555 11.8352 2.00555Z"
-                    stroke="#ADA7A7"
-                    stroke-width="1.40417"
-                    stroke-miterlimit="10"
-                    stroke-linecap="round"
-                  />
-                  <path
-                    d="M14.9337 17.7509C14.9337 19.464 13.5296 20.8682 11.8165 20.8682C10.9646 20.8682 10.1783 20.5125 9.61661 19.9508C9.05494 19.3891 8.69922 18.6028 8.69922 17.7509"
-                    stroke="#ADA7A7"
-                    stroke-width="1.40417"
-                    stroke-miterlimit="10"
-                  />
-                </svg>
-              </i>
-            </div>
-            <div className="user-avatar">
-              <img
-                src={
-                  userProfile?.profile?.image ||
-                  "https://res.cloudinary.com/djeilqn5r/image/upload/v1752488100/default-avatar-white_placeholder.png"
-                }
-                alt="User Avatar"
-                onClick={() =>
-                  document
-                    .querySelector(".profile-dropdown-menu")
-                    ?.classList.toggle("show")
-                }
-              />
-              <div className="profile-dropdown-menu">
-                <button onClick={() => navigate("/profile")}>
-                  Trang cá nhân
+                  Vào bảng điều khiển
                 </button>
-
-                {user?.account?.role === "learner" && (
-                  <>
-                    <button onClick={() => navigate("/learner/courses")}>
-                      Khóa học của tôi
-                    </button>
-                    <button onClick={() => navigate("/learner/bookings")}>
-                      Lịch học
-                    </button>
-                    {/* demo redirect to static demo page */}
-                    <button
-                      onClick={() =>
-                        (window.location.href = "/demo_payment.html")
-                      }
-                    >
-                      Thanh toán
-                    </button>
-                  </>
-                )}
-
-                {user?.account?.role === "tutor" && (
-                  <>
-                    <button onClick={() => navigate("/tutor/students")}>
-                      Học viên của tôi
-                    </button>
-                    <button onClick={() => navigate("/tutor/schedule")}>
-                      Lịch dạy
-                    </button>
-                    <button onClick={() => navigate("/tutor/earnings")}>
-                      Thu nhập
-                    </button>
-                    <button onClick={() => navigate("/tutor/reviews")}>
-                      Đánh giá
-                    </button>
-                  </>
-                )}
-
-                {user?.account?.role === "admin" && (
-                  <>
-                    <button onClick={() => navigate("/admin/dashboard")}>
-                      Bảng điều khiển
-                    </button>
-                    <button onClick={() => navigate("/admin/users")}>
-                      Quản lý người dùng
-                    </button>
-                    <button onClick={() => navigate("/admin/system")}>
-                      Cài đặt hệ thống
-                    </button>
-                  </>
-                )}
-
-                <button onClick={() => navigate("/change-password")}>
-                  Đổi mật khẩu
+              ) : (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => navigate("/profile")}
+                >
+                  Xem hồ sơ
                 </button>
-                <div className="dropdown-divider"></div>
-                <button onClick={handleLogout} className="logout-menu-btn">
-                  Đăng xuất
-                </button>
-              </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
         <div className="profile-content">
           <div className="profile-card">
@@ -578,7 +549,7 @@ const Profile = () => {
                   <img
                     src={
                       userProfile?.profile?.image ||
-                      "https://res.cloudinary.com/djeilqn5r/image/upload/v1752488100/default-avatar-white_placeholder.png"
+                      "https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760334427/whiteava_m3gka1.jpg"
                     }
                     alt="Profile Avatar"
                     className="profile-avatar"
@@ -606,6 +577,7 @@ const Profile = () => {
                     accept="image/*"
                     onChange={handleAvatarUpload}
                     style={{ display: "none" }}
+                    aria-label="Tải lên ảnh đại diện"
                   />
                 </div>
                 <div className="user-details">
@@ -613,14 +585,19 @@ const Profile = () => {
                   <p className="email">{userProfile?.account?.email}</p>
                 </div>
               </div>
-              <button className="edit-btn" onClick={handleEditToggle}>
-                {isEditing ? "Hủy" : "Edit"}
+              <button
+                type="button"
+                className="edit-btn"
+                onClick={handleEditToggle}
+              >
+                {isEditing ? "Hủy" : "Chỉnh sửa"}
               </button>
               {isEditing && (
                 <button
                   className="save-btn"
                   onClick={handleSaveChanges}
                   disabled={updating}
+                  type="button"
                 >
                   {updating ? "Đang lưu..." : "Lưu"}
                 </button>
@@ -628,12 +605,14 @@ const Profile = () => {
             </div>
 
             <div className="profile-form">
+              <h3 className="section-title">Thông tin cá nhân</h3>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Họ và Tên</label>
+                  <label htmlFor="full_name">Họ và Tên</label>
                   <input
                     type="text"
                     name="full_name"
+                    id="full_name"
                     value={
                       isEditing
                         ? editForm.full_name || ""
@@ -642,13 +621,15 @@ const Profile = () => {
                     onChange={handleInputChange}
                     readOnly={!isEditing}
                     className="form-input"
+                    placeholder={isEditing ? "Nhập họ và tên" : undefined}
                   />
                 </div>
                 <div className="form-group">
-                  <label>Số Điện Thoại</label>
+                  <label htmlFor="phone_number">Số Điện Thoại</label>
                   <input
                     type="text"
                     name="phone_number"
+                    id="phone_number"
                     value={
                       isEditing
                         ? editForm.phone_number || ""
@@ -657,25 +638,29 @@ const Profile = () => {
                     onChange={handleInputChange}
                     readOnly={!isEditing}
                     className="form-input"
+                    inputMode="tel"
+                    placeholder={isEditing ? "Nhập số điện thoại" : undefined}
                   />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Email</label>
+                  <label htmlFor="email">Email</label>
                   <input
                     type="email"
+                    id="email"
                     value={userProfile?.account?.email || ""}
                     readOnly
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Ngày Sinh</label>
+                  <label htmlFor="date_of_birth">Ngày Sinh</label>
                   <input
                     type={isEditing ? "date" : "text"}
                     name="date_of_birth"
+                    id="date_of_birth"
                     value={
                       isEditing
                         ? editForm.date_of_birth || ""
@@ -684,16 +669,18 @@ const Profile = () => {
                     onChange={handleInputChange}
                     readOnly={!isEditing}
                     className="form-input"
+                    placeholder={isEditing ? "Chọn ngày sinh" : undefined}
                   />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Giới Tính</label>
+                  <label htmlFor="gender">Giới Tính</label>
                   {isEditing ? (
                     <select
                       name="gender"
+                      id="gender"
                       value={editForm.gender || ""}
                       onChange={handleInputChange}
                       className="form-input"
@@ -713,9 +700,10 @@ const Profile = () => {
                   )}
                 </div>
                 <div className="form-group">
-                  <label>Vai Trò</label>
+                  <label htmlFor="role">Vai Trò</label>
                   <input
                     type="text"
+                    id="role"
                     value={getRoleDisplayName(userProfile?.account?.role)}
                     readOnly
                     className="form-input"
@@ -723,11 +711,13 @@ const Profile = () => {
                 </div>
               </div>
 
+              <h3 className="section-title">Địa chỉ</h3>
               <div className="form-row">
                 <div className="form-group full-width">
-                  <label>Địa chỉ</label>
+                  <label htmlFor="address">Địa chỉ</label>
                   <textarea
                     name="address"
+                    id="address"
                     value={
                       isEditing
                         ? editForm.address || ""
@@ -737,6 +727,7 @@ const Profile = () => {
                     readOnly={!isEditing}
                     className="form-textarea"
                     rows="3"
+                    placeholder={isEditing ? "Nhập địa chỉ cụ thể" : undefined}
                   />
                 </div>
               </div>

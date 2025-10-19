@@ -18,7 +18,7 @@ html, body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
   overflow-x: hidden;
 }
 
@@ -28,15 +28,29 @@ html, body {
   align-items: center;
   padding: 20px 10%;
   background-color: #ffffff;
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
   margin: 0;
 }
 
 .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-weight: bold;
   font-size: 40px;
   color: #121117;
+
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+  }
+
+  .brand-text {
+    font-size: 28px;
+    letter-spacing: -0.3px;
+  }
 }
 
 .nav {
@@ -45,7 +59,7 @@ html, body {
   gap: 30px;
   flex-wrap: wrap;
   
-  a {
+  a, .nav-btn {
     margin: 0;
     text-decoration: none;
     color: #121117;
@@ -53,6 +67,10 @@ html, body {
     font-size: 18px;
     transition: color 0.3s ease;
     white-space: nowrap;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
 
     &:hover {
       color: #ff62ad;
@@ -239,10 +257,71 @@ html, body {
   }
 }
 
+// Profile Dropdown Menu with smooth animations (matching Profile.scss)
+.profile-dropdown-menu {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1002;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  button {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 14px;
+    color: #2c3e50;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border-radius: 0;
+
+    &:first-child {
+      border-radius: 12px 12px 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 12px 12px;
+    }
+
+    &:hover {
+      background: #f8f9fa;
+    }
+
+    &.logout-menu-btn {
+      color: #e74c3c;
+      
+      &:hover {
+        background: #fee;
+      }
+    }
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background: #e9ecef;
+    margin: 8px 0;
+  }
+}
+
 .new-hero {
   background: linear-gradient(135deg, #f8f9ff 0%, #ede9fe 100%);
-  padding: 80px 10%;
-  width: 100vw;
+  padding: 80px clamp(16px, 4vw, 48px);
+  width: 100%;
   box-sizing: border-box;
   margin: 0;
   min-height: 100vh;
@@ -466,7 +545,7 @@ html, body {
   padding: 60px 10%;
   text-align: center;
   flex-wrap: wrap;
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
   margin: 0;
 
@@ -484,9 +563,9 @@ html, body {
 
 // Features Section
 .features-section {
-  padding: 80px 10%;
+  padding: 80px clamp(16px, 4vw, 48px);
   background: linear-gradient(135deg, #f8f9ff 0%, #ede9fe 100%);
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
   margin: 0;
 
@@ -586,10 +665,10 @@ html, body {
 }
 
 .how-it-works {
-  padding: 80px 10%;
+  padding: 80px clamp(16px, 4vw, 48px);
   background-color: #fff;
   text-align: center;
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
   margin: 0;
 
@@ -602,7 +681,7 @@ html, body {
 
   .steps {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 30px;
     max-width: 1400px;
     margin: 0 auto;
@@ -694,9 +773,9 @@ html, body {
 .div-become-tutor {
   display: flex;
   justify-content: center;
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
-  padding: 80px 10% 80px 10%;
+  padding: 80px clamp(16px, 4vw, 48px);
   margin: 0;
   background-color: #fff;
 }
@@ -743,11 +822,11 @@ html, body {
     }
 
     &::before {
-      left: -30px;
+      left: 0;
     }
 
     &::after {
-      left: -60px;
+      left: 0;
     }
   }
 
@@ -816,9 +895,9 @@ html, body {
 .site-footer {
   background-color: #121117;
   color: #fff;
-  padding: 50px 10% 20px;
+  padding: 50px clamp(16px, 4vw, 48px) 20px;
   margin-top: 0;
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
   margin-left: 0;
   margin-right: 0;
@@ -1202,6 +1281,23 @@ html, body {
     &:hover img {
       transform: scale(1.05);
     }
+  }
+}
+
+// Learn more link button style
+.learn-more-link {
+  background: none;
+  border: none;
+  color: #ff62ad;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: underline;
+  margin-top: 10px;
+  font-family: inherit;
+  transition: color 0.3s ease;
+  
+  &:hover {
+    color: #e04d8a;
   }
 }
 

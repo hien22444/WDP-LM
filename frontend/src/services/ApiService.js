@@ -94,7 +94,10 @@ export const verifyAccountApi = async (token) => {
 
 export const logoutApi = async () => {
   try {
-    const response = await apiClient.post("/auth/logout");
+    // send refreshToken when available to server so it can invalidate it
+    const refreshToken = Cookies.get("refreshToken");
+    const body = refreshToken ? { refreshToken } : {};
+    const response = await apiClient.post("/auth/logout", body);
     Cookies.remove("accessToken");
     Cookies.remove("refreshToken");
     return response.data;
@@ -174,7 +177,19 @@ export const resendOTPApi = async (email) => {
     throw error.response?.data || { message: "Failed to resend OTP" };
   }
 };
-
+// Resend verification email (newer behavior)
+export const resendVerification = async (email) => {
+  try {
+    const response = await apiClient.post("/auth/resend-verification", {
+      email,
+    });
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data || { message: "Failed to resend verification email" }
+    );
+  }
+};
 // OAuth API functions
 export const googleAuthApi = async (credential) => {
   try {

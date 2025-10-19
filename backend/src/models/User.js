@@ -75,8 +75,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // Index phụ (tùy chọn nhưng hữu ích)
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ phone_number: 1 }, { unique: true, sparse: true });
+// Tránh trùng lặp với unique đã khai báo ở field
 userSchema.index({ role: 1, status: 1 });
 
 module.exports = mongoose.model("User", userSchema);

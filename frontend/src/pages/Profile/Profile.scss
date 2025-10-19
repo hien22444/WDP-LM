@@ -103,6 +103,44 @@
   margin-left: 80px;
 }
 
+// Tutor onboarding status banner
+.tutor-status-banner {
+  margin: 0 40px 20px 40px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+
+  &.status-approved { background: #ecfdf5; color: #065f46; }
+  &.status-pending { background: #fff7ed; color: #92400e; }
+  &.status-rejected { background: #fef2f2; color: #991b1b; }
+  &.status-draft { background: #eff6ff; color: #1e40af; }
+
+  .status-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%; background: currentColor;
+      display: inline-block;
+    }
+    .admin-notes { opacity: 0.85; font-weight: 500; }
+  }
+
+  .status-actions {
+    display: flex; gap: 10px;
+    .btn-secondary, .btn-primary {
+      padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
+    }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+    .btn-primary { background: linear-gradient(135deg, #ff62ad, #2cd4c0); color: white; }
+  }
+}
+
 .profile-header {
   background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
   padding: 20px 40px;
@@ -210,6 +248,14 @@
   border-radius: 20px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+}
+
+// Section title for form groups
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 10px 0 20px 0;
 }
 
 .profile-info {
@@ -408,6 +454,11 @@
         cursor: not-allowed;
         color: #7f8c8d;
       }
+
+      &:focus-visible {
+        outline: 3px solid rgba(52, 152, 219, 0.4);
+        outline-offset: 1px;
+      }
     }
 
     .form-textarea {
@@ -435,6 +486,11 @@
         background-color: #f8f9fa;
         cursor: not-allowed;
         color: #7f8c8d;
+      }
+
+      &:focus-visible {
+        outline: 3px solid rgba(52, 152, 219, 0.4);
+        outline-offset: 1px;
       }
     }
 
@@ -573,6 +629,11 @@
     cursor: pointer;
     transition: background-color 0.3s ease;
     border-radius: 0;
+
+    &:focus-visible {
+      outline: none;
+      background: #eef6ff;
+    }
 
     &:first-child {
       border-radius: 12px 12px 0 0;

@@ -21,7 +21,7 @@ const SignIn = () => {
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/home");
+      navigate("/");
     }
   }, [isAuthenticated, navigate]);
 
@@ -42,13 +42,39 @@ const SignIn = () => {
     const result = await dispatch(doLogin(email, password));
 
     if (result.success) {
-      navigate("/home");
+      navigate("/");
     }
   };
 
   const handleGoogleLogin = () => {
-    const backendOrigin = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1$/, '');
-    window.location.href = backendOrigin + '/google/start';
+    const backendOrigin = (
+      process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1"
+    ).replace(/\/api\/v1$/, "");
+    const googleAuthUrl = `${backendOrigin}/google/start`;
+
+    // Calculate center position
+    const width = 600;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    // Open popup window centered
+    const popup = window.open(
+      googleAuthUrl,
+      "google-login",
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no`
+    );
+
+    // Listen for popup to close or receive message
+    const checkClosed = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(checkClosed);
+        // Check if user is logged in after popup closes
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    }, 1000);
   };
 
   const handleFacebookLogin = () => {
@@ -61,10 +87,9 @@ const SignIn = () => {
         <div className="signin-form-section">
           <div className="form-wrapper">
             <div className="form-header">
-              <h1 className="form-title">Welcome Back 👋</h1>
+              <h1 className="form-title">Chào mừng bạn trở lại 👋</h1>
               <p className="form-subtitle">
-                <br />
-                Sign in to start.
+                Đăng nhập để tiếp tục học và kết nối với gia sư phù hợp.
               </p>
             </div>
 
@@ -77,7 +102,7 @@ const SignIn = () => {
                   type="email"
                   id="email"
                   className="form-input"
-                  placeholder="Example@email.com"
+                  placeholder="email@ví dụ.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -86,13 +111,13 @@ const SignIn = () => {
 
               <div className="form-group">
                 <label htmlFor="password" className="form-label">
-                  Password
+                  Mật khẩu
                 </label>
                 <input
                   type="password"
                   id="password"
                   className="form-input"
-                  placeholder="At least 8 characters"
+                  placeholder="Tối thiểu 8 ký tự"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
@@ -101,7 +126,7 @@ const SignIn = () => {
 
               <div className="forgot-password">
                 <Link to="/forgot-password" className="forgot-link">
-                  Forgot Password?
+                  Quên mật khẩu?
                 </Link>
               </div>
 
@@ -115,12 +140,12 @@ const SignIn = () => {
                 {loading ? (
                   <span className="loading-spinner"></span>
                 ) : (
-                  "Sign in"
+                  "Đăng nhập"
                 )}
               </button>
 
               <div className="divider">
-                <span>Or</span>
+                <span>Hoặc</span>
               </div>
 
               <div className="oauth-buttons">
@@ -131,7 +156,7 @@ const SignIn = () => {
                   disabled={loading}
                 >
                   <FaGoogle className="oauth-icon" />
-                  Sign in with Google
+                  Đăng nhập với Google
                 </button>
 
                 <button
@@ -141,14 +166,14 @@ const SignIn = () => {
                   disabled={loading}
                 >
                   <FaFacebook className="oauth-icon" />
-                  Sign in with Facebook
+                  Đăng nhập với Facebook
                 </button>
               </div>
 
               <div className="signup-link">
-                Don't you have an account?{" "}
+                Chưa có tài khoản?{" "}
                 <Link to="/signup" className="link">
-                  Sign up
+                  Đăng ký
                 </Link>
               </div>
             </form>

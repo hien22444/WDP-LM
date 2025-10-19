@@ -181,6 +181,20 @@
       const totalAmountEl = document.getElementById('total-amount');
       const grandTotalEl = document.getElementById('grand-total');
 
+      // Read amount and product from query params if provided
+      const urlParams = new URLSearchParams(window.location.search);
+      const providedAmount = urlParams.get('amount');
+      const providedProduct = urlParams.get('product');
+      if (providedAmount) {
+        // ensure numeric formatting
+        const parsed = parseInt(providedAmount, 10);
+        if (!isNaN(parsed)) unitPriceEl.textContent = parsed.toLocaleString('vi-VN');
+      }
+      if (providedProduct) {
+        const td = document.querySelector('tbody tr td:first-child');
+        if (td) td.textContent = providedProduct;
+      }
+
       function computeTotal() {
         const qty = Math.max(1, parseInt(quantityInput.value || '1', 10));
         const unit = parseInt(unitPriceEl.textContent.replace(/[^0-9]/g, '') || '0', 10);
