@@ -1,0 +1,941 @@
+.tutor-profile-page {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+
+  .tutor-profile-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+
+    .loading-spinner {
+      text-align: center;
+      
+      i {
+        font-size: 3rem;
+        color: #667eea;
+        margin-bottom: 20px;
+      }
+
+      p {
+        font-size: 1.2rem;
+        color: #666;
+      }
+    }
+  }
+
+  .tutor-profile-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+
+    .error-content {
+      text-align: center;
+      max-width: 500px;
+      padding: 40px;
+
+      i {
+        font-size: 4rem;
+        color: #e74c3c;
+        margin-bottom: 20px;
+      }
+
+      h3 {
+        font-size: 1.8rem;
+        color: #333;
+        margin-bottom: 15px;
+      }
+
+      p {
+        color: #666;
+        margin-bottom: 20px;
+      }
+
+      .back-btn {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #5a67d8;
+        }
+      }
+    }
+  }
+
+  .tutor-profile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px 0;
+
+    .tutor-header-content {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+
+      .tutor-avatar-section {
+        flex-shrink: 0;
+
+        .tutor-avatar {
+          position: relative;
+
+          img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid white;
+            object-fit: cover;
+          }
+
+          .verified-badge {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+
+            i {
+              font-size: 0.6rem;
+            }
+          }
+        }
+      }
+
+      .tutor-basic-info {
+        flex: 1;
+
+        .tutor-name {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin: 0 0 15px 0;
+        }
+
+        .tutor-rating {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 15px;
+
+          .stars {
+            display: flex;
+            gap: 2px;
+
+            i {
+              color: #ffc107;
+              font-size: 1.2rem;
+
+              &.filled {
+                color: #ffc107;
+              }
+            }
+          }
+
+          .rating-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+          }
+
+          .review-count {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+          }
+        }
+
+        .tutor-subjects {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 15px;
+
+          .subject-tag {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+          }
+        }
+
+        .tutor-location {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 15px;
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .tutor-price {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .price-label {
+            color: rgba(255, 255, 255, 0.8);
+          }
+
+          .price-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+          }
+
+          .price-unit {
+            color: rgba(255, 255, 255, 0.8);
+          }
+        }
+      }
+
+      .tutor-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .book-session-btn,
+        .contact-btn {
+          padding: 12px 24px;
+          border: 2px solid white;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          &:hover {
+            background: white;
+            color: #667eea;
+          }
+        }
+
+        .book-session-btn {
+          background: white;
+          color: #667eea;
+
+          &:hover {
+            background: #f8f9fa;
+          }
+        }
+
+        .contact-btn {
+          background: transparent;
+          color: white;
+        }
+      }
+    }
+  }
+
+  .tutor-profile-content {
+    padding: 40px 0;
+
+    .tutor-content-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 40px;
+
+      .tutor-main-content {
+        .tutor-tabs {
+          display: flex;
+          border-bottom: 2px solid #e9ecef;
+          margin-bottom: 30px;
+
+          .tab-btn {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+
+            &.active {
+              color: #667eea;
+              border-bottom-color: #667eea;
+            }
+
+            &:hover {
+              color: #667eea;
+            }
+          }
+        }
+
+        .tab-content {
+          .about-section {
+            h3 {
+              font-size: 1.8rem;
+              margin-bottom: 20px;
+              color: #333;
+            }
+
+            .bio-content {
+              background: white;
+              padding: 25px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              margin-bottom: 25px;
+
+              p {
+                color: #555;
+                line-height: 1.6;
+                margin: 0;
+              }
+            }
+
+            .tutor-details-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: 20px;
+
+              .detail-item {
+                background: white;
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                display: flex;
+                align-items: center;
+                gap: 15px;
+
+                i {
+                  font-size: 1.5rem;
+                  color: #667eea;
+                }
+
+                h4 {
+                  margin: 0 0 5px 0;
+                  color: #333;
+                  font-size: 1.1rem;
+                }
+
+                p {
+                  margin: 0;
+                  color: #666;
+                }
+              }
+            }
+          }
+
+          .subjects-section {
+            h3 {
+              font-size: 1.8rem;
+              margin-bottom: 20px;
+              color: #333;
+            }
+
+            .subjects-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 20px;
+
+              .subject-card {
+                background: white;
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                text-align: center;
+
+                h4 {
+                  color: #333;
+                  margin-bottom: 10px;
+                  font-size: 1.2rem;
+                }
+
+                p {
+                  color: #666;
+                  font-size: 0.9rem;
+                }
+
+                .subject-courses-count {
+                  background: #e3f2fd;
+                  color: #1976d2;
+                  padding: 8px 12px;
+                  border-radius: 20px;
+                  font-size: 0.8rem;
+                  margin-top: 10px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+
+                  i {
+                    font-size: 0.7rem;
+                  }
+                }
+              }
+            }
+          }
+
+          .courses-section {
+            margin-top: 2rem;
+            
+            .courses-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 2rem;
+
+              h3 {
+                font-size: 1.8rem;
+                font-weight: 700;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+              }
+
+              .course-actions {
+                display: flex;
+                gap: 12px;
+
+                .create-course-btn {
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  color: white;
+                  border: none;
+                  padding: 10px 16px;
+                  border-radius: 8px;
+                  font-size: 0.9rem;
+                  font-weight: 500;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  transition: all 0.2s;
+
+                  &:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                  }
+
+                  i {
+                    font-size: 0.8rem;
+                  }
+                }
+
+                .manage-course-btn {
+                  background: #6c757d;
+                  color: white;
+                  border: none;
+                  padding: 10px 16px;
+                  border-radius: 8px;
+                  font-size: 0.9rem;
+                  font-weight: 500;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  transition: all 0.2s;
+
+                  &:hover {
+                    background: #5a6268;
+                    transform: translateY(-1px);
+                  }
+
+                  i {
+                    font-size: 0.8rem;
+                  }
+                }
+              }
+            }
+
+            .loading-courses {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: 40px;
+              background: white;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+              .spinner {
+                width: 40px;
+                height: 40px;
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin-bottom: 15px;
+              }
+
+              .loading-text {
+                color: #666;
+                font-size: 1rem;
+              }
+            }
+
+            .courses-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+              gap: 2rem;
+
+              .course-card {
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+                transition: all 0.3s ease;
+
+                &:hover {
+                  transform: translateY(-4px);
+                  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                }
+
+                .course-header {
+                  padding: 1.5rem;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  color: white;
+
+                  .course-title {
+                    font-size: 1.3rem;
+                    font-weight: 700;
+                    margin: 0 0 0.5rem 0;
+                  }
+
+                  .course-price {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    opacity: 0.9;
+                  }
+                }
+
+                .course-details {
+                  padding: 1.5rem;
+
+                  .detail-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    margin-bottom: 1rem;
+
+                    &:last-child {
+                      margin-bottom: 0;
+                    }
+
+                    .icon {
+                      color: #667eea;
+                      width: 16px;
+                      text-align: center;
+                    }
+
+                    .detail-text {
+                      color: #555;
+                      font-size: 0.95rem;
+                    }
+                  }
+                }
+
+                .course-notes {
+                  padding: 0 1.5rem 1.5rem;
+                  border-top: 1px solid #f0f0f0;
+                  margin-top: 1rem;
+                  padding-top: 1rem;
+
+                  p {
+                    color: #666;
+                    font-size: 0.9rem;
+                    line-height: 1.5;
+                    margin: 0;
+                  }
+                }
+
+                .book-btn {
+                  width: 100%;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  color: white;
+                  border: none;
+                  padding: 12px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.2s;
+
+                  &:hover {
+                    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+                  }
+                }
+              }
+            }
+
+            .no-courses {
+              text-align: center;
+              padding: 3rem;
+              background: white;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+              .icon {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+              }
+
+              h4 {
+                color: #333;
+                margin-bottom: 0.5rem;
+              }
+
+              p {
+                color: #666;
+                margin: 0;
+              }
+            }
+          }
+        }
+      }
+
+      .tutor-sidebar {
+        .sidebar-card {
+          background: white;
+          padding: 25px;
+          border-radius: 12px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          margin-bottom: 20px;
+
+          h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 1.3rem;
+          }
+
+          .contact-info {
+            .contact-item {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              margin-bottom: 10px;
+              color: #666;
+
+              i {
+                color: #667eea;
+                width: 16px;
+              }
+            }
+          }
+
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+
+            .stat-item {
+              text-align: center;
+
+              .stat-value {
+                display: block;
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #667eea;
+                margin-bottom: 5px;
+              }
+
+              .stat-label {
+                font-size: 0.8rem;
+                color: #666;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Booking form styles
+.booking-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+
+  .booking-modal {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid #e9ecef;
+
+      h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #333;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #666;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+
+        &:hover {
+          background-color: #f8f9fa;
+          color: #333;
+        }
+      }
+    }
+
+    .modal-content {
+      padding: 24px;
+
+      .booking-form {
+        .form-group {
+          margin-bottom: 20px;
+
+          label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.9rem;
+          }
+
+          input,
+          select,
+          textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+
+            &:focus {
+              outline: none;
+              border-color: #667eea;
+            }
+
+            &:disabled {
+              background-color: #f8f9fa;
+              cursor: not-allowed;
+            }
+          }
+
+          textarea {
+            resize: vertical;
+            min-height: 80px;
+          }
+        }
+
+        .booking-summary {
+          background-color: #f8f9fa;
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 20px;
+
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            .price {
+              font-weight: 600;
+              color: #667eea;
+              font-size: 1.1rem;
+            }
+          }
+        }
+
+        .error-message {
+          background-color: #f8d7da;
+          color: #721c24;
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.9rem;
+
+          i {
+            font-size: 1rem;
+          }
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+
+          .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            &:hover:not(:disabled) {
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            }
+
+            &:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+              transform: none;
+            }
+          }
+
+          .cancel-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &:hover:not(:disabled) {
+              background: #5a6268;
+            }
+
+            &:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .tutor-profile-page {
+    .tutor-profile-header {
+      .tutor-header-content {
+        flex-direction: column;
+        text-align: center;
+
+        .tutor-basic-info {
+          margin: 20px 0;
+        }
+
+        .tutor-actions {
+          flex-direction: column;
+          gap: 10px;
+
+          .book-session-btn,
+          .contact-btn {
+            width: 100%;
+          }
+        }
+      }
+    }
+
+    .tutor-content-layout {
+      flex-direction: column;
+
+      .tutor-sidebar {
+        margin-top: 30px;
+      }
+    }
+
+    .tutor-tabs {
+      overflow-x: auto;
+      white-space: nowrap;
+
+      .tab-btn {
+        flex-shrink: 0;
+      }
+    }
+
+    .courses-section {
+      .courses-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+
+        .course-actions {
+          flex-direction: column;
+          gap: 10px;
+
+          .create-course-btn,
+          .manage-course-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      }
+
+      .courses-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
+  .booking-modal-overlay {
+    padding: 10px;
+
+    .booking-modal {
+      .modal-content {
+        padding: 16px;
+
+        .booking-form {
+          .modal-actions {
+            flex-direction: column;
+
+            .submit-btn,
+            .cancel-btn {
+              width: 100%;
+              justify-content: center;
+            }
+          }
+        }
+      }
+    }
+  }
+}

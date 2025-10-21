@@ -1,0 +1,191 @@
+$primary-color: #1e3a5f;
+$primary-hover: #2c5282;
+$text-dark: #2d3748;
+$text-light: #718096;
+$text-muted: #a0aec0;
+$border-color: #e2e8f0;
+$white: #ffffff;
+$success-color: #10b981;
+$error-color: #ef4444;
+
+$glass-bg: rgba(255, 255, 255, 0.95);
+$shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+.verify-account-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+
+  .verify-content {
+    width: 100%;
+    max-width: 600px;
+    animation: fadeIn 0.6s ease-out;
+
+    .verify-card {
+      background: $glass-bg;
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      box-shadow: $shadow-light;
+      padding: 60px 40px;
+      text-align: center;
+
+      @media (max-width: 768px) {
+        padding: 40px 24px;
+      }
+
+      .verify-status {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+
+        .spinner {
+          font-size: 64px;
+          color: $primary-color;
+          animation: rotate 1s linear infinite;
+        }
+
+        .success-icon {
+          width: 80px;
+          height: 80px;
+          background: $success-color;
+          color: $white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 48px;
+          font-weight: bold;
+          animation: checkmark 0.6s ease-out;
+          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .error-icon {
+          width: 80px;
+          height: 80px;
+          background: $error-color;
+          color: $white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 48px;
+          font-weight: bold;
+          animation: pulse 0.6s ease-out;
+          box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .verify-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: $text-dark;
+          margin: 0;
+          line-height: 1.2;
+
+          @media (max-width: 768px) {
+            font-size: 24px;
+          }
+        }
+
+        .verify-message {
+          font-size: 16px;
+          color: $text-light;
+          line-height: 1.6;
+          margin: 0;
+          max-width: 400px;
+        }
+
+        .verify-redirect {
+          font-size: 14px;
+          color: $text-muted;
+          margin: 0;
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        .retry-btn {
+          margin-top: 16px;
+          padding: 14px 32px;
+          font-size: 16px;
+          font-weight: 600;
+          color: $white;
+          background: $primary-color;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background: $primary-hover;
+            transform: translateY(-2px);
+            box-shadow: $shadow-medium;
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+        }
+
+        &.success {
+          .verify-title {
+            color: $success-color;
+          }
+        }
+
+        &.failed {
+          .verify-title {
+            color: $error-color;
+          }
+        }
+      }
+    }
+  }
+}
