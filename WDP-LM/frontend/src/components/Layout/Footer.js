@@ -44,7 +44,7 @@ const Footer = () => {
             <h3 className="footer-title">Dịch vụ</h3>
             <ul className="footer-links">
               <li>
-                <Link to="/tutor" className="footer-link">
+                <Link to="/courses" className="footer-link">
                   Tìm gia sư
                 </Link>
               </li>

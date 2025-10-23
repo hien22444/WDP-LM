@@ -17,7 +17,6 @@ import ResetPassword from "./components/Auth/ResetPassword/ResetPassword";
 import ChangePassword from "./components/Auth/ChangePassword/ChangePassword";
 import OAuthCallback from "./components/Auth/OAuthCallback";
 import OnboardingWizard from "./pages/Tutor/OnboardingWizard";
-import SearchTutors from "./pages/Tutor/SearchTutors";
 import TutorProfilePage from "./pages/Tutor/TutorProfilePage";
 import TutorBookings from "./pages/Tutor/TutorBookings";
 import TutorSchedule from "./pages/Tutor/TutorSchedule";
@@ -147,7 +146,6 @@ function App() {
           />
           <Route path="/courses" element={<TutorOpenCourses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
-          <Route path="/tutor" element={<SearchTutors />} />
           <Route path="/tutor/:id" element={<TutorProfilePage />} />
           <Route
             path="/bookings/tutor"

@@ -84,7 +84,7 @@ const UniversalHeader = () => {
 
         {/* Nav */}
         <nav className="main-nav">
-          <button className="nav-button" onClick={() => navigate("/tutor")}>
+          <button className="nav-button" onClick={() => navigate("/courses")}>
             Tìm gia sư
           </button>
           <button className="nav-button" onClick={() => navigate("/courses")}>
@@ -106,14 +106,14 @@ const UniversalHeader = () => {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter")
-                  navigate(`/tutor?q=${encodeURIComponent(search.trim())}`);
+                  navigate(`/courses?q=${encodeURIComponent(search.trim())}`);
               }}
               placeholder="Tìm kiếm gia sư, môn học..."
               className="search-input"
             />
             <button
               onClick={() =>
-                navigate(`/tutor?q=${encodeURIComponent(search.trim())}`)
+                navigate(`/courses?q=${encodeURIComponent(search.trim())}`)
               }
               className="search-button"
             >
