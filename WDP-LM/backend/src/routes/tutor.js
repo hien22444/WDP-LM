@@ -30,12 +30,11 @@ router.get("/search", async (req, res) => {
     } = req.query;
 
     const filter = { };
+    // Hiển thị gia sư đã duyệt và đang chờ duyệt (loại bỏ draft)
     if (includePending) {
       filter.status = { $in: ["approved", "pending"] };
     } else {
-      filter.status = "approved";
-      // Bỏ điều kiện hasAvailability để hiển thị tất cả gia sư đã duyệt
-      // filter.hasAvailability = true; 
+      filter.status = { $in: ["approved", "pending"] }; // Hiển thị cả approved và pending
     }
     
     // Subject filter

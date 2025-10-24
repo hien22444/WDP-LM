@@ -89,13 +89,20 @@ const Home = () => {
               <div className="hero-actions">
                 <button 
                   className="btn-primary"
-                  onClick={() => navigate('/courses')}
+                  onClick={() => navigate('/tutors')}
                 >
-                  <i className="fas fa-search"></i>
-                  Tìm gia sư ngay
+                  <i className="fas fa-users"></i>
+                  Danh sách gia sư
                 </button>
                 <button 
                   className="btn-secondary"
+                  onClick={() => navigate('/courses')}
+                >
+                  <i className="fas fa-book"></i>
+                  Khóa học
+                </button>
+                <button 
+                  className="btn-outline"
                   onClick={() => navigate('/tutor/onboarding')}
                 >
                   <i className="fas fa-chalkboard-teacher"></i>
@@ -204,9 +211,9 @@ const Home = () => {
             <div className="cta-actions">
               <button 
                 className="btn-primary"
-                onClick={() => navigate('/courses')}
+                onClick={() => navigate('/tutors')}
               >
-                Tìm gia sư ngay
+                Xem danh sách gia sư
               </button>
               <button 
                 className="btn-outline"

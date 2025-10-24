@@ -23,6 +23,7 @@ import TutorSchedule from "./pages/Tutor/TutorSchedule";
 import StudentBookings from "./pages/Tutor/StudentBookings";
 import TutorPublishSlot from "./pages/Tutor/TutorPublishSlot";
 import TutorOpenCourses from "./pages/Tutor/TutorOpenCourses";
+import TutorList from "./pages/Tutor/TutorList";
 import CourseDetail from "./pages/Tutor/CourseDetail";
 // Layout components
 import MainLayout from "./components/Layout/MainLayout";
@@ -146,6 +147,7 @@ function App() {
           />
           <Route path="/courses" element={<TutorOpenCourses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
+          <Route path="/tutors" element={<TutorList />} />
           <Route path="/tutor/:id" element={<TutorProfilePage />} />
           <Route
             path="/bookings/tutor"

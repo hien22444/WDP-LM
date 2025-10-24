@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo Thanh toán - PayOS</title>
+    <style>
+      :root{
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --muted: #6b7280;
+        --primary: #2563eb;
+        --accent: #1d4ed8;
+        --border: #e6edf8;
+      }
+      body {
+        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        background: var(--bg);
+        color: #0f172a;
+        margin: 0;
+        padding: 28px 12px;
+        -webkit-font-smoothing:antialiased;
+      }
+      .container {
+        max-width: 680px;
+        margin: 32px auto;
+        padding: 0 12px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(15,23,42,0.06);
+        padding: 22px;
+        border: 1px solid rgba(15,23,42,0.03);
+      }
+      .card h1 {
+        font-size: 20px;
+        text-align: left;
+        margin: 0 0 16px;
+        color: var(--accent);
+        font-weight: 600;
+      }
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        margin-top: 6px;
+      }
+      thead th {
+        text-align: left;
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 600;
+        padding: 10px 12px;
+      }
+      tbody td {
+        background: linear-gradient(180deg,#ffffff,#fbfdff);
+        padding: 12px;
+        font-size: 15px;
+        vertical-align: middle;
+      }
+      tbody tr td:first-child { font-weight: 600; color: #0b1220; }
+      tbody tr td:nth-child(2), tbody tr td:nth-child(4) { text-align: right; color: #0b1220; }
+      tbody tr td:nth-child(3) { text-align: center; }
+      tbody tr { border-radius: 8px; box-shadow: 0 1px 0 rgba(15,23,42,0.02); }
+      input[type="number"] {
+        width: 84px;
+        padding: 8px;
+        border: 1px solid #e6edf8;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 14px;
+      }
+      .qty-btn{
+        background:#f1f5f9;
+        border:1px solid #e6edf8;
+        width:34px;
+        height:34px;
+        border-radius:8px;
+        font-size:18px;
+        line-height:1;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        cursor:pointer;
+      }
+      .qty-btn:active{ transform:translateY(1px); }
+      .total-row td {
+        background: transparent;
+        font-weight: 700;
+        color: var(--accent);
+        padding-top: 6px;
+        padding-bottom: 0;
+      }
+      .button {
+        width: 100%;
+        background: var(--primary);
+        color: white;
+        padding: 12px 0;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 18px;
+        transition: transform .08s ease, box-shadow .08s ease;
+      }
+      .button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(37,99,235,0.12); }
+      .button[disabled] { opacity: 0.68; cursor: not-allowed; transform:none; box-shadow:none; }
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.4);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      #error-message { color: #ef4444; margin-top: 12px; min-height: 20px; font-size: 14px; text-align:center }
+      #payment-qr { display:block; margin:18px auto; max-width:260px; border-radius:10px }
+
+      /* helper: hide informational lines if present */
+      .demo-hidden { display:none !important; }
+      @media (max-width:520px){ .container{padding:0 10px} table thead th{display:none} tbody td{display:block;text-align:left;padding:10px 8px} .total-row td{display:block;text-align:left} }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Thanh toán khóa học</h1>
+
+        <div class="demo-hidden">
+          <div style="font-size:13px; color:#6b7280; margin-bottom:8px;">Sử dụng trang này để kiểm tra endpoint tạo link thanh toán của backend.</div>
+          <div style="font-size:13px; color:#6b7280; margin-bottom:14px;">Backend base URL: <strong>http://localhost:5000</strong></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Đơn giá</th>
+              <th>Số lượng</th>
+              <th>Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Khóa học Tiếng Anh - Level A1</td>
+              <td><span id="unit-price">500000</span> ₫</td>
+                <td>
+                  <div style="display:inline-flex; align-items:center; gap:8px;">
+                    <input id="quantity-input" type="number" min="1" value="1" step="1" inputmode="numeric" style="width:64px;" disabled />
+                  </div>
+                </td>
+              <td><strong><span id="total-amount">500000</span> ₫</strong></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="3">Tổng cộng</td>
+              <td><span id="grand-total">500000</span> ₫</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <button id="pay-button" class="button"><span id="button-text">Thanh toán ngay</span></button>
+
+        <div id="error-message"></div>
+      </div>
+    </div>
+
+    <script>
+      const payButton = document.getElementById('pay-button');
+      const buttonText = document.getElementById('button-text');
+      const errorMessage = document.getElementById('error-message');
+      const DEFAULT_BACKEND_BASE = 'http://localhost:5000';
+      const quantityInput = document.getElementById('quantity-input');
+      const unitPriceEl = document.getElementById('unit-price');
+      const totalAmountEl = document.getElementById('total-amount');
+      const grandTotalEl = document.getElementById('grand-total');
+
+      // Read amount and product from query params if provided
+      const urlParams = new URLSearchParams(window.location.search);
+      const providedAmount = urlParams.get('amount');
+      const providedProduct = urlParams.get('product');
+      if (providedAmount) {
+        // ensure numeric formatting
+        const parsed = parseInt(providedAmount, 10);
+        if (!isNaN(parsed)) unitPriceEl.textContent = parsed.toLocaleString('vi-VN');
+      }
+      if (providedProduct) {
+        const td = document.querySelector('tbody tr td:first-child');
+        if (td) td.textContent = providedProduct;
+      }
+
+      function computeTotal() {
+        const qty = Math.max(1, parseInt(quantityInput.value || '1', 10));
+        const unit = parseInt(unitPriceEl.textContent.replace(/[^0-9]/g, '') || '0', 10);
+        const total = qty * unit;
+        totalAmountEl.textContent = total.toLocaleString('vi-VN');
+        grandTotalEl.textContent = total.toLocaleString('vi-VN');
+        return { qty, unit, total };
+      }
+
+      computeTotal();
+
+      function getBackendUrl() {
+        const base = DEFAULT_BACKEND_BASE.replace(/\/$/, '');
+        return base + '/api/v1/payment/create-payment-link';
+      }
+
+      // remove legacy backend-url input if present (defensive)
+      (function removeLegacyBackendInput(){
+        const legacy = document.getElementById('backend-url-input');
+        if(legacy && legacy.parentElement){ legacy.parentElement.removeChild(legacy); }
+        // hide any leftover text nodes that match the demo info
+        const infos = document.querySelectorAll('.info-box');
+        infos.forEach(n=>{ n.classList.add('demo-hidden'); });
+      })();
+
+      async function handlePayment() {
+        payButton.disabled = true;
+        buttonText.innerHTML = '<div class="spinner"></div> Đang xử lý...';
+        errorMessage.textContent = '';
+
+        try {
+          const BACKEND_URL = getBackendUrl();
+          const { qty, unit, total } = computeTotal();
+
+          const payload = {
+            product: {
+              name: 'Khóa học Tiếng Anh - Level A1',
+              unitPrice: unit,
+              quantity: qty,
+              totalAmount: total,
+            }
+          };
+
+          const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            let errorData = {};
+            try { errorData = await response.json(); } catch(e){}
+            throw new Error(errorData.message || `Lỗi server: ${response.status}`);
+          }
+
+          const data = await response.json();
+          payButton.disabled = false;
+          buttonText.textContent = 'Thanh toán ngay';
+
+          const prevQr = document.getElementById('payment-qr');
+          if (prevQr) prevQr.remove();
+
+          let qrSrc = null;
+          if (data.qrUrl) qrSrc = data.qrUrl;
+          else if (data.qrBase64) qrSrc = 'data:image/png;base64,' + data.qrBase64;
+
+          if (qrSrc) {
+            const qrImg = document.createElement('img');
+            qrImg.src = qrSrc;
+            qrImg.id = 'payment-qr';
+            document.querySelector('.card').appendChild(qrImg);
+            errorMessage.textContent = 'Quét mã QR để thanh toán.';
+          } else if (data.checkoutUrl) {
+            window.location.href = data.checkoutUrl;
+          }
+
+        } catch (err) {
+          console.error(err);
+          payButton.disabled = false;
+          buttonText.textContent = 'Thanh toán ngay';
+          errorMessage.textContent = err.message || 'Lỗi kết nối đến backend.';
+        }
+      }
+
+      payButton.addEventListener('click', handlePayment);
+    </script>
+  </body>
+</html>

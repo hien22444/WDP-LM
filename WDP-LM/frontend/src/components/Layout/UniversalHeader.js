@@ -84,8 +84,8 @@ const UniversalHeader = () => {
 
         {/* Nav */}
         <nav className="main-nav">
-          <button className="nav-button" onClick={() => navigate("/courses")}>
-            Tìm gia sư
+          <button className="nav-button" onClick={() => navigate("/tutors")}>
+            Danh sách gia sư
           </button>
           <button className="nav-button" onClick={() => navigate("/courses")}>
             Khóa học
