@@ -18,6 +18,7 @@ import ChangePassword from "./components/Auth/ChangePassword/ChangePassword";
 import OAuthCallback from "./components/Auth/OAuthCallback";
 import OnboardingWizard from "./pages/Tutor/OnboardingWizard";
 import TutorProfilePage from "./pages/Tutor/TutorProfilePage";
+import TutorProfileUpdatePage from "./pages/Tutor/TutorProfileUpdatePage";
 import TutorBookings from "./pages/Tutor/TutorBookings";
 import TutorSchedule from "./pages/Tutor/TutorSchedule";
 import StudentBookings from "./pages/Tutor/StudentBookings";
@@ -108,6 +109,10 @@ function App() {
         <Route
           path="/tutor/onboarding"
           element={isAuthenticated ? <OnboardingWizard /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/tutor/profile-update"
+          element={isAuthenticated ? <TutorProfileUpdatePage /> : <Navigate to="/" />}
         />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />

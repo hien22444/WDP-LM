@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Buttons</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Google Sans', 'Roboto', sans-serif;
+        }
+        
+        .bottom-controls {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            background: rgba(0, 0, 0, 0.9) !important;
+            backdrop-filter: blur(20px);
+            padding: 20px 24px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: transform 0.3s ease;
+            z-index: 9999 !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            min-height: 80px !important;
+        }
+        
+        .controls-center {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: auto !important;
+            height: auto !important;
+        }
+        
+        .control-btn {
+            width: 48px !important;
+            height: 48px !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease;
+            font-size: 18px !important;
+            position: relative !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            color: white !important;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.25) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
+        }
+        
+        .end-call-btn {
+            background: rgba(234, 67, 53, 0.9) !important;
+            color: white !important;
+            border-color: #ea4335 !important;
+            box-shadow: 0 6px 16px rgba(234, 67, 53, 0.4) !important;
+            width: 56px !important;
+            height: 56px !important;
+            font-size: 20px !important;
+        }
+        
+        .end-call-btn:hover {
+            background: rgba(211, 59, 44, 0.9) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 8px 20px rgba(234, 67, 53, 0.6) !important;
+        }
+        
+        .test-content {
+            padding: 50px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #4285f4;
+            margin-bottom: 30px;
+        }
+        
+        p {
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-content">
+        <h1>Test Video Call Buttons</h1>
+        <p>Nếu bạn thấy các nút ở dưới cùng, CSS đang hoạt động tốt!</p>
+        <p>Nếu không thấy, có vấn đề với CSS hoặc JavaScript.</p>
+    </div>
+    
+    <div class="bottom-controls">
+        <div class="controls-center">
+            <button class="control-btn" title="Microphone">
+                <i class="fas fa-microphone"></i>
+            </button>
+            
+            <button class="control-btn" title="Camera">
+                <i class="fas fa-video"></i>
+            </button>
+            
+            <button class="control-btn" title="Screen Share">
+                <i class="fas fa-desktop"></i>
+            </button>
+            
+            <button class="control-btn" title="Participants">
+                <i class="fas fa-users"></i>
+            </button>
+            
+            <button class="control-btn" title="Chat">
+                <i class="fas fa-comment"></i>
+            </button>
+            
+            <button class="control-btn" title="Fullscreen">
+                <i class="fas fa-expand"></i>
+            </button>
+            
+            <button class="control-btn end-call-btn" title="End Call">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+    </div>
+</body>
+</html>
