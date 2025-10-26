@@ -46,8 +46,10 @@ const Profile = () => {
   // Fetch user profile data
   const fetchUserProfile = async () => {
     try {
+      console.log('🔍 Profile: Fetching user profile...');
       setLoading(true);
       const response = await getCurrentUserApi();
+      console.log('✅ Profile: User profile data:', response.user);
       setUserProfile(response.user);
       setError(null);
       
@@ -277,6 +279,7 @@ const Profile = () => {
   };
 
   if (loading) {
+    console.log('🔄 Profile: Loading state is true');
     return (
       <div className="profile-container">
         <div className="profile-loading">
@@ -299,6 +302,10 @@ const Profile = () => {
       </div>
     );
   }
+
+  console.log('🔍 Profile: Rendering with userProfile:', userProfile);
+  console.log('🔍 Profile: tutorProfile:', tutorProfile);
+  console.log('🔍 Profile: showUpdateModal:', showUpdateModal);
 
   return (
     <div className="profile-container">
