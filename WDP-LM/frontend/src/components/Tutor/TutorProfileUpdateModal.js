@@ -85,6 +85,7 @@ const TutorProfileUpdateModal = ({ isOpen, onClose, tutorProfile, onUpdate }) =>
     }
   };
 
+  // Don't render modal container when closed
   if (!isOpen) return null;
 
   return (
