@@ -119,6 +119,11 @@ export const getTutorCourses = async (tutorId) => {
   return res.data;
 };
 
+export const updateTutorProfile = async (payload) => {
+  const res = await client.patch(`/tutors/me`, payload);
+  return res.data.profile;
+};
+
 const tutorService = {
   getMyTutorProfile,
   updateTutorBasic,
@@ -130,6 +135,7 @@ const tutorService = {
   uploadDegreeDocuments,
   searchTutors,
   getTutorCourses,
+  updateTutorProfile,
 };
 
 export default tutorService;

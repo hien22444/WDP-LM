@@ -11,6 +11,7 @@ import TutorService from "../../services/TutorService";
 import { toast } from "react-toastify";
 import axios from "axios";
 import Cookies from "js-cookie";
+import TutorProfileUpdateModal from "../../components/Tutor/TutorProfileUpdateModal";
 import "./Profile.scss";
 
 const Profile = () => {
@@ -24,6 +25,7 @@ const Profile = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [tutorProfile, setTutorProfile] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -196,6 +198,11 @@ const Profile = () => {
       dispatch(logout());
       navigate("/signin");
     }
+  };
+
+  const handleTutorProfileUpdate = (updatedProfile) => {
+    setTutorProfile(updatedProfile);
+    fetchUserProfile(); // Refresh to get updated data
   };
 
   const handleAvatarUpload = async (event) => {
@@ -517,7 +524,7 @@ const Profile = () => {
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => navigate("/tutor/onboarding")}
+                onClick={() => setShowUpdateModal(true)}
               >
                 Cập nhật hồ sơ gia sư
               </button>
@@ -744,6 +751,13 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      <TutorProfileUpdateModal
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        tutorProfile={tutorProfile}
+        onUpdate={handleTutorProfileUpdate}
+      />
     </div>
   );
 };
