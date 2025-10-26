@@ -120,8 +120,18 @@ export const getTutorCourses = async (tutorId) => {
 };
 
 export const updateTutorProfile = async (payload) => {
-  const res = await client.patch(`/tutors/me`, payload);
-  return res.data.profile;
+  console.log('🔍 TutorService: updateTutorProfile called with payload:', payload);
+  console.log('🔍 TutorService: API_BASE_URL:', API_BASE_URL);
+  console.log('🔍 TutorService: Access token:', Cookies.get("accessToken"));
+  
+  try {
+    const res = await client.patch(`/tutors/me`, payload);
+    console.log('✅ TutorService: Update successful:', res.data);
+    return res.data.profile;
+  } catch (error) {
+    console.error('❌ TutorService: Update failed:', error);
+    throw error;
+  }
 };
 
 const tutorService = {

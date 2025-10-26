@@ -53,12 +53,20 @@ const TutorProfileUpdatePage = () => {
     setLoading(true);
 
     try {
-      await updateTutorProfile(formData);
+      console.log('🔍 TutorProfileUpdatePage: Submitting form data:', formData);
+      const result = await updateTutorProfile(formData);
+      console.log('✅ TutorProfileUpdatePage: Update successful:', result);
       toast.success('Cập nhật hồ sơ gia sư thành công!');
       navigate('/profile');
     } catch (error) {
-      console.error('Error updating tutor profile:', error);
-      toast.error('Có lỗi xảy ra khi cập nhật hồ sơ. Vui lòng thử lại.');
+      console.error('❌ TutorProfileUpdatePage: Error updating tutor profile:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      });
+      toast.error(`Có lỗi xảy ra khi cập nhật hồ sơ: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
