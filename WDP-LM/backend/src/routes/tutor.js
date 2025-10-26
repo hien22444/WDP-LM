@@ -476,7 +476,15 @@ router.patch("/me", auth(), async (req, res) => {
     
     // Map form fields to database fields
     if (req.body.introduction) updateData.bio = req.body.introduction;
-    if (req.body.subjects && Array.isArray(req.body.subjects)) updateData.subjects = req.body.subjects;
+    if (req.body.subjects && Array.isArray(req.body.subjects)) {
+      // Convert string array to object array format
+      updateData.subjects = req.body.subjects.map(subject => {
+        if (typeof subject === 'string') {
+          return { name: subject, level: null };
+        }
+        return subject;
+      });
+    }
     if (req.body.experience) updateData.experienceYears = parseInt(req.body.experience) || 0;
     if (req.body.hourlyRate) updateData.sessionRate = parseInt(req.body.hourlyRate);
     if (req.body.location) updateData.city = req.body.location;

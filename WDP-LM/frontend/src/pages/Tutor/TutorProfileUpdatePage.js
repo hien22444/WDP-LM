@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { updateTutorProfile } from '../../services/TutorService';
+import { updateTutorProfile, updateTutorBasic } from '../../services/TutorService';
 import UniversalHeader from '../../components/Layout/UniversalHeader';
 import './TutorProfileUpdatePage.scss';
 
@@ -71,7 +71,13 @@ const TutorProfileUpdatePage = () => {
 
     try {
       console.log('🔍 TutorProfileUpdatePage: Submitting form data:', formData);
-      const result = await updateTutorProfile(formData);
+      
+      // Try using the working endpoint first
+      const result = await updateTutorBasic({
+        bio: formData.introduction,
+        city: formData.location
+      });
+      
       console.log('✅ TutorProfileUpdatePage: Update successful:', result);
       toast.success('Cập nhật hồ sơ gia sư thành công!');
       navigate('/profile');
@@ -83,7 +89,14 @@ const TutorProfileUpdatePage = () => {
         status: error.response?.status,
         statusText: error.response?.statusText
       });
-      toast.error(`Có lỗi xảy ra khi cập nhật hồ sơ: ${error.response?.data?.message || error.message}`);
+      
+      // Show more helpful error message
+      if (error.response?.status === 401) {
+        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        navigate('/signin');
+      } else {
+        toast.error(`Có lỗi xảy ra khi cập nhật hồ sơ: ${error.response?.data?.message || error.message}`);
+      }
     } finally {
       setLoading(false);
     }
