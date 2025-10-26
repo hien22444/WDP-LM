@@ -122,7 +122,30 @@ export const getTutorCourses = async (tutorId) => {
 export const updateTutorProfile = async (payload) => {
   console.log('🔍 TutorService: updateTutorProfile called with payload:', payload);
   console.log('🔍 TutorService: API_BASE_URL:', API_BASE_URL);
-  console.log('🔍 TutorService: Access token:', Cookies.get("accessToken"));
+  
+  // Check all possible token locations
+  const accessToken = Cookies.get("accessToken");
+  const refreshToken = Cookies.get("refreshToken");
+  const localStorageUser = localStorage.getItem("user");
+  
+  console.log('🔍 TutorService: Access token:', accessToken);
+  console.log('🔍 TutorService: Refresh token:', refreshToken);
+  console.log('🔍 TutorService: localStorage user:', localStorageUser);
+  
+  // If no access token, try to get from localStorage
+  if (!accessToken && localStorageUser) {
+    try {
+      const user = JSON.parse(localStorageUser);
+      const token = user.token || user.accessToken;
+      if (token) {
+        console.log('🔍 TutorService: Found token in localStorage user:', token);
+        // Set the token in cookies for this request
+        Cookies.set("accessToken", token);
+      }
+    } catch (e) {
+      console.error('❌ TutorService: Error parsing localStorage user:', e);
+    }
+  }
   
   try {
     const res = await client.patch(`/tutors/me`, payload);
@@ -130,6 +153,8 @@ export const updateTutorProfile = async (payload) => {
     return res.data.profile;
   } catch (error) {
     console.error('❌ TutorService: Update failed:', error);
+    console.error('❌ TutorService: Error response:', error.response?.data);
+    console.error('❌ TutorService: Error status:', error.response?.status);
     throw error;
   }
 };

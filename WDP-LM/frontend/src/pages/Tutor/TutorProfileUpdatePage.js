@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { updateTutorProfile } from '../../services/TutorService';
 import UniversalHeader from '../../components/Layout/UniversalHeader';
@@ -7,6 +8,8 @@ import './TutorProfileUpdatePage.scss';
 
 const TutorProfileUpdatePage = () => {
   const navigate = useNavigate();
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+  const currentUser = useSelector((state) => state.user.user);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     introduction: '',
@@ -27,9 +30,23 @@ const TutorProfileUpdatePage = () => {
   ];
 
   useEffect(() => {
+    // Check authentication
+    console.log('🔍 TutorProfileUpdatePage: Authentication check:', {
+      isAuthenticated,
+      currentUser,
+      localStorageUser: localStorage.getItem("user")
+    });
+    
+    if (!isAuthenticated) {
+      console.log('❌ TutorProfileUpdatePage: User not authenticated, redirecting to login');
+      toast.error('Vui lòng đăng nhập để cập nhật hồ sơ');
+      navigate('/signin');
+      return;
+    }
+    
     // Load existing tutor profile data if available
     // This could be fetched from an API
-  }, []);
+  }, [isAuthenticated, currentUser, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
