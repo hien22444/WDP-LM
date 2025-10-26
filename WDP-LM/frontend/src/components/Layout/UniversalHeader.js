@@ -72,33 +72,36 @@ const UniversalHeader = () => {
   return (
     <header className="universal-header">
       <div className="header-container">
-        {/* Logo */}
-        <div className="logo-container" onClick={() => navigate("/")}>
-          <img
-            src="/edumatch-logo.png"
-            alt="EduMatch"
-            className="logo-image"
-          />
-          <span className="logo-text">EduMatch</span>
+        {/* Left Section */}
+        <div className="header-left-section">
+          {/* Logo */}
+          <div className="logo-container" onClick={() => navigate("/")}>
+            <img
+              src="/edumatch-logo.png"
+              alt="EduMatch"
+              className="logo-image"
+            />
+            <span className="logo-text">EduMatch</span>
+          </div>
+
+          {/* Nav */}
+          <nav className="main-nav">
+            <button className="nav-button" onClick={() => navigate("/tutors")}>
+              Danh sách gia sư
+            </button>
+            <button className="nav-button" onClick={() => navigate("/courses")}>
+              Khóa học
+            </button>
+            <button className="nav-button" onClick={() => navigate("/tutor/onboarding")}>
+              Trở thành gia sư
+            </button>
+            <button className="nav-button" onClick={() => navigate("/about")}>
+              Về Chúng Tôi
+            </button>
+          </nav>
         </div>
 
-        {/* Nav */}
-        <nav className="main-nav">
-          <button className="nav-button" onClick={() => navigate("/tutors")}>
-            Danh sách gia sư
-          </button>
-          <button className="nav-button" onClick={() => navigate("/courses")}>
-            Khóa học
-          </button>
-          <button className="nav-button" onClick={() => navigate("/tutor/onboarding")}>
-            Trở thành gia sư
-          </button>
-          <button className="nav-button" onClick={() => navigate("/about")}>
-            Về Chúng Tôi
-          </button>
-        </nav>
-
-        {/* Search */}
+        {/* Center Section - Search */}
         <div className="search-container">
           <div className="search-box">
             <input
@@ -122,20 +125,22 @@ const UniversalHeader = () => {
           </div>
         </div>
 
-        {/* Notifications */}
-        <NotificationCenter />
+        {/* Right Section */}
+        <div className="header-right-elements">
+          {/* Notifications */}
+          <NotificationCenter />
 
-        {/* Join Room Button */}
-        <button
-          onClick={() => setShowRoomModal(true)}
-          className="join-room-button"
-        >
-          <i className="fas fa-video"></i>
-          Phòng Học
-        </button>
+          {/* Join Room Button */}
+          <button
+            onClick={() => setShowRoomModal(true)}
+            className="join-room-button"
+          >
+            <i className="fas fa-video"></i>
+            Phòng Học
+          </button>
 
-        {/* Avatar */}
-        <div ref={dropdownRef} className="avatar-container">
+          {/* Avatar */}
+          <div ref={dropdownRef} className="avatar-container">
           <img
             src={avatar}
             alt="avatar"
@@ -196,6 +201,7 @@ const UniversalHeader = () => {
               Đăng xuất
             </button>
           </div>
+        </div>
         </div>
       </div>
 

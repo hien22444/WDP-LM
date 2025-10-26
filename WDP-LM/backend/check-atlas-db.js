@@ -6,7 +6,7 @@ const TeachingSlot = require('./src/models/TeachingSlot');
 async function checkAtlasDB() {
   try {
     // Sử dụng cùng connection string như backend
-    await mongoose.connect('mongodb+srv://HieuTD:****@learnmate.6rejkx4.mongodb.net/?retryWrites=true&w=majority&appName=LearnMate');
+    await mongoose.connect('mongodb+srv://HieuTD:qbTXXCEIn1G4veK5@learnmate.6rejkx4.mongodb.net/?retryWrites=true&w=majority&appName=LearnMate');
     console.log('Connected to MongoDB Atlas');
     
     // Kiểm tra users

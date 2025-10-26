@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const http = require("http");
 const connectDB = require("./src/config/database");
 const WebRTCSocket = require("./src/socket/webrtcSocket");
+const ChatSocket = require("./src/socket/chatSocket");
 
 // ========================
 // Load environment variables
@@ -453,9 +454,17 @@ connectDB()
     
     // Initialize WebRTC Socket.io
     const webrtcSocket = new WebRTCSocket(server);
+    webrtcSocket.setupWebRTCNamespace();
     
-    // Store socket instance for potential use in routes
+    // Initialize Chat Socket.io (using root namespace)
+    const chatSocket = new ChatSocket(webrtcSocket.io);
+    chatSocket.initializeChatNamespace();
+    
+    console.log(`💬 Chat Socket.io: Using /chat namespace`);
+    
+    // Store socket instances for potential use in routes
     app.locals.webrtcSocket = webrtcSocket;
+    app.locals.chatSocket = chatSocket;
     
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

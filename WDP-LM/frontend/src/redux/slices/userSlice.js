@@ -41,6 +41,11 @@ const userSlice = createSlice({
       };
       Cookies.remove("accessToken");
       Cookies.remove("refreshToken");
+      
+      // Clear chat-related localStorage
+      localStorage.removeItem("chatMessages");
+      localStorage.removeItem("chatNotifications");
+      localStorage.removeItem("activeChats");
     },
     registerStart: (state) => {
       state.loading = true;

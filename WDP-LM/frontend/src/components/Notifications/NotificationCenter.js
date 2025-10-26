@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import { useChat } from '../../contexts/ChatContext';
 import notificationService from '../../services/NotificationService';
 import './NotificationCenter.scss';
 
@@ -11,6 +12,14 @@ const NotificationCenter = () => {
   const [loading, setLoading] = useState(false);
   const userState = useSelector((state) => state.user);
   const isAuthenticated = userState?.isAuthenticated;
+  
+  // Get chat notifications from ChatContext
+  const { 
+    notifications: chatNotifications, 
+    unreadCount: chatUnreadCount,
+    openChatFromNotification,
+    markNotificationAsRead
+  } = useChat();
 
   // Load notifications from API
   useEffect(() => {
@@ -130,10 +139,47 @@ const NotificationCenter = () => {
         return '🎓';
       case 'admin_tutor_verification':
         return '🎓';
+      case 'message':
+        return '💬';
       default:
         return '🔔';
     }
   };
+
+  // Handle chat notification click
+  const handleChatNotificationClick = (notification) => {
+    openChatFromNotification(notification);
+    setIsOpen(false);
+  };
+
+  // Combine all notifications (API + Chat)
+  const allNotifications = [
+    ...chatNotifications.map(notif => ({
+      ...notif,
+      _id: notif.id,
+      read: notif.isRead,
+      type: 'message',
+      title: `Tin nhắn từ ${notif.senderName}`,
+      message: notif.message,
+      createdAt: notif.timestamp,
+      isChatNotification: true
+    })),
+    ...notifications
+  ].sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp));
+
+  // Calculate total unread count
+  const totalUnreadCount = unreadCount + chatUnreadCount;
+
+  // Debug logs
+  console.log('🔔 NotificationCenter Debug:', {
+    apiNotifications: notifications.length,
+    chatNotifications: chatNotifications.length,
+    totalNotifications: allNotifications.length,
+    totalUnreadCount,
+    chatUnreadCount,
+    apiUnreadCount: unreadCount,
+    allNotificationsUnread: allNotifications.filter(n => !n.read && !n.isRead).length
+  });
 
   if (!isAuthenticated) return null;
 
@@ -145,8 +191,8 @@ const NotificationCenter = () => {
         onClick={() => setIsOpen(!isOpen)}
       >
         <i className="fas fa-bell"></i>
-        {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount}</span>
+        {totalUnreadCount > 0 && (
+          <span className="notification-badge">{totalUnreadCount}</span>
         )}
       </div>
 
@@ -155,7 +201,7 @@ const NotificationCenter = () => {
         <div className="notification-dropdown">
           <div className="notification-header">
             <h5>Thông báo</h5>
-            {unreadCount > 0 && (
+            {totalUnreadCount > 0 && (
               <button 
                 className="btn btn-sm btn-outline-primary"
                 onClick={markAllAsRead}
@@ -171,17 +217,23 @@ const NotificationCenter = () => {
                 <i className="fas fa-spinner fa-spin"></i>
                 <p>Đang tải thông báo...</p>
               </div>
-            ) : notifications.length === 0 ? (
+            ) : allNotifications.length === 0 ? (
               <div className="notification-empty">
                 <i className="fas fa-bell-slash"></i>
                 <p>Chưa có thông báo nào</p>
               </div>
             ) : (
-              notifications.map(notification => (
+              allNotifications.map(notification => (
                 <div 
                   key={notification._id}
                   className={`notification-item ${!notification.read ? 'unread' : ''}`}
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={() => {
+                    if (notification.isChatNotification) {
+                      handleChatNotificationClick(notification);
+                    } else {
+                      handleNotificationClick(notification);
+                    }
+                  }}
                 >
                   <div className="notification-icon">
                     {getNotificationIcon(notification.type)}
@@ -195,7 +247,7 @@ const NotificationCenter = () => {
                       {notification.message}
                     </div>
                     <div className="notification-time">
-                      {formatTime(notification.createdAt)}
+                      {formatTime(notification.createdAt || notification.timestamp)}
                     </div>
                   </div>
                   <div className="notification-action">

@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import BackHomeButton from '../../components/Common/BackHomeButton';
 import { useSelector } from 'react-redux';
+import { useChat } from '../../contexts/ChatContext';
 import { getTutorProfile, createBooking } from '../../services/BookingService';
 import { getTutorCourses } from '../../services/TutorService';
 import './TutorProfilePage.scss';
+
+  // Lazy load components for better performance
+  const LazyImage = lazy(() => import('../../components/Common/LazyImage'));
 
 const TutorProfilePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useSelector(state => state.user.user);
+  const { openChat } = useChat();
   const [tutor, setTutor] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,11 +30,7 @@ const TutorProfilePage = () => {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
-  useEffect(() => {
-    loadTutorProfile();
-  }, [id]);
-
-  const loadTutorProfile = async () => {
+  const loadTutorProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -64,8 +64,8 @@ const TutorProfilePage = () => {
       setTutor({
         ...t,
         name: t.name || t.user?.fullName || t.user?.full_name || 'Gia sư',
-        // Ưu tiên avatar do backend đã chuẩn hóa (trùng với trang cá nhân), sau đó mới tới các field khác
-        avatar: toUrl(t.avatar || t.user?.avatar || t.avatarUrl || t.profileImage) || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        // Ưu tiên avatar từ TutorProfile (avatarUrl), sau đó từ User (image), sau đó mới fallback
+        avatar: toUrl(t.avatarUrl || t.user?.image || t.avatar || t.profileImage) || null,
         subjects: normalizedSubjects,
         experience: t.experience || `${t.experienceYears || 0} năm`,
         price: t.price || t.sessionRate || 0,
@@ -110,10 +110,22 @@ const TutorProfilePage = () => {
       
       console.log('📋 Normalized tutor data:', {
         name: t.name || t.user?.fullName || t.user?.full_name || 'Gia sư',
+        avatar: t.avatarUrl || t.user?.image || t.avatar || t.profileImage,
+        avatarUrl: t.avatarUrl,
+        userImage: t.user?.image,
         subjects: normalizedSubjects,
         bio: t.bio || t.description || 'Chưa có giới thiệu',
         price: t.price || t.sessionRate || 0,
         verified: typeof t.verified === 'boolean' ? t.verified : (t.status === 'approved')
+      });
+      
+      console.log('🔍 Avatar Debug:', {
+        't.avatarUrl': t.avatarUrl,
+        't.user?.image': t.user?.image,
+        't.avatar': t.avatar,
+        't.profileImage': t.profileImage,
+        'Final avatar': toUrl(t.avatarUrl || t.user?.image || t.avatar || t.profileImage),
+        'User object': t.user
       });
       
     } catch (error) {
@@ -122,7 +134,26 @@ const TutorProfilePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentUser]);
+
+  // Memoized computed values for better performance
+  const normalizedSubjects = useMemo(() => {
+    if (!tutor?.subjects) return [];
+    return Array.isArray(tutor.subjects) ? tutor.subjects : [];
+  }, [tutor?.subjects]);
+
+  const isOwnProfile = useMemo(() => {
+    return currentUser && tutor && String(tutor.user) === String(currentUser._id);
+  }, [currentUser, tutor]);
+
+  const formattedPrice = useMemo(() => {
+    if (!tutor?.price) return '0';
+    return new Intl.NumberFormat('vi-VN').format(tutor.price);
+  }, [tutor?.price]);
+
+  useEffect(() => {
+    loadTutorProfile();
+  }, [id, loadTutorProfile]);
 
   const loadTutorCourses = async () => {
     try {
@@ -211,11 +242,11 @@ const TutorProfilePage = () => {
   };
 
   const handleContactTutor = () => {
-    if (tutor?.phone) {
-      window.open(`tel:${tutor.phone}`);
-    } else if (tutor?.email) {
-      window.open(`mailto:${tutor.email}`);
+    if (!currentUser) {
+      alert('Vui lòng đăng nhập để liên hệ với gia sư');
+      return;
     }
+    openChat(tutor, currentUser);
   };
 
   const handleShareProfile = () => {
@@ -268,51 +299,60 @@ const TutorProfilePage = () => {
 
   return (
     <div className="tutor-profile-page">
-      {/* Header Section */}
-      <div className="tutor-profile-header">
+      {/* Page Title */}
+      <div className="page-title">
+        <h1>Hồ sơ gia sư</h1>
+      </div>
+
+      {/* Compact Header Section */}
+      <div className="tutor-profile-header" style={{ margin: '0 24px 40px 24px' }}>
         <div className="container">
           <div className="tutor-header-content">
             <div className="tutor-avatar-section">
               <div className="tutor-avatar">
-                <img src={tutor.avatar} alt={tutor.name} />
-                {tutor.verified && (
-                  <div className="verified-badge">
-                    <i className="fas fa-check-circle"></i>
-                    <span>Đã xác minh</span>
+                <Suspense fallback={
+                  <div className="avatar-placeholder">
+                    <i className="fas fa-user"></i>
                   </div>
-                )}
+                }>
+                  {tutor.avatar ? (
+                    <LazyImage 
+                      src={tutor.avatar} 
+                      alt={tutor.name}
+                      className="tutor-avatar-img"
+                    />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      <i className="fas fa-user"></i>
+                    </div>
+                  )}
+                </Suspense>
+                {/* Removed verified badge */}
+              </div>
+              
+              {/* Contact Information Only */}
+              <div className="contact-info">
+                <div className="contact-item">
+                  <span className="contact-label">Email:</span>
+                  <span>{tutor.contactInfo?.email || tutor.email || 'Chưa cập nhật'}</span>
+                </div>
+                <div className="contact-item">
+                  <span className="contact-label">Số điện thoại:</span>
+                  <span>{tutor.contactInfo?.phone || tutor.phone || 'Chưa cập nhật'}</span>
+                </div>
+                <div className="contact-item">
+                  <span className="contact-label">Địa chỉ:</span>
+                  <span>{tutor.contactInfo?.address || tutor.location || 'Chưa cập nhật'}</span>
+                </div>
               </div>
             </div>
 
             <div className="tutor-basic-info">
               <h1 className="tutor-name">{tutor.name}</h1>
               
-              {/* Verification Status */}
-              <div className="tutor-verification">
-                {tutor.verified ? (
-                  <div className="verified-status">
-                    <i className="fas fa-check-circle"></i>
-                    <span>Đã xác minh danh tính</span>
-                  </div>
-                ) : (
-                  <div className="pending-status">
-                    <i className="fas fa-hourglass-half"></i>
-                    <span>Chờ xác minh</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="tutor-rating">
-                <div className="stars">
-                  {[...Array(5)].map((_, i) => (
-                    <i
-                      key={i}
-                      className={`fas fa-star ${i < Math.floor(tutor.rating) ? 'filled' : ''}`}
-                    />
-                  ))}
-                </div>
-                <span className="rating-value">{tutor.rating}</span>
-                <span className="review-count">({tutor.reviewCount} đánh giá)</span>
+              <div className="tutor-location">
+                <i className="fas fa-map-marker-alt"></i>
+                <span>{tutor.location}</span>
               </div>
               
               <div className="tutor-subjects">
@@ -325,9 +365,17 @@ const TutorProfilePage = () => {
                 )}
               </div>
 
-              <div className="tutor-location">
-                <i className="fas fa-map-marker-alt"></i>
-                <span>{tutor.location}</span>
+              <div className="tutor-rating">
+                <div className="stars">
+                  {[...Array(5)].map((_, i) => (
+                    <i
+                      key={i}
+                      className={`fas fa-star ${i < Math.floor(tutor.rating) ? 'filled' : ''}`}
+                    />
+                  ))}
+                </div>
+                <span className="rating-value">{tutor.rating}</span>
+                <span className="review-count">({tutor.reviewCount} đánh giá)</span>
               </div>
 
               <div className="tutor-experience">
@@ -340,34 +388,20 @@ const TutorProfilePage = () => {
                 <span className="price-value">{tutor.price.toLocaleString()}đ</span>
                 <span className="price-unit">/buổi</span>
               </div>
-
-              <div className="tutor-teaching-modes">
-                <i className="fas fa-video"></i>
-                <span>
-                  {tutor.teachModes.includes('online') && 'Trực tuyến'}
-                  {tutor.teachModes.includes('online') && tutor.teachModes.includes('offline') && ', '}
-                  {tutor.teachModes.includes('offline') && 'Trực tiếp'}
-                  {tutor.teachModes.length === 0 && 'Chưa cập nhật'}
-                </span>
-              </div>
             </div>
 
             <div className="tutor-actions">
-              <button onClick={handleBookSession} className="book-session-btn">
+              <button onClick={handleBookSession} className="btn btn-primary">
                 <i className="fas fa-calendar-plus"></i>
                 Đặt lịch học
               </button>
-              <button onClick={handleContactTutor} className="contact-btn">
-                <i className="fas fa-phone"></i>
-                Liên hệ
-              </button>
-              <button onClick={handleShareProfile} className="share-btn">
+                <button onClick={handleContactTutor} className="btn btn-outline">
+                  <i className="fas fa-comments"></i>
+                  Liên hệ
+                </button>
+              <button onClick={handleShareProfile} className="btn btn-outline">
                 <i className="fas fa-share-alt"></i>
                 Chia sẻ hồ sơ
-              </button>
-              <button onClick={handleReportProfile} className="report-btn">
-                <i className="fas fa-flag"></i>
-                Báo cáo
               </button>
             </div>
           </div>
@@ -921,15 +955,15 @@ const TutorProfilePage = () => {
                 <h3>Thông tin liên hệ</h3>
                 <div className="contact-info">
                   <div className="contact-item">
-                    <i className="fas fa-envelope"></i>
+                    <span className="contact-label">Email:</span>
                     <span>{tutor.contactInfo?.email || tutor.email || 'Chưa cập nhật'}</span>
                   </div>
                   <div className="contact-item">
-                    <i className="fas fa-phone"></i>
+                    <span className="contact-label">Số điện thoại:</span>
                     <span>{tutor.contactInfo?.phone || tutor.phone || 'Chưa cập nhật'}</span>
                   </div>
                   <div className="contact-item">
-                    <i className="fas fa-map-marker-alt"></i>
+                    <span className="contact-label">Địa chỉ:</span>
                     <span>{tutor.contactInfo?.address || tutor.location || 'Chưa cập nhật'}</span>
                   </div>
                 </div>
@@ -1137,10 +1171,10 @@ const TutorProfilePage = () => {
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  };
 
 // Helper function to get day name
 const getDayName = (dayOfWeek) => {

@@ -32,6 +32,7 @@ const GoogleMeetStyle = () => {
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [backgroundBlur, setBackgroundBlur] = useState(false);
   const [virtualBackground, setVirtualBackground] = useState(null);
+  const [isLocalVideoExpanded, setIsLocalVideoExpanded] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -294,12 +295,12 @@ const GoogleMeetStyle = () => {
       // Screen sharing
       socket.on('screen-share-start', (data) => {
         console.log('🖥️ Screen sharing started by:', data.from);
-        toast.info('Người tham gia đã bắt đầu chia sẻ màn hình');
+        // Bỏ thông báo toast
       });
 
       socket.on('screen-share-stop', (data) => {
         console.log('🖥️ Screen sharing stopped by:', data.from);
-        toast.info('Người tham gia đã dừng chia sẻ màn hình');
+        // Bỏ thông báo toast
       });
 
     } catch (error) {
@@ -324,7 +325,7 @@ const GoogleMeetStyle = () => {
       }
       
       console.log('📤 Sent offer');
-      toast.success('Đã bắt đầu cuộc gọi');
+      // Bỏ thông báo toast
     } catch (error) {
       console.error('Error starting call:', error);
       toast.error('Không thể bắt đầu cuộc gọi');
@@ -397,7 +398,7 @@ const GoogleMeetStyle = () => {
         };
         
         console.log('🖥️ Screen sharing started');
-        toast.success('Đã bắt đầu chia sẻ màn hình');
+        // Bỏ thông báo toast
         
       } catch (error) {
         console.error('Error starting screen share:', error);
@@ -439,7 +440,7 @@ const GoogleMeetStyle = () => {
       }
       
       console.log('🖥️ Screen sharing stopped');
-      toast.info('Đã dừng chia sẻ màn hình');
+      // Bỏ thông báo toast
     }
   };
 
@@ -509,28 +510,33 @@ const GoogleMeetStyle = () => {
   const toggleRecording = () => {
     if (recordingStatus === 'stopped') {
       setRecordingStatus('recording');
-      toast.success('Bắt đầu ghi âm cuộc họp');
+      // Bỏ thông báo toast
     } else {
       setRecordingStatus('stopped');
-      toast.info('Dừng ghi âm cuộc họp');
+      // Bỏ thông báo toast
     }
   };
 
   const toggleHandRaise = () => {
     setIsHandRaised(!isHandRaised);
     if (!isHandRaised) {
-      toast.info('Bạn đã giơ tay');
+      // Bỏ thông báo toast
     }
   };
 
   const toggleBackgroundBlur = () => {
     setBackgroundBlur(!backgroundBlur);
-    toast.info(backgroundBlur ? 'Tắt làm mờ nền' : 'Bật làm mờ nền');
+    // Bỏ thông báo toast
   };
 
   const changeVirtualBackground = (background) => {
     setVirtualBackground(background);
-    toast.info(`Đã thay đổi nền ảo: ${background}`);
+    // Bỏ thông báo toast
+  };
+
+  const toggleLocalVideoExpanded = () => {
+    setIsLocalVideoExpanded(!isLocalVideoExpanded);
+    // Bỏ thông báo toast để giao diện sạch hơn
   };
 
   // Keyboard shortcuts
@@ -590,12 +596,7 @@ const GoogleMeetStyle = () => {
     }
 
     // Show keyboard shortcuts info
-    setTimeout(() => {
-      toast.info('💡 Mẹo: Sử dụng Ctrl+Space (mic), Ctrl+V (camera), Ctrl+S (screen share), Ctrl+C (chat), Ctrl+F (fullscreen)', {
-        autoClose: 5000,
-        position: 'top-right'
-      });
-    }, 2000);
+    // Bỏ thông báo mẹo dài
 
     return () => {
       if (localStreamRef.current) {
@@ -738,7 +739,11 @@ const GoogleMeetStyle = () => {
         )}
 
         {/* Local video (picture-in-picture) */}
-        <div className="local-video-container">
+        <div 
+          className={`local-video-container ${isLocalVideoExpanded ? 'expanded' : ''}`}
+          onClick={toggleLocalVideoExpanded}
+          title={isLocalVideoExpanded ? 'Click để thu nhỏ' : 'Click để phóng to'}
+        >
           <video
             ref={localVideoRef}
             autoPlay
@@ -753,6 +758,9 @@ const GoogleMeetStyle = () => {
                 <span>Đang chia sẻ màn hình</span>
               </div>
             )}
+            <div className="expand-indicator">
+              <i className={`fas ${isLocalVideoExpanded ? 'fa-compress' : 'fa-expand'}`}></i>
+            </div>
           </div>
         </div>
 

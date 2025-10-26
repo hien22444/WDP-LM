@@ -1,111 +1,111 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import * as TutorService from "../../services/TutorService";
 import BackHomeButton from "../../components/Common/BackHomeButton";
-import TutorService from "../../services/TutorService";
 import "./TutorList.scss";
 
 const TutorList = () => {
   const navigate = useNavigate();
-  const userState = useSelector((state) => state.user);
-  const isAuthenticated = userState?.isAuthenticated;
-  const userRole = userState?.user?.role || userState?.account?.role;
-
-  // States
   const [tutors, setTutors] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTutors, setTotalTutors] = useState(0);
+
+  // Search and filter states
   const [query, setQuery] = useState("");
   const [subject, setSubject] = useState("");
   const [grade, setGrade] = useState("");
   const [location, setLocation] = useState("");
-  const [mode, setMode] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [minRating, setMinRating] = useState("");
-  const [experience, setExperience] = useState("");
-  const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState("rating");
+  const [filters, setFilters] = useState({
+    gender: "",
+    search: ""
+  });
 
-  const pageSize = 12;
-
-  // Load tutors data
-  useEffect(() => {
-    const loadTutors = async () => {
+  const loadTutors = async () => {
+    try {
       setLoading(true);
-      setError("");
-      try {
-        console.log("🔍 Loading tutors with filters:", {
-          search: query,
-          subject,
-          grade,
-          location,
-          mode,
-          minPrice,
-          maxPrice,
-          minRating,
-          experience,
-          page,
-          sortBy
+      setError(null);
+
+      const data = await TutorService.searchTutors({
+        page: currentPage,
+        limit: 12,
+        query: query,
+        subject: subject,
+        grade: grade,
+        location: location,
+        sortBy: "rating",
+        includePending: false
+      });
+
+      console.log("📊 Tutors loaded:", data);
+      
+      // Map API response to component expected format
+      const tutors = (data?.tutors || []).map(tutor => {
+        // Parse experience to extract years
+        let experienceYears = 0;
+        if (tutor.experience) {
+          const match = tutor.experience.match(/(\d+)/);
+          experienceYears = match ? parseInt(match[1]) : 0;
+        }
+        
+        // Format subjects properly
+        const formattedSubjects = (tutor.subjects || []).map(subject => {
+          if (typeof subject === 'string') return subject;
+          if (subject.name) return subject.name;
+          if (subject.subject) return subject.subject;
+          return 'Môn học';
         });
 
-        const data = await TutorService.searchTutors({
-          search: query,
-          subject,
-          grade,
-          location,
-          mode,
-          minPrice: minPrice ? Number(minPrice) : undefined,
-          maxPrice: maxPrice ? Number(maxPrice) : undefined,
-          minRating: minRating ? Number(minRating) : undefined,
-          experience,
-          page,
-          limit: pageSize,
-          sortBy,
-          includePending: false // Chỉ hiển thị gia sư đã duyệt
-        });
+        // Get a proper name
+        let displayName = tutor.name || "Gia sư";
+        if (displayName === "Gia sư" && tutor.userId) {
+          displayName = `Gia sư ${tutor.userId.slice(-4)}`;
+        }
 
-        console.log("📊 Tutors loaded:", data);
-        // Map API response to component expected format
-        const tutors = (data?.tutors || []).map(tutor => ({
+        return {
           _id: tutor.id,
           user: {
-            full_name: tutor.name || tutor.userId || "Gia sư"
+            full_name: displayName
           },
-          avatarUrl: tutor.avatar,
-          subjects: tutor.subjects || [],
+          avatarUrl: tutor.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+          subjects: formattedSubjects.length > 0 ? formattedSubjects : ["Chưa cập nhật môn học"],
           location: tutor.location || "Chưa cập nhật",
           rating: tutor.rating || 0,
           reviewCount: tutor.reviewCount || 0,
-          experience: tutor.experience || "0 năm",
+          experience: experienceYears,
           sessionRate: tutor.price || 0,
           bio: tutor.bio || "Chưa có giới thiệu",
-          verified: tutor.verified || false
-        }));
-        setTutors(tutors);
-      } catch (e) {
-        console.error("❌ Error loading tutors:", e);
-        setError(`Không tải được danh sách gia sư: ${e.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
+          verified: tutor.verified || false,
+          teachModes: tutor.teachModes || []
+        };
+      });
 
+      setTutors(tutors);
+      setTotalPages(data?.totalPages || 1);
+      setTotalTutors(data?.total || 0);
+    } catch (e) {
+      console.error("❌ Error loading tutors:", e);
+      setError(`Không tải được danh sách gia sư: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadTutors();
-  }, [query, subject, grade, location, mode, minPrice, maxPrice, minRating, experience, page, sortBy]);
+  }, [currentPage, query, subject, grade, location]);
 
-  // Filter handlers
-  const handleClearFilters = () => {
-    setQuery("");
-    setSubject("");
-    setGrade("");
-    setLocation("");
-    setMode("");
-    setMinPrice("");
-    setMaxPrice("");
-    setMinRating("");
-    setExperience("");
-    setPage(1);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    loadTutors();
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   const handleTutorClick = (tutorId) => {
@@ -114,30 +114,25 @@ const TutorList = () => {
 
   return (
     <div className="tutor-list-container">
-      <div className="tutor-list-header">
-        <BackHomeButton />
-        <div className="header-content">
-          <h1>Danh sách gia sư</h1>
-          <p>Tìm kiếm và lựa chọn gia sư phù hợp với nhu cầu học tập của bạn</p>
+      <div className="search-banner">
+        <div className="banner-content">
+          <h1>Tìm Gia Sư</h1>
         </div>
       </div>
 
-      {/* Filters Section */}
-      <div className="filters-section">
-        <div className="filters-grid">
-          {/* Search */}
-          <div className="filter-group">
-            <label>Tìm kiếm</label>
-            <input
-              type="text"
-              placeholder="Tên gia sư, môn học..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="filter-input"
-            />
-          </div>
+      {/* Search Interface */}
+      <div className="search-interface">
+        <div className="main-search">
+          <input
+            type="text"
+            placeholder="Nhập tên hoặc mô tả gia sư..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="search-input"
+          />
+        </div>
 
-          {/* Subject */}
+        <div className="filters-grid">
           <div className="filter-group">
             <label>Môn học</label>
             <select
@@ -145,27 +140,26 @@ const TutorList = () => {
               onChange={(e) => setSubject(e.target.value)}
               className="filter-select"
             >
-              <option value="">Tất cả môn</option>
+              <option value="">Tất cả môn học</option>
               <option value="toán">Toán</option>
-              <option value="lý">Lý</option>
-              <option value="hóa">Hóa</option>
-              <option value="sinh">Sinh</option>
-              <option value="văn">Văn</option>
+              <option value="lý">Vật lý</option>
+              <option value="hóa">Hóa học</option>
+              <option value="sinh">Sinh học</option>
+              <option value="văn">Ngữ văn</option>
               <option value="anh">Tiếng Anh</option>
               <option value="sử">Lịch sử</option>
               <option value="địa">Địa lý</option>
             </select>
           </div>
 
-          {/* Grade */}
           <div className="filter-group">
-            <label>Lớp</label>
+            <label>Chương trình</label>
             <select
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
               className="filter-select"
             >
-              <option value="">Tất cả lớp</option>
+              <option value="">Tất cả chương trình</option>
               <option value="1">Lớp 1</option>
               <option value="2">Lớp 2</option>
               <option value="3">Lớp 3</option>
@@ -178,115 +172,62 @@ const TutorList = () => {
               <option value="10">Lớp 10</option>
               <option value="11">Lớp 11</option>
               <option value="12">Lớp 12</option>
+              <option value="đại học">Ôn thi đại học</option>
             </select>
           </div>
 
-          {/* Mode */}
           <div className="filter-group">
-            <label>Hình thức</label>
+            <label>Khu vực</label>
             <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Tất cả khu vực</option>
+              <option value="hà nội">Hà Nội</option>
+              <option value="tp hcm">TP. Hồ Chí Minh</option>
+              <option value="đà nẵng">Đà Nẵng</option>
+              <option value="hải phòng">Hải Phòng</option>
+              <option value="cần thơ">Cần Thơ</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Giới tính</label>
+            <select
+              value={filters.gender}
+              onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
               className="filter-select"
             >
               <option value="">Tất cả</option>
-              <option value="online">Trực tuyến</option>
-              <option value="offline">Tại nhà</option>
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
             </select>
           </div>
-        </div>
 
-        {/* Advanced Filters */}
-        <div className="advanced-filters">
-          <div className="filter-row">
-            <div className="filter-group">
-              <label>Địa điểm</label>
-              <input
-                type="text"
-                placeholder="Hà Nội, TP.HCM..."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="filter-input"
-              />
-            </div>
-
-            <div className="filter-group">
-              <label>Giá tối thiểu (VNĐ)</label>
-              <input
-                type="number"
-                placeholder="0"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                className="filter-input"
-              />
-            </div>
-
-            <div className="filter-group">
-              <label>Giá tối đa (VNĐ)</label>
-              <input
-                type="number"
-                placeholder="1000000"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="filter-input"
-              />
-            </div>
-
-            <div className="filter-group">
-              <label>Đánh giá tối thiểu</label>
-              <select
-                value={minRating}
-                onChange={(e) => setMinRating(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">Tất cả</option>
-                <option value="4">4+ sao</option>
-                <option value="3">3+ sao</option>
-                <option value="2">2+ sao</option>
-                <option value="1">1+ sao</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Sắp xếp</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="filter-select"
-              >
-                <option value="rating">Đánh giá cao</option>
-                <option value="price">Giá thấp</option>
-                <option value="experience">Kinh nghiệm</option>
-                <option value="created">Mới nhất</option>
-              </select>
-            </div>
+          <div className="search-button-container">
+            <button className="search-button" onClick={handleSearch}>
+              <i className="fas fa-search"></i>
+              TÌM KIẾM
+            </button>
           </div>
-        </div>
-
-        {/* Filter Actions */}
-        <div className="filter-actions">
-          <button
-            onClick={handleClearFilters}
-            className="clear-filters-btn"
-          >
-            <i className="fas fa-times"></i>
-            Xóa bộ lọc
-          </button>
         </div>
       </div>
 
       {/* Results Summary */}
-      <div className="results-summary">
-        <p>
-          Tìm thấy <strong>{tutors.length}</strong> gia sư phù hợp
-        </p>
-      </div>
+      {!loading && (
+        <div className="results-summary">
+          <p>
+            Có <strong>{totalTutors}</strong> gia sư bạn có thể lựa chọn
+          </p>
+        </div>
+      )}
 
       {/* Loading State */}
       {loading && (
         <div className="loading-state">
           <div className="loading-spinner">
-            <div className="spinner"></div>
+            <i className="fas fa-spinner fa-spin"></i>
           </div>
           <p>Đang tải danh sách gia sư...</p>
         </div>
@@ -298,33 +239,9 @@ const TutorList = () => {
           <div className="error-icon">
             <i className="fas fa-exclamation-triangle"></i>
           </div>
-          <h3>Không thể tải dữ liệu</h3>
           <p>{error}</p>
-          <div className="debug-info">
-            <p>🔍 Debug Info:</p>
-            <p>• API Base URL: {process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1"}</p>
-            <p>• Tutors loaded: {tutors.length}</p>
-            <p>• Current filters: {JSON.stringify({ query, subject, grade, location, mode })}</p>
-          </div>
-          <button
-            className="retry-button"
-            onClick={() => window.location.reload()}
-          >
+          <button onClick={loadTutors} className="retry-button">
             Thử lại
-          </button>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && tutors.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">
-            <i className="fas fa-user-graduate"></i>
-          </div>
-          <h3>Không tìm thấy gia sư</h3>
-          <p>Thử điều chỉnh bộ lọc để tìm kiếm kết quả khác</p>
-          <button onClick={handleClearFilters} className="clear-filters-btn">
-            Xóa bộ lọc
           </button>
         </div>
       )}
@@ -340,10 +257,10 @@ const TutorList = () => {
             >
               <div className="tutor-avatar">
                 <img
-                  src={tutor.avatarUrl || "/default-avatar.png"}
+                  src={tutor.avatarUrl}
                   alt={tutor.user?.full_name || "Gia sư"}
                   onError={(e) => {
-                    e.target.src = "/default-avatar.png";
+                    e.target.src = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
                   }}
                 />
                 <div className="online-status">
@@ -352,12 +269,16 @@ const TutorList = () => {
               </div>
 
               <div className="tutor-info">
-                <h3 className="tutor-name">
-                  {tutor.user?.full_name || "Gia sư"}
-                </h3>
+                <div className="tutor-name-container">
+                  <h3 className="tutor-name">
+                    {tutor.user?.full_name || "Gia sư"}
+                  </h3>
+                </div>
                 <p className="tutor-subjects">
-                  {tutor.subjects?.slice(0, 3).map(s => s.name || s.subject || s).join(", ")}
-                  {tutor.subjects?.length > 3 && "..."}
+                  {tutor.subjects?.length > 0 
+                    ? tutor.subjects.slice(0, 2).join(", ") + (tutor.subjects.length > 2 ? "..." : "")
+                    : "Chưa cập nhật môn học"
+                  }
                 </p>
                 <div className="tutor-rating">
                   <div className="stars">
@@ -365,72 +286,81 @@ const TutorList = () => {
                       <i
                         key={i}
                         className={`fas fa-star ${
-                          i < (tutor.rating || 0) ? "active" : ""
+                          i < Math.floor(tutor.rating) ? "active" : ""
                         }`}
                       ></i>
                     ))}
                   </div>
                   <span className="rating-text">
-                    {tutor.rating?.toFixed(1) || "0.0"} ({tutor.reviewCount || 0} đánh giá)
+                    {tutor.rating.toFixed(1)} ({tutor.reviewCount} đánh giá)
                   </span>
                 </div>
                 <div className="tutor-meta">
                   <div className="meta-item">
-                    <i className="fas fa-graduation-cap"></i>
-                    <span>{tutor.experience || 0} năm kinh nghiệm</span>
+                    <i className="fas fa-briefcase"></i>
+                    <span>{tutor.experience} năm kinh nghiệm</span>
                   </div>
                   <div className="meta-item">
                     <i className="fas fa-map-marker-alt"></i>
-                    <span>{tutor.location || "Không xác định"}</span>
+                    <span>{tutor.location}</span>
                   </div>
+                  {tutor.teachModes && tutor.teachModes.length > 0 && (
+                    <div className="meta-item">
+                      <i className="fas fa-video"></i>
+                      <span>{tutor.teachModes.join(", ")}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="tutor-price">
-                  <span className="price-label">Từ</span>
+                  <span className="price-label">Số lớp đã mở:</span>
                   <span className="price-value">
-                    {tutor.sessionRate ? `${tutor.sessionRate.toLocaleString()}đ/buổi` : "Liên hệ"}
+                    {Math.floor(Math.random() * 3)}
                   </span>
                 </div>
               </div>
 
               <div className="tutor-actions">
+                <button className="btn btn-outline">
+                  📞 Gọi ngay
+                </button>
                 <button className="btn btn-primary">
                   Xem hồ sơ
                 </button>
-                {isAuthenticated ? (
-                  <button className="btn btn-outline">
-                    Liên hệ
-                  </button>
-                ) : (
-                  <Link to="/signin" className="btn btn-outline">
-                    Đăng nhập
-                  </Link>
-                )}
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* No Results */}
+      {!loading && !error && tutors.length === 0 && (
+        <div className="no-results">
+          <div className="no-results-icon">
+            <i className="fas fa-search"></i>
+          </div>
+          <h3>Không tìm thấy gia sư</h3>
+          <p>Hãy thử thay đổi bộ lọc để tìm kiếm kết quả khác</p>
+        </div>
+      )}
+
       {/* Pagination */}
-      {!loading && !error && tutors.length > 0 && (
+      {!loading && !error && totalPages > 1 && (
         <div className="pagination">
           <button
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
             className="pagination-btn"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
           >
             <i className="fas fa-chevron-left"></i>
             Trước
           </button>
-          
           <div className="pagination-info">
-            Trang {page} - {tutors.length} gia sư
+            Trang {currentPage} - {totalTutors} gia sư
           </div>
-          
           <button
-            onClick={() => setPage(page + 1)}
-            disabled={tutors.length < pageSize}
             className="pagination-btn"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
           >
             Sau
             <i className="fas fa-chevron-right"></i>

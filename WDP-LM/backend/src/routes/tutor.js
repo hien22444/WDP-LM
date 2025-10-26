@@ -291,19 +291,19 @@ router.get("/:id", async (req, res) => {
     const id = req.params.id;
     if (mongoose.isValidObjectId(id)) {
       tutor = await TutorProfile.findOne({ _id: id })
-        .populate("user", "full_name phone_number email status");
+        .populate("user", "full_name phone_number email status image");
     }
     // Fallback: if not found by profile id, try by user id
     if (!tutor && mongoose.isValidObjectId(id)) {
       tutor = await TutorProfile.findOne({ user: id })
-        .populate("user", "full_name phone_number email status");
+        .populate("user", "full_name phone_number email status image");
     }
     // Fallback by email
     if (!tutor && id && id.includes('@')) {
       const user = await require('../models/User').findOne({ email: id });
       if (user) {
         tutor = await TutorProfile.findOne({ user: user._id })
-          .populate("user", "full_name phone_number email status");
+          .populate("user", "full_name phone_number email status image");
       }
     }
 
@@ -343,7 +343,8 @@ router.get("/:id", async (req, res) => {
       id: tutor._id,
       userId: tutor.user?._id || null,
       name: tutor.user?.full_name || tutor.user?.fullName || 'Gia sư',
-      // Prefer user's image (profile avatar), then tutor avatarUrl/avatar/profileImage
+      // Prefer user's image (profile avatar), then tutor's avatarUrl
+      avatarUrl: tutor.user?.image || tutor.avatarUrl || null,
       avatar: 
         toAbsoluteUrl(
           tutor.user?.image ||

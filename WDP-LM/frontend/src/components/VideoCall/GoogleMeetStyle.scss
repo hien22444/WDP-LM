@@ -6,6 +6,12 @@
   position: relative;
   overflow: hidden;
   font-family: 'Google Sans', 'Roboto', sans-serif;
+  
+  // Debug: Force show all elements
+  * {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 
   &.fullscreen {
     .main-video-area {
@@ -246,15 +252,31 @@
       position: absolute;
       bottom: 20px;
       right: 20px;
-      width: 300px;
-      height: 200px;
-      border-radius: 8px;
+      width: 400px;
+      height: 300px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
       transition: all 0.3s ease;
+      border: 2px solid #4285f4;
 
       &:hover {
         transform: scale(1.05);
+        cursor: pointer;
+      }
+
+      &.expanded {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80vw;
+        height: 60vh;
+        max-width: 800px;
+        max-height: 600px;
+        z-index: 1000;
+        border: 3px solid #4285f4;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
       }
 
       .local-video {
@@ -360,25 +382,31 @@
 
   // Bottom controls
   .bottom-controls {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    backdrop-filter: blur(20px);
+    padding: 20px 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     transition: transform 0.3s ease;
-    z-index: 1000;
+    z-index: 9999 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    min-height: 80px !important;
 
     &.show {
       transform: translateY(0);
     }
 
     &.hide {
-      transform: translateY(100%);
+      transform: translateY(0) !important;
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
 
     .controls-left {
@@ -401,76 +429,103 @@
     }
 
     .controls-center {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      width: auto !important;
+      height: auto !important;
 
       .control-btn {
-        width: 48px;
-        height: 48px;
-        border: none;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
+        width: 48px !important;
+        height: 48px !important;
+        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
         transition: all 0.2s ease;
-        font-size: 18px;
-        position: relative;
+        font-size: 18px !important;
+        position: relative !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        visibility: visible !important;
+        opacity: 1 !important;
 
         &.mic-btn {
-          background: #3c4043;
+          background: rgba(255, 255, 255, 0.15);
           color: white;
+          border-color: rgba(255, 255, 255, 0.4);
 
           &.enabled {
-            background: #3c4043;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
           }
 
           &.disabled {
-            background: #ea4335;
+            background: rgba(234, 67, 53, 0.8);
+            border-color: #ea4335;
+            box-shadow: 0 6px 16px rgba(234, 67, 53, 0.4);
           }
 
           &:hover {
-            background: #5f6368;
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
           }
         }
 
         &.video-btn {
-          background: #3c4043;
+          background: rgba(255, 255, 255, 0.15);
           color: white;
+          border-color: rgba(255, 255, 255, 0.4);
 
           &.enabled {
-            background: #3c4043;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
           }
 
           &.disabled {
-            background: #ea4335;
+            background: rgba(234, 67, 53, 0.8);
+            border-color: #ea4335;
+            box-shadow: 0 6px 16px rgba(234, 67, 53, 0.4);
           }
 
           &:hover {
-            background: #5f6368;
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
           }
         }
 
         &.screen-btn {
-          background: #3c4043;
+          background: rgba(255, 255, 255, 0.15);
           color: white;
+          border-color: rgba(255, 255, 255, 0.4);
 
           &.active {
-            background: #ea4335;
+            background: rgba(66, 133, 244, 0.8);
+            border-color: #4285f4;
+            box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);
           }
 
           &:hover {
-            background: #5f6368;
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
           }
         }
 
         &.participants-btn {
-          background: #3c4043;
+          background: rgba(255, 255, 255, 0.15);
           color: white;
+          border-color: rgba(255, 255, 255, 0.4);
 
           &:hover {
-            background: #5f6368;
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
           }
 
           .participant-count {
@@ -491,11 +546,13 @@
         }
 
         &.chat-btn {
-          background: #3c4043;
+          background: rgba(255, 255, 255, 0.15);
           color: white;
+          border-color: rgba(255, 255, 255, 0.4);
 
           &:hover {
-            background: #5f6368;
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
           }
         }
 
@@ -555,11 +612,18 @@
         }
 
         &.end-call-btn {
-          background: #ea4335;
+          background: rgba(234, 67, 53, 0.9);
           color: white;
+          border-color: #ea4335;
+          box-shadow: 0 6px 16px rgba(234, 67, 53, 0.4);
+          width: 56px;
+          height: 56px;
+          font-size: 20px;
 
           &:hover {
-            background: #d33b2c;
+            background: rgba(211, 59, 44, 0.9);
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(234, 67, 53, 0.6);
           }
         }
       }
@@ -812,8 +876,8 @@
   .meet-container {
     .main-video-area {
       .local-video-container {
-        width: 200px;
-        height: 150px;
+        width: 300px;
+        height: 225px;
         bottom: 10px;
         right: 10px;
       }
@@ -855,8 +919,8 @@
   .meet-container {
     .main-video-area {
       .local-video-container {
-        width: 150px;
-        height: 100px;
+        width: 250px;
+        height: 180px;
       }
     }
 
@@ -871,5 +935,65 @@
         }
       }
     }
+  }
+}
+
+// Expand indicator for local video
+.local-video-container {
+  .local-video-overlay {
+    .expand-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 6px;
+      border-radius: 50%;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+  }
+
+  &:hover .expand-indicator {
+    opacity: 1;
+  }
+}
+
+// Enhanced button visibility
+.bottom-controls {
+  // Force visibility
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  
+  .control-btn {
+    // Enhanced visibility
+    filter: brightness(1.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    
+    // Better contrast
+    i {
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+      display: block !important;
+      visibility: visible !important;
+    }
+  }
+  
+  .controls-center {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 }

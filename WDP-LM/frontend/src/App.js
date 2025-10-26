@@ -41,6 +41,8 @@ import GoogleMeetStyle from "./components/VideoCall/GoogleMeetStyle";
 import ProfileCompletionModal from "./components/ProfileCompletion/ProfileCompletionModal";
 import { useState, useEffect } from "react";
 import authService from "./services/AuthService";
+import { ChatProvider } from "./contexts/ChatContext";
+import ChatManager from "./components/Chat/ChatManager";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -83,7 +85,7 @@ function App() {
   };
 
   return (
-    <>
+    <ChatProvider>
       <Routes>
         {/* Public routes without layout */}
         <Route
@@ -211,7 +213,10 @@ function App() {
       
       {/* Global ChatBot: shown on all routes (fixed bottom-right by CSS) */}
       <ChatBot />
-    </>
+      
+      {/* Global Chat Manager: manages all chat widgets */}
+      <ChatManager />
+    </ChatProvider>
   );
 }
 

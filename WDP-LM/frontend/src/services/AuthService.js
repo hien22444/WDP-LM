@@ -58,6 +58,11 @@ export const logout = async () => {
     localStorage.removeItem("user");
     localStorage.removeItem("profileCompletion");
     
+    // Clear chat-related data
+    localStorage.removeItem("chatMessages");
+    localStorage.removeItem("chatNotifications");
+    localStorage.removeItem("activeChats");
+    
     toast.success("👋 Đã đăng xuất thành công!");
   } catch (error) {
     console.error("Logout error:", error);
@@ -66,6 +71,9 @@ export const logout = async () => {
     Cookies.remove("refreshToken");
     localStorage.removeItem("user");
     localStorage.removeItem("profileCompletion");
+    localStorage.removeItem("chatMessages");
+    localStorage.removeItem("chatNotifications");
+    localStorage.removeItem("activeChats");
   }
 };
 

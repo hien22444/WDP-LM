@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import BackHomeButton from "../../components/Common/BackHomeButton";
-import TutorHero from "../../components/Tutor/TutorHero";
-import TutorFooter from "../../components/Tutor/TutorFooter";
 import BookingService from "../../services/BookingService";
 import "./TutorOpenCourses.scss";
 
@@ -48,71 +45,119 @@ const TutorOpenCourses = () => {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const result = (items || []).filter(s => {
-      if (mode && s.mode !== mode) return false;
-      if (q && !(s.courseName || '').toLowerCase().includes(q)) return false;
-      if (minPrice && (s.price || 0) < Number(minPrice)) return false;
-      if (maxPrice && (s.price || 0) > Number(maxPrice)) return false;
-      return true;
+    const min = parseFloat(minPrice) || 0;
+    const max = parseFloat(maxPrice) || Infinity;
+    
+    return items.filter(item => {
+      const matchesQuery = !q || 
+        item.subject?.toLowerCase().includes(q) ||
+        item.tutor?.name?.toLowerCase().includes(q) ||
+        item.description?.toLowerCase().includes(q);
+      
+      const matchesMode = !mode || item.mode === mode;
+      const matchesPrice = item.price >= min && item.price <= max;
+      
+      return matchesQuery && matchesMode && matchesPrice;
     });
-    // Reset to first page if current page exceeds new total
-    const totalPages = Math.max(1, Math.ceil(result.length / pageSize));
-    if (page > totalPages) setPage(1);
-    return result;
   }, [items, query, mode, minPrice, maxPrice]);
 
-  const paged = useMemo(() => {
-    const startIdx = (page - 1) * pageSize;
-    return filtered.slice(startIdx, startIdx + pageSize);
-  }, [filtered, page]);
-
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / pageSize)), [filtered]);
-
-  // Danh sách môn/khóa để gợi ý tìm kiếm
   const courseOptions = useMemo(() => {
-    const set = new Set();
-    (items || []).forEach(s => { if (s.courseName) set.add(s.courseName); });
-    return Array.from(set).sort((a,b)=>a.localeCompare(b));
+    return [...new Set(items.map(item => item.subject).filter(Boolean))];
   }, [items]);
 
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedItems = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Chưa xác định';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Ngày không hợp lệ';
+    return date.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return '--:--';
+    const [hours, minutes] = timeString.split(':');
+    return `${hours}:${minutes}`;
+  };
+
   return (
-    <div className="tutor-search-page">
-      <div className="search-header">
-        <div className="header-content">
-          <h1 className="page-title">Tìm kiếm gia sư</h1>
-          <p className="page-subtitle">Khám phá hàng nghìn gia sư chất lượng cao</p>
+    <div className="tutor-open-courses">
+      {/* Search Banner */}
+      <div className="search-banner">
+        <div className="banner-content">
+          <h1>Khóa học mở</h1>
         </div>
-        <BackHomeButton />
       </div>
-      {/* Conditional Hero Section based on user role */}
-      {isTutor && <TutorHero />}
 
-      {/* User status notification */}
-      {!isAuthenticated && (
-        <div className="welcome-banner">
-          <div className="banner-content">
-            <div className="banner-icon">
-              <i className="fas fa-graduation-cap"></i>
-            </div>
-            <div className="banner-text">
-              <h3>Chào mừng đến với EduMatch!</h3>
-              <p>Đăng nhập để đặt khóa học và trải nghiệm đầy đủ các tính năng</p>
-            </div>
-            <div className="banner-actions">
-              <Link to="/signin" className="btn btn-primary">Đăng nhập</Link>
-              <Link to="/signup" className="btn btn-outline">Đăng ký</Link>
-            </div>
-          </div>
+      {/* Search Interface */}
+      <div className="search-interface">
+        <div className="main-search">
+          <input
+            type="text"
+            placeholder="Nhập tên khóa học hoặc môn học..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="search-input"
+          />
         </div>
-      )}
 
-      {/* Modern Filters */}
-      <div className="filters-section">
-        <div className="filters-container">
-          <div className="filters-header">
-            <h3>Bộ lọc tìm kiếm</h3>
+        <div className="filters-grid">
+          <div className="filter-group">
+            <label>Hình thức học</label>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Tất cả hình thức</option>
+              <option value="online">Trực tuyến</option>
+              <option value="offline">Tại nhà</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Giá từ (VNĐ)</label>
+            <input
+              type="number"
+              placeholder="0"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              className="filter-input"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label>Giá đến (VNĐ)</label>
+            <input
+              type="number"
+              placeholder="500000"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              className="filter-input"
+            />
+          </div>
+
+          <div className="search-button-container">
             <button 
-              className="clear-filters-btn"
+              className="search-button" 
               onClick={() => {
                 setQuery("");
                 setMode("");
@@ -120,77 +165,19 @@ const TutorOpenCourses = () => {
                 setMaxPrice("");
               }}
             >
-              <i className="fas fa-times"></i>
-              Xóa bộ lọc
+              <i className="fas fa-refresh"></i>
+              XÓA BỘ LỌC
             </button>
-          </div>
-          
-          <div className="filters-grid">
-            <div className="filter-group">
-              <label className="filter-label">Tìm kiếm khóa học</label>
-              <div className="search-input-wrapper">
-                <i className="fas fa-search search-icon"></i>
-                <input 
-                  className="search-input" 
-                  list="course-options" 
-                  value={query} 
-                  onChange={(e)=>setQuery(e.target.value)} 
-                  placeholder="Nhập tên khóa học..." 
-                />
-                <datalist id="course-options">
-                  {courseOptions.map(name => (
-                    <option key={name} value={name} />
-                  ))}
-                </datalist>
-              </div>
-            </div>
-            
-            <div className="filter-group">
-              <label className="filter-label">Hình thức học</label>
-              <select className="filter-select" value={mode} onChange={(e)=>setMode(e.target.value)}>
-                <option value="">Tất cả hình thức</option>
-                <option value="online">Trực tuyến</option>
-                <option value="offline">Tại nhà</option>
-              </select>
-            </div>
-            
-            <div className="filter-group">
-              <label className="filter-label">Giá từ</label>
-              <input 
-                className="filter-input" 
-                type="number" 
-                value={minPrice} 
-                onChange={(e)=>setMinPrice(e.target.value)} 
-                placeholder="0 VNĐ" 
-              />
-            </div>
-            
-            <div className="filter-group">
-              <label className="filter-label">Giá đến</label>
-              <input 
-                className="filter-input" 
-                type="number" 
-                value={maxPrice} 
-                onChange={(e)=>setMaxPrice(e.target.value)} 
-                placeholder="500,000 VNĐ" 
-              />
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Results summary */}
-      {!loading && !error && (
+      {/* Results Summary */}
+      {!loading && (
         <div className="results-summary">
-          <div className="results-info">
-            <span className="results-count">
-              Tìm thấy {filtered.length} khóa học
-              {filtered.length !== items.length && ` (đã lọc từ ${items.length} khóa học)`}
-            </span>
-          </div>
-          <div className="pagination-info">
-            Trang {page} / {totalPages}
-          </div>
+          <p>
+            Có <strong>{filtered.length}</strong> khóa học bạn có thể lựa chọn
+          </p>
         </div>
       )}
 
@@ -198,9 +185,9 @@ const TutorOpenCourses = () => {
       {loading && (
         <div className="loading-state">
           <div className="loading-spinner">
-            <div className="spinner"></div>
+            <i className="fas fa-spinner fa-spin"></i>
           </div>
-          <p className="loading-text">Đang tải danh sách khóa học...</p>
+          <p>Đang tải danh sách khóa học...</p>
         </div>
       )}
 
@@ -210,252 +197,114 @@ const TutorOpenCourses = () => {
           <div className="error-icon">
             <i className="fas fa-exclamation-triangle"></i>
           </div>
-          <h3>Không thể tải dữ liệu</h3>
           <p>{error}</p>
-          <div className="debug-info">
-            <p>🔍 Debug Info:</p>
-            <p>• API Base URL: {process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1"}</p>
-            <p>• Items loaded: {items.length}</p>
-            <p>• Filtered items: {filtered.length}</p>
-            <p>• Tutor ID: {tutorId || "none"}</p>
-          </div>
-          <button className="retry-button" onClick={() => window.location.reload()}>
+          <button onClick={() => window.location.reload()} className="retry-button">
             Thử lại
           </button>
         </div>
       )}
 
-      {/* Empty State */}
-      {!loading && !error && paged.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">
-            <i className="fas fa-search"></i>
-          </div>
-          <h3>Không tìm thấy khóa học nào</h3>
-          <p>
-            {filtered.length === 0 && items.length > 0 
-              ? "Thử điều chỉnh bộ lọc để tìm thấy khóa học phù hợp"
-              : "Hiện tại chưa có khóa học nào được mở"
-            }
-          </p>
-          {(query || mode || minPrice || maxPrice) && (
-            <button 
-              className="btn btn-outline"
-              onClick={() => {
-                setQuery("");
-                setMode("");
-                setMinPrice("");
-                setMaxPrice("");
-              }}
-            >
-              <i className="fas fa-times"></i>
-              Xóa bộ lọc
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Course Cards */}
-      {!loading && !error && paged.length > 0 && (
+      {/* Courses Grid */}
+      {!loading && !error && paginatedItems.length > 0 && (
         <div className="courses-grid">
-          {paged.map(slot => (
-            <div key={slot._id} className="course-card">
-              <div className="course-cover">
-                <div
-                  className="cover-image"
-                  style={(() => {
-                    const hasImage = Boolean(slot.image);
-                    return hasImage
-                      ? { backgroundImage: `url(${slot.image})` }
-                      : { background: 'linear-gradient(135deg, var(--primary-100), var(--secondary-100))' };
-                  })()}
-                />
-                <div className="cover-overlay">
-                  <span className={`mode-badge ${slot.mode === 'online' ? 'online' : 'offline'}`}>
-                    {slot.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}
-                  </span>
+          {paginatedItems.map((course) => (
+            <div key={course._id} className="course-card">
+              <div className="course-header">
+                <div className="course-tutor">
+                  <div className="tutor-avatar">
+                    <img
+                      src={course.tutor?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
+                      alt={course.tutor?.name || "Gia sư"}
+                      onError={(e) => {
+                        e.target.src = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+                      }}
+                    />
+                  </div>
+                  <div className="tutor-info">
+                    <h4 className="tutor-name">{course.tutor?.name || "Gia sư"}</h4>
+                    <span className="tutor-rating">
+                      <i className="fas fa-star"></i>
+                      {course.tutor?.rating || 0} ({course.tutor?.totalReviews || 0} đánh giá)
+                    </span>
+                  </div>
+                </div>
+                <div className="course-price">
+                  {formatPrice(course.price)}
                 </div>
               </div>
 
               <div className="course-content">
-                <div className="course-header">
-                  <div className="tutor-info">
-                    {slot.tutorProfile?.user && (
-                      <img
-                        className="tutor-avatar"
-                        src={slot.tutorProfile.avatarUrl || slot.tutorProfile.user.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face'}
-                        alt={slot.tutorProfile.user.full_name || 'Tutor'}
-                      />
-                    )}
-                    <div className="tutor-details">
-                      <h3 className="course-title">{slot.courseName}</h3>
-                      {slot.tutorProfile?.user && (
-                        <Link to={`/tutor/${slot.tutorProfile._id}`} className="tutor-name">
-                          {slot.tutorProfile.user.full_name || 'Gia sư'}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="course-meta">
-                  <div className="meta-item">
+                <h3 className="course-title">{course.subject}</h3>
+                <p className="course-description">
+                  {course.description || "Chưa có mô tả khóa học"}
+                </p>
+                
+                <div className="course-details">
+                  <div className="detail-item">
                     <i className="fas fa-calendar"></i>
-                    <span>{new Date(slot.start).toLocaleDateString()}</span>
+                    <span>{course.date ? formatDate(course.date) : 'Chưa xác định'}</span>
                   </div>
-                  <div className="meta-item">
+                  <div className="detail-item">
                     <i className="fas fa-clock"></i>
-                    <span>
-                      {new Date(slot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – 
-                      {new Date(slot.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    <span>{formatTime(course.startTime)} - {formatTime(course.endTime)}</span>
                   </div>
-                  {slot.location && (
-                    <div className="meta-item">
-                      <i className="fas fa-map-marker-alt"></i>
-                      <span>{slot.location}</span>
-                    </div>
-                  )}
-                </div>
-
-                {slot.notes && (
-                  <div className="course-notes">
-                    <p>{slot.notes}</p>
-                  </div>
-                )}
-
-                <div className="course-footer">
-                  <div className="price-section">
-                    <span className="price-label">Học phí</span>
-                    <span className="price-value">
-                      {slot.price ? `${slot.price.toLocaleString()}đ` : 'Liên hệ'}
-                    </span>
-                  </div>
-                  <div className="action-buttons">
-                    <Link className="btn btn-outline" to={`/courses/${slot._id}`}>
-                      Chi tiết
-                    </Link>
-                    {isAuthenticated ? (
-                      <button 
-                        className="btn btn-primary" 
-                        onClick={() => window.location.assign(`/tutor/${slot.tutorProfile?._id || ''}`)}
-                      >
-                        Đặt ngay
-                      </button>
-                    ) : (
-                      <Link className="btn btn-primary" to="/signin">
-                        Đăng nhập để đặt
-                      </Link>
-                    )}
+                  <div className="detail-item">
+                    <i className={`fas fa-${course.mode === 'online' ? 'video' : 'home'}`}></i>
+                    <span>{course.mode === 'online' ? 'Trực tuyến' : course.mode === 'offline' ? 'Tại nhà' : 'Chưa xác định'}</span>
                   </div>
                 </div>
               </div>
+
+              <div className="course-actions">
+                <button className="btn btn-outline">
+                  📞 Liên hệ
+                </button>
+                <button className="btn btn-primary">
+                  Đăng ký ngay
+                </button>
+              </div>
             </div>
           ))}
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="pagination-section">
-              <nav className="pagination-nav">
-                <button 
-                  className="pagination-btn prev"
-                  onClick={()=>setPage(p=>Math.max(1,p-1))}
-                  disabled={page === 1}
-                >
-                  <i className="fas fa-chevron-left"></i>
-                  Trước
-                </button>
-                
-                <div className="pagination-numbers">
-                  {(() => {
-                    const pages = [];
-                    const maxVisible = 5;
-                    
-                    if (totalPages <= maxVisible) {
-                      for (let i = 1; i <= totalPages; i++) {
-                        pages.push(
-                          <button 
-                            key={i} 
-                            className={`pagination-number ${page === i ? 'active' : ''}`}
-                            onClick={()=>setPage(i)}
-                          >
-                            {i}
-                          </button>
-                        );
-                      }
-                    } else {
-                      const start = Math.max(1, page - 2);
-                      const end = Math.min(totalPages, page + 2);
-                      
-                      if (start > 1) {
-                        pages.push(
-                          <button 
-                            key={1} 
-                            className="pagination-number"
-                            onClick={()=>setPage(1)}
-                          >
-                            1
-                          </button>
-                        );
-                        if (start > 2) {
-                          pages.push(
-                            <span key="ellipsis1" className="pagination-ellipsis">...</span>
-                          );
-                        }
-                      }
-                      
-                      for (let i = start; i <= end; i++) {
-                        pages.push(
-                          <button 
-                            key={i} 
-                            className={`pagination-number ${page === i ? 'active' : ''}`}
-                            onClick={()=>setPage(i)}
-                          >
-                            {i}
-                          </button>
-                        );
-                      }
-                      
-                      if (end < totalPages) {
-                        if (end < totalPages - 1) {
-                          pages.push(
-                            <span key="ellipsis2" className="pagination-ellipsis">...</span>
-                          );
-                        }
-                        pages.push(
-                          <button 
-                            key={totalPages} 
-                            className="pagination-number"
-                            onClick={()=>setPage(totalPages)}
-                          >
-                            {totalPages}
-                          </button>
-                        );
-                      }
-                    }
-                    
-                    return pages;
-                  })()}
-                </div>
-                
-                <button 
-                  className="pagination-btn next"
-                  onClick={()=>setPage(p=>Math.min(totalPages,p+1))}
-                  disabled={page === totalPages}
-                >
-                  Sau
-                  <i className="fas fa-chevron-right"></i>
-                </button>
-              </nav>
-            </div>
-          )}
         </div>
       )}
 
-      <TutorFooter />
+      {/* No Results */}
+      {!loading && !error && paginatedItems.length === 0 && (
+        <div className="no-results">
+          <div className="no-results-icon">
+            <i className="fas fa-search"></i>
+          </div>
+          <h3>Không tìm thấy khóa học</h3>
+          <p>Hãy thử thay đổi bộ lọc để tìm kiếm kết quả khác</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && !error && totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+          >
+            <i className="fas fa-chevron-left"></i>
+            Trước
+          </button>
+          <div className="pagination-info">
+            Trang {page} - {filtered.length} khóa học
+          </div>
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === totalPages}
+          >
+            Sau
+            <i className="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
 export default TutorOpenCourses;
-
-
