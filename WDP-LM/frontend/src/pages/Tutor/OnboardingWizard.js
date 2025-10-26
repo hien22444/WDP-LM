@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { submitTutorProfile, uploadIdDocuments, uploadDegreeDocuments } from '../../services/TutorService';
+import UniversalHeader from '../../components/Layout/UniversalHeader';
 import "./OnboardingWizard.scss";
 
 const OnboardingWizard = () => {
@@ -495,6 +496,7 @@ const OnboardingWizard = () => {
 
   return (
     <div className="onboarding-wizard">
+      <UniversalHeader />
       <div className="wizard-container">
         <div className="wizard-header">
           <h1>Đăng ký trở thành gia sư</h1>
