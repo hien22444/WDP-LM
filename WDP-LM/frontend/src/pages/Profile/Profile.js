@@ -300,7 +300,6 @@ const Profile = () => {
   console.log('🔍 Profile: Rendering...');
   console.log('  - userProfile:', userProfile);
   console.log('  - tutorProfile:', tutorProfile);
-  console.log('  - showUpdateModal:', showUpdateModal);
   console.log('  - loading:', loading);
   console.log('  - error:', error);
 
