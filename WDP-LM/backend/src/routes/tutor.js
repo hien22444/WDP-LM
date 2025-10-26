@@ -469,6 +469,35 @@ router.patch("/me/expertise", auth(), async (req, res) => {
   }
 });
 
+// Update entire tutor profile (comprehensive update)
+router.patch("/me", auth(), async (req, res) => {
+  try {
+    const updateData = {};
+    
+    // Map form fields to database fields
+    if (req.body.introduction) updateData.bio = req.body.introduction;
+    if (req.body.subjects && Array.isArray(req.body.subjects)) updateData.subjects = req.body.subjects;
+    if (req.body.experience) updateData.experienceYears = parseInt(req.body.experience) || 0;
+    if (req.body.hourlyRate) updateData.sessionRate = parseInt(req.body.hourlyRate);
+    if (req.body.location) updateData.city = req.body.location;
+    if (req.body.education) updateData.education = req.body.education;
+    if (req.body.university) updateData.university = req.body.university;
+    if (req.body.teachingMethod) updateData.teachingMethod = req.body.teachingMethod;
+    if (req.body.achievements) updateData.achievements = req.body.achievements;
+
+    const profile = await TutorProfile.findOneAndUpdate(
+      { user: req.user.id },
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
+    
+    res.json({ profile });
+  } catch (e) {
+    console.error("/tutors/me error:", e?.message);
+    res.status(500).json({ message: "Failed to update profile", error: e.message });
+  }
+});
+
 // Update teaching preferences
 router.patch("/me/preferences", auth(), async (req, res) => {
   try {
