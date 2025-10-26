@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999;
+  z-index: 99999; // Very high z-index to ensure it's on top
   
   .modal-overlay {
     position: absolute;
@@ -16,6 +16,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(0px); // Disable backdrop blur
   }
 
   .modal-content {
