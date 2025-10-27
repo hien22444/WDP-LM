@@ -430,6 +430,7 @@ app.use("/api/v1/profile-completion", profileCompletionRoutes);
 app.use("/api/v1/tutor-verification", tutorVerificationRoutes);
 app.use("/api/v1/admin/verification", adminVerificationRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/wallet", require("./src/routes/wallet"));
 
 // Google OAuth routes
 app.get("/google/start", googleStart);
@@ -471,6 +472,27 @@ connectDB()
       console.log(`🔌 WebRTC Socket.io namespace: /webrtc`);
       console.log(`📊 Room stats:`, webrtcSocket.getRoomStats());
     });
+
+    // Initialize Cron Jobs
+    try {
+      const CronManager = require("./src/cron/index");
+      const cronManager = new CronManager();
+      
+      // Graceful shutdown for cron jobs
+      process.on('SIGINT', () => {
+        console.log('\n🛑 Shutting down gracefully...');
+        cronManager.stopAll();
+        process.exit(0);
+      });
+      
+      process.on('SIGTERM', () => {
+        console.log('\n🛑 Terminating...');
+        cronManager.stopAll();
+        process.exit(0);
+      });
+    } catch (error) {
+      console.error("❌ Failed to start cron jobs:", error.message);
+    }
   })
   .catch((err) => {
     console.error("Failed to connect DB", err);

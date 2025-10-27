@@ -1891,12 +1891,16 @@
         }
       }
 
-      .form-actions {
+      .form-actions,
+      .modal-actions {
           display: flex;
           gap: 12px;
           justify-content: flex-end;
+          margin-top: 24px;
 
-        .btn {
+        .btn,
+        .submit-btn,
+        .cancel-btn {
             padding: 12px 24px;
           border-radius: 8px;
           font-size: 14px;
@@ -1905,22 +1909,36 @@
           transition: all 0.2s ease;
           border: none;
 
-          &.btn-primary {
+          &.btn-primary,
+          &.submit-btn {
             background: #667eea;
             color: white;
 
-            &:hover {
+            &:hover:not(:disabled) {
               background: #5a67d8;
               transform: translateY(-1px);
             }
+
+            &:disabled {
+              background: #a0aec0;
+              cursor: not-allowed;
+              transform: none;
+            }
           }
 
-          &.btn-secondary {
+          &.btn-secondary,
+          &.cancel-btn {
             background: #f3f4f6;
             color: #6b7280;
 
-            &:hover {
+            &:hover:not(:disabled) {
               background: #e5e7eb;
+            }
+
+            &:disabled {
+              background: #f3f4f6;
+              cursor: not-allowed;
+            }
           }
         }
       }
@@ -1929,7 +1947,7 @@
 }
 
 // Animations
-  @keyframes fadeInUp {
+@keyframes fadeInUp {
     from {
       opacity: 0;
       transform: translateY(20px);
@@ -1940,34 +1958,34 @@
     }
   }
 
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
   }
+  50% {
+    opacity: 0.5;
+  }
+}
 
-  .tutor-header-content {
-    animation: fadeInUp 0.6s ease-out;
-  }
+.tutor-header-content {
+  animation: fadeInUp 0.6s ease-out;
+}
 
-  .tutor-actions .btn {
-    animation: fadeInUp 0.8s ease-out;
-  }
+.tutor-actions .btn {
+  animation: fadeInUp 0.8s ease-out;
+}
 
-  .fa-spin {
-    animation: spin 1s linear infinite;
-  }
+.fa-spin {
+  animation: spin 1s linear infinite;
+}
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-  // Enhanced Animations
-  @keyframes slideInUp {
+// Enhanced Animations
+@keyframes slideInUp {
     0% {
       opacity: 0;
       transform: translateY(30px);
@@ -2194,4 +2212,3 @@
       }
     }
   }
-}

@@ -25,7 +25,8 @@ const BookingSchema = new mongoose.Schema(
     disputeResolvedAt: { type: Date, default: null },
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "TeachingSession", default: null },
     roomId: { type: String, default: null, index: true },
-    slotId: { type: mongoose.Schema.Types.ObjectId, ref: "TeachingSlot", default: null, index: true }
+    slotId: { type: mongoose.Schema.Types.ObjectId, ref: "TeachingSlot", default: null, index: true },
+    reminderSent: { type: Boolean, default: false }
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

@@ -1,4 +1,5 @@
 const Booking = require("../models/Booking");
+const TutorProfile = require("../models/TutorProfile");
 const TeachingSession = require("../models/TeachingSession");
 const NotificationService = require("./NotificationService");
 
@@ -63,6 +64,23 @@ class EscrowService {
     booking.status = "completed";
     booking.completedAt = new Date();
     await booking.save();
+
+    // 💰 Cộng tiền vào VÍ của gia sư
+    const tutorProfileId = booking.tutorProfile?._id || booking.tutorProfile;
+    
+    if (tutorProfileId) {
+      await TutorProfile.updateOne(
+        { _id: tutorProfileId },
+        {
+          $inc: {
+            'earnings.availableBalance': booking.tutorPayout,
+            'earnings.totalEarnings': booking.tutorPayout
+          }
+        }
+      );
+      
+      console.log(`💰 Added ${booking.tutorPayout} VNĐ to tutor ${tutorProfileId}'s wallet`);
+    }
 
     // Gửi thông báo thanh toán cho gia sư
     try {

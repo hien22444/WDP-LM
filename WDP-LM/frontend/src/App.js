@@ -22,10 +22,12 @@ import TutorProfileUpdatePage from "./pages/Tutor/TutorProfileUpdatePage";
 import TutorBookings from "./pages/Tutor/TutorBookings";
 import TutorSchedule from "./pages/Tutor/TutorSchedule";
 import StudentBookings from "./pages/Tutor/StudentBookings";
+import ContractPage from "./pages/Contract/ContractPage";
 import TutorPublishSlot from "./pages/Tutor/TutorPublishSlot";
 import TutorOpenCourses from "./pages/Tutor/TutorOpenCourses";
 import TutorList from "./pages/Tutor/TutorList";
 import CourseDetail from "./pages/Tutor/CourseDetail";
+import Wallet from "./pages/Tutor/Wallet";
 // Layout components
 import MainLayout from "./components/Layout/MainLayout";
 // Admin imports
@@ -114,6 +116,10 @@ function App() {
           path="/tutor/profile-update"
           element={isAuthenticated ? <TutorProfileUpdatePage /> : <Navigate to="/" />}
         />
+        <Route
+          path="/contract/:id"
+          element={isAuthenticated ? <ContractPage /> : <Navigate to="/" />}
+        />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/oauth-callback" element={<OAuthCallback />} />
@@ -169,6 +175,10 @@ function App() {
           <Route
             path="/tutor/schedule"
             element={isAuthenticated ? <TutorSchedule /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/tutor/wallet"
+            element={isAuthenticated ? <Wallet /> : <Navigate to="/" />}
           />
           <Route
             path="/tutor/publish-slot"

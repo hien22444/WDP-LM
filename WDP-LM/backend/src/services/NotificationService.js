@@ -6,6 +6,44 @@ const Notification = require("../models/Notification");
 // Email template helper
 const createEmailTemplate = (type, data) => {
   const templates = {
+    booking_reminder: {
+      subject: "🔔 Nhắc nhở buổi học sắp bắt đầu - EduMatch",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #ff62ad 0%, #2cd4c0 100%); color: white; padding: 20px; text-align: center;">
+            <h1>🎓 EduMatch</h1>
+            <h2>🔔 Nhắc nhở buổi học</h2>
+          </div>
+          <div style="padding: 20px; background: #f8f9fa;">
+            <p>Xin chào <strong>${data.studentName || data.tutorName}</strong>,</p>
+            <p>Buổi học của bạn sẽ bắt đầu trong <strong>30 phút</strong>!</p>
+            
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2cd4c0;">
+              <h3>📅 Thông tin buổi học</h3>
+              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
+              ${data.roomUrl ? `<p><strong>Link phòng học:</strong> <a href="${data.roomUrl}">${data.roomUrl}</a></p>` : ''}
+            </div>
+            
+            ${data.roomUrl ? `
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="${data.roomUrl}" 
+                 style="background: #2cd4c0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Vào phòng học ngay
+              </a>
+            </div>
+            ` : ''}
+            
+            <p style="color: #666; font-size: 14px;">
+              Hãy chuẩn bị đầy đủ và sẵn sàng cho buổi học!
+            </p>
+          </div>
+          <div style="background: #f8f9fa; padding: 15px; text-align: center; color: #666; font-size: 12px;">
+            <p>© 2024 EduMatch. Tất cả quyền được bảo lưu.</p>
+          </div>
+        </div>
+      `
+    },
     booking_created: {
       subject: "🎓 Có yêu cầu đặt lịch mới - EduMatch",
       html: `
@@ -850,6 +888,52 @@ const notifyAdminDispute = async (booking) => {
   }
 };
 
+// Send booking reminder (before session starts)
+const sendBookingReminder = async (booking) => {
+  try {
+    await booking.populate("student tutorProfile");
+    const student = booking.student;
+    const tutorProfile = booking.tutorProfile;
+    
+    const data = {
+      studentName: student.full_name,
+      tutorName: tutorProfile.user.full_name,
+      start: booking.start,
+      end: booking.end,
+      mode: booking.mode,
+      roomId: booking.roomId,
+      roomUrl: booking.roomId ? `${process.env.FRONTEND_URL}/room/${booking.roomId}` : null
+    };
+    
+    // Send to both student and tutor
+    await sendNotificationEmail(student.email, 'booking_reminder', data);
+    await sendNotificationEmail(tutorProfile.user.email, 'booking_reminder', data);
+    
+    // Create in-app notifications
+    await Notification.create([
+      {
+        targetUser: student._id,
+        type: 'booking_reminder',
+        title: '🔔 Nhắc nhở buổi học',
+        message: `Buổi học với ${tutorProfile.user.full_name} sẽ bắt đầu trong 30 phút`,
+        data: { bookingId: booking._id, start: booking.start }
+      },
+      {
+        targetUser: tutorProfile.user._id,
+        type: 'booking_reminder',
+        title: '🔔 Nhắc nhở buổi dạy',
+        message: `Buổi học với ${student.full_name} sẽ bắt đầu trong 30 phút`,
+        data: { bookingId: booking._id, start: booking.start }
+      }
+    ]);
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending booking reminder:", error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendNotificationEmail,
   notifyTutorBookingCreated,
@@ -860,6 +944,7 @@ module.exports = {
   notifyTutorPaymentReleased,
   notifyStudentRefund,
   notifyAdminDispute,
+  sendBookingReminder,
   createEmailTemplate,
   // expose tutor verification helpers
   notifyTutorVerificationReceived: async (user, verification) => {

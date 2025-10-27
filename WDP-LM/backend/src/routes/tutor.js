@@ -404,6 +404,93 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// Get tutor availability (slots trống và bận)
+router.get("/:id/availability", async (req, res) => {
+  try {
+    const tutorId = req.params.id;
+    
+    // Find tutor profile
+    const tutor = await TutorProfile.findById(tutorId);
+    if (!tutor) {
+      return res.status(404).json({ message: "Tutor not found" });
+    }
+
+    // Get tutor's availability (general schedule)
+    const availability = tutor.availability || [];
+
+    // Get all bookings for this tutor (next 2 weeks)
+    const twoWeeksFromNow = new Date();
+    twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+    
+    const bookings = await Booking.find({
+      tutorProfile: tutorId,
+      status: { $in: ["accepted", "completed", "in_progress"] },
+      start: { $gte: new Date(), $lte: twoWeeksFromNow }
+    }).select('start end');
+
+    // Calculate available slots for next 14 days
+    const availableSlots = [];
+    const bookedSlots = [];
+    
+    for (let day = 0; day < 14; day++) {
+      const currentDate = new Date();
+      currentDate.setDate(currentDate.getDate() + day);
+      const dayOfWeek = currentDate.getDay(); // 0=Sunday, 1=Monday, ...
+
+      // Find availability for this day of week
+      const dayAvailability = availability.filter(a => a.dayOfWeek === dayOfWeek);
+
+      for (const slot of dayAvailability) {
+        const [startHour, startMin] = slot.start.split(':').map(Number);
+        const [endHour, endMin] = slot.end.split(':').map(Number);
+        
+        const slotStart = new Date(currentDate);
+        slotStart.setHours(startHour, startMin, 0, 0);
+        
+        const slotEnd = new Date(currentDate);
+        slotEnd.setHours(endHour, endMin, 0, 0);
+
+        // Check if this slot conflicts with any booking
+        const isBooked = bookings.some(booking => {
+          const bookingStart = new Date(booking.start);
+          const bookingEnd = new Date(booking.end);
+          
+          // Check for overlap
+          return (slotStart < bookingEnd && slotEnd > bookingStart);
+        });
+
+        if (isBooked) {
+          bookedSlots.push({
+            date: slotStart.toISOString(),
+            start: slot.start,
+            end: slot.end,
+            available: false
+          });
+        } else {
+          availableSlots.push({
+            date: slotStart.toISOString(),
+            start: slot.start,
+            end: slot.end,
+            available: true
+          });
+        }
+      }
+    }
+
+    res.json({
+      availability: {
+        weekly: availability, // General weekly schedule
+        slots: availableSlots, // Available slots for next 14 days
+        booked: bookedSlots // Booked slots
+      }
+    });
+
+  } catch (error) {
+    console.error("Get tutor availability error:", error);
+    res.status(500).json({ message: "Failed to get tutor availability" });
+  }
+});
+
 // Get my tutor profile (create if not exists as draft)
 router.get("/me", auth(), async (req, res) => {
   try {

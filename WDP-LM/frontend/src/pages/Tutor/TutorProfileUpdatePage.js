@@ -20,7 +20,8 @@ const TutorProfileUpdatePage = () => {
     education: '',
     university: '',
     teachingMethod: '',
-    achievements: ''
+    achievements: '',
+    availability: []
   });
 
   const subjects = [
@@ -72,11 +73,8 @@ const TutorProfileUpdatePage = () => {
     try {
       console.log('🔍 TutorProfileUpdatePage: Submitting form data:', formData);
       
-      // Try using the working endpoint first
-      const result = await updateTutorBasic({
-        bio: formData.introduction,
-        city: formData.location
-      });
+      // Use updateTutorProfile to update all fields
+      const result = await updateTutorProfile(formData);
       
       console.log('✅ TutorProfileUpdatePage: Update successful:', result);
       toast.success('Cập nhật hồ sơ gia sư thành công!');
@@ -239,6 +237,68 @@ const TutorProfileUpdatePage = () => {
                 className="form-control"
                 rows="4"
               />
+            </div>
+
+            {/* Lịch rảnh */}
+            <div className="form-section">
+              <h3>Thời gian rảnh (để học viên có thể đặt lịch)</h3>
+              <p className="form-hint">Chọn các khung giờ bạn có thể dạy trong tuần</p>
+              
+              <div className="availability-grid">
+                {['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'].map((day, dayIndex) => (
+                  <div key={dayIndex} className="day-slot">
+                    <h4>{day}</h4>
+                    <div className="time-slots">
+                      {['18:00', '19:00', '20:00', '21:00'].map((time) => {
+                        const slotKey = `${dayIndex}_${time}`;
+                        const isChecked = formData.availability.some(
+                          s => s.dayOfWeek === dayIndex && s.start === time
+                        );
+                        
+                        return (
+                          <label key={slotKey} className="time-slot-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  // Remove slot
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    availability: prev.availability.filter(
+                                      s => !(s.dayOfWeek === dayIndex && s.start === time)
+                                    )
+                                  }));
+                                } else {
+                                  // Add slot (2 hours duration)
+                                  const [hour, min] = time.split(':').map(Number);
+                                  const endHour = String(hour + 2).padStart(2, '0');
+                                  const endTime = `${endHour}:${min}`;
+                                  
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    availability: [
+                                      ...prev.availability,
+                                      { dayOfWeek: dayIndex, start: time, end: endTime }
+                                    ]
+                                  }));
+                                }
+                              }}
+                            />
+                            <span>{time}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {formData.availability.length > 0 && (
+                <div className="selected-slots">
+                  <p>Đã chọn {formData.availability.length} khung giờ rảnh</p>
+                </div>
+              )}
             </div>
 
             {/* Action buttons */}

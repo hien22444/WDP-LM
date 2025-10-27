@@ -1,0 +1,376 @@
+// ContractDisplay.scss
+.contract-display {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: #333;
+
+  .contract-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 30px;
+    border-radius: 12px;
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin: 0 0 20px 0;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .contract-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.9;
+
+      .contract-number, .contract-date {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 16px;
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+      }
+    }
+  }
+
+  .contract-body {
+    .parties-section, .course-section, .financial-section, .terms-section, .signature-section {
+      margin-bottom: 30px;
+      padding: 25px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+
+      h3 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 20px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e5e7eb;
+      }
+    }
+
+    .parties-section {
+      .parties-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+
+        .party-card {
+          padding: 20px;
+          border-radius: 10px;
+          border: 2px solid #e5e7eb;
+
+          &.student {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-color: #0ea5e9;
+          }
+
+          &.tutor {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #22c55e;
+          }
+
+          &.platform {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #f59e0b;
+          }
+
+          h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            color: #1e293b;
+          }
+
+          .party-info {
+            p {
+              margin: 8px 0;
+              font-size: 0.95rem;
+              color: #4b5563;
+
+              strong {
+                color: #1e293b;
+                font-weight: 600;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .course-section {
+      .course-info {
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 15px;
+
+          .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+
+            &.full-width {
+              grid-column: 1 / -1;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 8px;
+            }
+
+            .label {
+              font-weight: 600;
+              color: #374151;
+            }
+
+            .value {
+              color: #1e293b;
+              font-weight: 500;
+            }
+          }
+        }
+      }
+    }
+
+    .financial-section {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-color: #0ea5e9;
+
+      .financial-info {
+        .financial-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 15px;
+
+          .financial-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            font-weight: 500;
+
+            &.total {
+              background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+              color: white;
+              border-color: #0ea5e9;
+              font-weight: 700;
+              font-size: 1.1rem;
+            }
+
+            .label {
+              color: #374151;
+            }
+
+            .price {
+              font-weight: 700;
+              color: #059669;
+              font-size: 1.1rem;
+
+              .total & {
+                color: white;
+                font-size: 1.2rem;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .terms-section {
+      .terms-content {
+        .term-item {
+          margin-bottom: 25px;
+          padding: 20px;
+          background: #f8fafc;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+
+          h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #d1d5db;
+          }
+
+          h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 16px 0 8px 0;
+          }
+
+          p {
+            color: #4b5563;
+            margin: 0 0 10px 0;
+          }
+
+          ul {
+            margin: 0;
+            padding-left: 20px;
+
+            li {
+              color: #4b5563;
+              margin-bottom: 6px;
+
+              strong {
+                color: #1e293b;
+                font-weight: 600;
+              }
+            }
+          }
+
+          .term-subsection {
+            margin-top: 12px;
+            padding-left: 16px;
+            border-left: 3px solid #d1d5db;
+          }
+        }
+      }
+    }
+
+    .signature-section {
+      .signature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 30px;
+
+        .signature-item {
+          text-align: center;
+          padding: 20px;
+          background: #f8fafc;
+          border-radius: 10px;
+          border: 2px solid #e5e7eb;
+
+          h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0 20px 0;
+          }
+
+          .signature-line {
+            margin-bottom: 15px;
+
+            span {
+              font-size: 0.9rem;
+              color: #6b7280;
+              margin-right: 10px;
+            }
+
+            .signature-space {
+              height: 40px;
+              border-bottom: 2px solid #d1d5db;
+              margin-top: 10px;
+              display: flex;
+              align-items: center;
+              padding: 0 10px;
+              color: #6b7280;
+            }
+
+            .signature-input {
+              flex: 1;
+              padding: 8px 12px;
+              border: none;
+              border-bottom: 2px solid #667eea;
+              background: transparent;
+              font-size: 1rem;
+              font-weight: 500;
+              color: #1e293b;
+              outline: none;
+              transition: all 0.3s ease;
+
+              &::placeholder {
+                color: #cbd5e1;
+                font-style: italic;
+              }
+
+              &:focus {
+                border-bottom-color: #667eea;
+                box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+              }
+            }
+          }
+
+          .signature-date {
+            font-size: 0.9rem;
+            color: #6b7280;
+          }
+        }
+      }
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    .contract-header {
+      padding: 30px 20px;
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      .contract-info {
+        flex-direction: column;
+        gap: 12px;
+        font-size: 0.9rem;
+      }
+    }
+
+    .contract-body {
+      .parties-section, .course-section, .financial-section, .terms-section, .signature-section {
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      .parties-section .parties-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      .course-section .course-info .info-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .financial-section .financial-info .financial-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .signature-section .signature-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .contract-header h1 {
+      font-size: 1.5rem;
+    }
+
+    .contract-body {
+      .parties-section, .course-section, .financial-section, .terms-section, .signature-section {
+        padding: 15px;
+      }
+
+      .parties-section h3, .course-section h3, .financial-section h3, .terms-section h3, .signature-section h3 {
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
