@@ -1,0 +1,282 @@
+// Variables (matching SignIn/SignUp)
+$primary-color: #1e3a5f;
+$primary-hover: #2c5282;
+$brand-color: #0ea5e9; // Blue color for Learnmate
+$text-dark: #2d3748;
+$text-light: #718096;
+$text-muted: #a0aec0;
+$border-color: #e2e8f0;
+$white: #ffffff;
+$link-color: #3b82f6;
+
+$glass-bg: rgba(255, 255, 255, 0.95);
+$glass-border: rgba(255, 255, 255, 0.3);
+$shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+// Main Container
+.otp-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+
+  .otp-content {
+    display: flex;
+    width: 100%;
+    max-width: 1400px;
+    height: 90vh;
+    min-height: 700px;
+    background: $glass-bg;
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    box-shadow: $shadow-light;
+    overflow: hidden;
+    animation: fadeIn 0.6s ease-out;
+
+    @media (max-width: 968px) {
+      flex-direction: column;
+      height: auto;
+      min-height: auto;
+    }
+  }
+
+  // Image Section (Left)
+  .otp-image-section {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+
+    @media (max-width: 968px) {
+      display: none;
+    }
+
+    .otp-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+
+  // Form Section (Right)
+  .otp-form-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    background: $white;
+
+    @media (max-width: 768px) {
+      padding: 40px 24px;
+    }
+
+    .form-wrapper {
+      width: 100%;
+      max-width: 480px;
+      animation: fadeIn 0.8s ease-out 0.2s both;
+    }
+
+    .form-header {
+      margin-bottom: 48px;
+      text-align: center;
+
+      .brand-logo {
+        margin-bottom: 32px;
+
+        .brand-name {
+          font-size: 32px;
+          font-weight: 700;
+          color: $brand-color;
+          letter-spacing: -0.5px;
+        }
+      }
+
+      .form-title {
+        font-size: 36px;
+        font-weight: 700;
+        color: $text-dark;
+        margin-bottom: 16px;
+        line-height: 1.2;
+
+        @media (max-width: 768px) {
+          font-size: 28px;
+        }
+      }
+
+      .form-subtitle {
+        font-size: 16px;
+        color: $text-light;
+        line-height: 1.6;
+
+        .email-display {
+          font-weight: 600;
+          color: $text-dark;
+        }
+      }
+    }
+
+    .otp-form {
+      .otp-inputs {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 32px;
+
+        @media (max-width: 480px) {
+          gap: 8px;
+        }
+
+        .otp-input {
+          width: 56px;
+          height: 56px;
+          font-size: 24px;
+          font-weight: 600;
+          text-align: center;
+          color: $text-dark;
+          background: $white;
+          border: 2px solid $border-color;
+          border-radius: 12px;
+          transition: all 0.3s ease;
+          outline: none;
+
+          @media (max-width: 480px) {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+          }
+
+          &:focus {
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+            animation: pulse 0.3s ease;
+          }
+
+          &:disabled {
+            background: #f7fafc;
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
+
+          // Remove number input arrows
+          &::-webkit-outer-spin-button,
+          &::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+
+          &[type="number"] {
+            -moz-appearance: textfield;
+          }
+        }
+      }
+
+      .verify-btn {
+        width: 100%;
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        color: $white;
+        background: $primary-color;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
+
+        &:hover:not(.disabled) {
+          background: $primary-hover;
+          transform: translateY(-2px);
+          box-shadow: $shadow-medium;
+        }
+
+        &:active:not(.disabled) {
+          transform: translateY(0);
+        }
+
+        &.disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .loading-spinner {
+          width: 20px;
+          height: 20px;
+          border: 3px solid rgba(255, 255, 255, 0.3);
+          border-top-color: $white;
+          border-radius: 50%;
+          animation: rotate 0.8s linear infinite;
+        }
+      }
+
+      .resend-section {
+        text-align: center;
+        font-size: 14px;
+        color: $text-light;
+
+        .resend-text {
+          margin-right: 4px;
+        }
+
+        .resend-link {
+          background: none;
+          border: none;
+          color: $link-color;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: color 0.3s ease;
+          padding: 0;
+
+          &:hover:not(:disabled) {
+            color: $primary-hover;
+            text-decoration: underline;
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}
