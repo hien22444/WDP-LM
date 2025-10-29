@@ -26,7 +26,27 @@ const BookingSchema = new mongoose.Schema(
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "TeachingSession", default: null },
     roomId: { type: String, default: null, index: true },
     slotId: { type: mongoose.Schema.Types.ObjectId, ref: "TeachingSlot", default: null, index: true },
-    reminderSent: { type: Boolean, default: false }
+    reminderSent: { type: Boolean, default: false },
+    
+    // Contract fields
+    contractSigned: { type: Boolean, default: false },
+    contractNumber: { type: String, default: null },
+    studentSignature: { type: String, default: null },
+    studentSignedAt: { type: Date, default: null },
+    tutorSignature: { type: String, default: null },
+    tutorSignedAt: { type: Date, default: null },
+    contractData: {
+      studentName: { type: String, default: null },
+      studentPhone: { type: String, default: null },
+      studentEmail: { type: String, default: null },
+      studentAddress: { type: String, default: null },
+      subject: { type: String, default: null },
+      totalSessions: { type: Number, default: 1 },
+      sessionDuration: { type: Number, default: 150 },
+      weeklySchedule: [{ type: Number }],
+      startDate: { type: Date, default: null },
+      endDate: { type: Date, default: null }
+    }
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

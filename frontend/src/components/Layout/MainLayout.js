@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import "./MainLayout.scss";
 import UniversalHeader from "./UniversalHeader";
-import ChatBot from "../ChatBot/ChatBot";
+// TEMPORARILY DISABLED - Causing lag
+// import ChatBot from "../ChatBot/ChatBot";
 
 const MainLayout = ({ children }) => {
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -35,7 +36,8 @@ const MainLayout = ({ children }) => {
       </button>
 
       {/* ChatBot Component */}
-      <ChatBot />
+      {/* TEMPORARILY DISABLED - Causing lag */}
+      {/* <ChatBot /> */}
     </div>
   );
 };

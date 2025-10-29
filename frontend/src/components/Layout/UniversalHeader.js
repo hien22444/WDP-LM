@@ -9,7 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import Cookies from "js-cookie";
 import { logout } from "../../redux/slices/userSlice";
-import NotificationCenter from "../Notifications/NotificationCenter";
+// TEMPORARILY DISABLED - Causing lag (requires ChatProvider)
+// import NotificationCenter from "../Notifications/NotificationCenter";
 import { toast } from "react-toastify";
 import "./UniversalHeader.scss";
 
@@ -128,7 +129,8 @@ const UniversalHeader = () => {
         {/* Right Section */}
         <div className="header-right-elements">
           {/* Notifications */}
-          <NotificationCenter />
+          {/* TEMPORARILY DISABLED - Causing lag (requires ChatProvider) */}
+          {/* <NotificationCenter /> */}
 
           {/* Join Room Button */}
           <button

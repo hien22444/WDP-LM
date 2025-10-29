@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Settings,
-  Bell
+  Bell,
+  FileText
 } from 'lucide-react';
 import './AdminLayout.modern.css';
 
@@ -26,6 +27,7 @@ const AdminLayout = () => {
     { path: '/admin/users', icon: Users, label: 'Users', color: 'green' },
     { path: '/admin/tutors', icon: GraduationCap, label: 'Tutors', color: 'purple' },
     { path: '/admin/bookings', icon: Calendar, label: 'Bookings', color: 'orange' },
+    { path: '/admin/contracts', icon: FileText, label: 'Contracts', color: 'indigo' },
     { path: '/admin/reports', icon: BarChart3, label: 'Reports', color: 'red' },
   ];
 

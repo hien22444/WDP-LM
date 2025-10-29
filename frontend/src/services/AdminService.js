@@ -31,6 +31,10 @@ class AdminService {
     return ApiService.put(`/admin/users/${id}/block`, { reason });
   }
 
+  banUser(id, reason) {
+    return ApiService.put(`/admin/users/${id}/ban`, { reason });
+  }
+
   // Tutor Management
   getTutors(params = {}) {
     return ApiService.get('/admin/tutors', { params });
@@ -44,8 +48,12 @@ class AdminService {
     return ApiService.put(`/admin/tutors/${id}/verification`, data);
   }
 
-  updateTutorStatus(id, status) {
-    return ApiService.put(`/admin/tutors/${id}/status`, { status });
+  updateTutorStatus(id, status, rejectionReason = null) {
+    const data = { status };
+    if (rejectionReason) {
+      data.rejectionReason = rejectionReason;
+    }
+    return ApiService.put(`/admin/tutors/${id}/status`, data);
   }
 
   // Booking Management

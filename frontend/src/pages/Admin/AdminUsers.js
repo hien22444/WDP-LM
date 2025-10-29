@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import AdminService from '../../services/AdminService';
+import AdminContractService from '../../services/AdminContractService';
 import './AdminUsers.css';
 
 const STATUS_LABELS = {
@@ -31,6 +32,8 @@ const AdminUsers = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [userContracts, setUserContracts] = useState([]);
+  const [contractsLoading, setContractsLoading] = useState(false);
   const [blockModalUser, setBlockModalUser] = useState(null);
   const [blockReason, setBlockReason] = useState('');
   const [blockLoading, setBlockLoading] = useState(false);
@@ -74,7 +77,10 @@ const AdminUsers = () => {
   // Khi click chi tiết, fetch đầy đủ user
   const handleShowDetail = async (user) => {
     setDetailLoading(true);
+    setContractsLoading(true);
     setSelectedUser(user); // show modal ngay để UX tốt
+    setUserContracts([]);
+    
     try {
       const res = await AdminService.getUserById(user._id);
       setUserDetail(res.data || user); // fallback nếu API lỗi
@@ -82,6 +88,17 @@ const AdminUsers = () => {
       setUserDetail(user);
     } finally {
       setDetailLoading(false);
+    }
+
+    // Fetch contracts của user
+    try {
+      const contractsData = await AdminContractService.getContractsByUserId(user._id);
+      setUserContracts(contractsData?.contracts || []);
+    } catch (e) {
+      console.error('Error loading contracts:', e);
+      setUserContracts([]);
+    } finally {
+      setContractsLoading(false);
     }
   };
 
@@ -277,36 +294,72 @@ const AdminUsers = () => {
       {/* Modal chi tiết user */}
       {selectedUser && (
         <div className="modal-overlay upgraded-modal-overlay">
-          <div className="modal-content modal-content-detail upgraded-modal-content">
-            <button className="modal-close upgraded-modal-close" onClick={()=>{setSelectedUser(null);setUserDetail(null);}}>&times;</button>
+          <div className="modal-content modal-content-detail modal-content-detail-large upgraded-modal-content">
+            <button className="modal-close upgraded-modal-close" onClick={()=>{setSelectedUser(null);setUserDetail(null);setUserContracts([]);}}>&times;</button>
             <h3 className="modal-title upgraded-modal-title">Thông tin User</h3>
             {detailLoading ? (
               <div className="flex items-center justify-center h-24"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>
             ) : (
-              <div className="user-detail-grid upgraded-user-detail-grid">
-                <div className="user-detail-avatar upgraded-user-detail-avatar">
-                  <img src={userDetail?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDetail?.full_name||'U')}&background=2563eb&color=fff&size=128`} alt="avatar" />
+              <>
+                <div className="user-detail-grid upgraded-user-detail-grid">
+                  <div className="user-detail-avatar upgraded-user-detail-avatar">
+                    <img src={userDetail?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDetail?.full_name||'U')}&background=2563eb&color=fff&size=128`} alt="avatar" />
+                  </div>
+                  <div className="user-detail-info upgraded-user-detail-info">
+                    <div><b>Tên:</b> {userDetail?.full_name}</div>
+                    <div><b>Email:</b> {userDetail?.email}</div>
+                    <div><b>Role:</b> <span className={`badge badge-role badge-role-${userDetail?.role} upgraded-badge-role`}>{userDetail?.role}</span></div>
+                    <div><b>Trạng thái:</b> <span className={`badge ${STATUS_LABELS[userDetail?.status]?.className || ''} upgraded-badge-status`}>
+                      {userDetail?.status === 'active' && <span>🟢</span>}
+                      {userDetail?.status === 'pending' && <span>🟡</span>}
+                      {userDetail?.status === 'blocked' && <span>🔴</span>}
+                      {userDetail?.status === 'banned' && <span>⚫</span>}
+                      {STATUS_LABELS[userDetail?.status]?.label || userDetail?.status}
+                    </span></div>
+                    <div><b>Ngày tạo:</b> {userDetail?.created_at ? new Date(userDetail.created_at).toLocaleString() : ''}</div>
+                    {userDetail?.phone_number && <div><b>Số điện thoại:</b> {userDetail.phone_number}</div>}
+                    {userDetail?.date_of_birth && <div><b>Ngày sinh:</b> {new Date(userDetail.date_of_birth).toLocaleDateString()}</div>}
+                    {userDetail?.gender && <div><b>Giới tính:</b> {userDetail.gender === 'male' ? 'Nam' : userDetail.gender === 'female' ? 'Nữ' : 'Khác'}</div>}
+                    {userDetail?.address && <div><b>Địa chỉ:</b> {userDetail.address}</div>}
+                    {userDetail?.city && <div><b>Thành phố:</b> {userDetail.city}</div>}
+                    {userDetail?.email_verified_at && <div><b>Email xác thực:</b> {new Date(userDetail.email_verified_at).toLocaleString()}</div>}
+                  </div>
                 </div>
-                <div className="user-detail-info upgraded-user-detail-info">
-                  <div><b>Tên:</b> {userDetail?.full_name}</div>
-                  <div><b>Email:</b> {userDetail?.email}</div>
-                  <div><b>Role:</b> <span className={`badge badge-role badge-role-${userDetail?.role} upgraded-badge-role`}>{userDetail?.role}</span></div>
-                  <div><b>Trạng thái:</b> <span className={`badge ${STATUS_LABELS[userDetail?.status]?.className || ''} upgraded-badge-status`}>
-                    {userDetail?.status === 'active' && <span>🟢</span>}
-                    {userDetail?.status === 'pending' && <span>🟡</span>}
-                    {userDetail?.status === 'blocked' && <span>🔴</span>}
-                    {userDetail?.status === 'banned' && <span>⚫</span>}
-                    {STATUS_LABELS[userDetail?.status]?.label || userDetail?.status}
-                  </span></div>
-                  <div><b>Ngày tạo:</b> {userDetail?.created_at ? new Date(userDetail.created_at).toLocaleString() : ''}</div>
-                  {userDetail?.phone_number && <div><b>Số điện thoại:</b> {userDetail.phone_number}</div>}
-                  {userDetail?.date_of_birth && <div><b>Ngày sinh:</b> {new Date(userDetail.date_of_birth).toLocaleDateString()}</div>}
-                  {userDetail?.gender && <div><b>Giới tính:</b> {userDetail.gender === 'male' ? 'Nam' : userDetail.gender === 'female' ? 'Nữ' : 'Khác'}</div>}
-                  {userDetail?.address && <div><b>Địa chỉ:</b> {userDetail.address}</div>}
-                  {userDetail?.city && <div><b>Thành phố:</b> {userDetail.city}</div>}
-                  {userDetail?.email_verified_at && <div><b>Email xác thực:</b> {new Date(userDetail.email_verified_at).toLocaleString()}</div>}
+
+                {/* Lịch sử hợp đồng */}
+                <div className="user-contracts-section">
+                  <h4 className="contracts-section-title">
+                    📋 Lịch sử hợp đồng ({userContracts.length})
+                  </h4>
+                  {contractsLoading ? (
+                    <div className="flex items-center justify-center h-16">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : userContracts.length === 0 ? (
+                    <div className="no-contracts">
+                      <p>Chưa có hợp đồng nào</p>
+                    </div>
+                  ) : (
+                    <div className="contracts-list">
+                      {userContracts.map(contract => (
+                        <div key={contract._id} className="contract-item">
+                          <div className="contract-tutor">
+                            <b>Gia sư:</b> {contract.tutorProfile?.user?.profile?.full_name || contract.tutorProfile?.user?.email || 'N/A'}
+                          </div>
+                          <div className="contract-info">
+                            <span><b>Giá:</b> {contract.price?.toLocaleString()}đ</span>
+                            <span><b>Trạng thái:</b> <span className={`contract-status contract-status-${contract.status}`}>{contract.status}</span></span>
+                            <span><b>Thanh toán:</b> {contract.paymentStatus}</span>
+                          </div>
+                          <div className="contract-date">
+                            <small>Ngày tạo: {new Date(contract.created_at).toLocaleDateString('vi-VN')}</small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>

@@ -16,6 +16,8 @@ router.get("/users/:id", adminController.getUserById);
 router.put("/users/:id/status", adminController.updateUserStatus);
 router.patch("/users/:id/role", adminController.updateUserRole);
 router.delete("/users/:id", adminController.deleteUser);
+router.put("/users/:id/block", adminController.blockUser);
+router.put("/users/:id/ban", adminController.banUser);
 
 // Tutor management
 router.get("/tutors", adminController.getTutors);

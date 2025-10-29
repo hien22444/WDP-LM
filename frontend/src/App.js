@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import ChatBot from "./components/ChatBot/ChatBot";
+// TEMPORARILY DISABLED - Causing lag
+// import ChatBot from "./components/ChatBot/ChatBot";
 import SignIn from "./components/Auth/Sign in/SignIn";
 import SignUp from "./components/Auth/Sign up/SignUp";
 import VerifyAccount from "./components/Auth/VerifyAccount";
@@ -36,6 +37,8 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminUsers from "./pages/Admin/AdminUsers";
 import AdminTutors from "./pages/Admin/AdminTutors";
 import AdminBookings from "./pages/Admin/AdminBookings";
+import AdminContracts from "./pages/Admin/AdminContracts";
+import AdminContractDetail from "./pages/Admin/AdminContractDetail";
 import AdminReports from "./pages/Admin/AdminReports";
 import About from "./pages/About/About";
 import VideoCallRoom from "./components/VideoCall/VideoCallRoom";
@@ -44,8 +47,9 @@ import GoogleMeetStyle from "./components/VideoCall/GoogleMeetStyle";
 import ProfileCompletionModal from "./components/ProfileCompletion/ProfileCompletionModal";
 import { useState, useEffect } from "react";
 import authService from "./services/AuthService";
-import { ChatProvider } from "./contexts/ChatContext";
-import ChatManager from "./components/Chat/ChatManager";
+// TEMPORARILY DISABLED - Causing lag
+// import { ChatProvider } from "./contexts/ChatContext";
+// import ChatManager from "./components/Chat/ChatManager";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -88,7 +92,9 @@ function App() {
   };
 
   return (
-    <ChatProvider>
+    // TEMPORARILY DISABLED ChatProvider - Causing lag and unwanted socket connections
+    // <ChatProvider>
+    <>
       <Routes>
         {/* Public routes without layout */}
         <Route
@@ -139,6 +145,8 @@ function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="tutors" element={<AdminTutors />} />
           <Route path="bookings" element={<AdminBookings />} />
+          <Route path="contracts" element={<AdminContracts />} />
+          <Route path="contracts/:id" element={<AdminContractDetail />} />
           <Route path="reports" element={<AdminReports />} />
         </Route>
 
@@ -227,11 +235,14 @@ function App() {
       />
       
       {/* Global ChatBot: shown on all routes (fixed bottom-right by CSS) */}
-      <ChatBot />
+      {/* TEMPORARILY DISABLED - Causing lag */}
+      {/* <ChatBot /> */}
       
       {/* Global Chat Manager: manages all chat widgets */}
-      <ChatManager />
-    </ChatProvider>
+      {/* TEMPORARILY DISABLED - Causing lag */}
+      {/* <ChatManager /> */}
+    {/* </ChatProvider> */}
+    </>
   );
 }
 

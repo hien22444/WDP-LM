@@ -290,10 +290,29 @@ exports.login = async (req, res) => {
     );
     if (!user)
       return res.status(401).json({ message: "Invalid email or password" });
-    if (user.status !== "active")
-      return res
-        .status(403)
-        .json({ message: "Please verify your email before logging in." });
+    
+    // Check account status
+    if (user.status === "banned") {
+      return res.status(403).json({ 
+        message: "Tài khoản của bạn đã bị cấm vĩnh viễn. Vui lòng liên hệ admin để biết thêm chi tiết.",
+        reason: user.ban_reason || "Vi phạm chính sách sử dụng",
+        status: "banned"
+      });
+    }
+    if (user.status === "blocked") {
+      return res.status(403).json({ 
+        message: "Tài khoản của bạn đã bị khóa tạm thời. Vui lòng liên hệ admin để biết thêm chi tiết.",
+        reason: user.block_reason || "Tài khoản đang bị tạm khóa",
+        status: "blocked"
+      });
+    }
+    if (user.status !== "active") {
+      return res.status(403).json({ 
+        message: "Please verify your email before logging in.",
+        status: user.status
+      });
+    }
+    
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid)
       return res.status(401).json({ message: "Invalid email or password" });
@@ -421,11 +440,25 @@ exports.googleRedirect = async (req, res) => {
         status: "active",
         email_verified_at: new Date(),
       });
-    } else if (user.status !== "active") {
-      user.status = "active";
-      user.email_verified_at = user.email_verified_at || new Date();
-      user.verify_token = null;
-      user.verify_token_expires = null;
+    } else {
+      // Check if account is banned or blocked
+      if (user.status === "banned") {
+        return res.status(403).send(
+          `Tài khoản đã bị cấm vĩnh viễn. Lý do: ${user.ban_reason || "Vi phạm chính sách"}`
+        );
+      }
+      if (user.status === "blocked") {
+        return res.status(403).send(
+          `Tài khoản đã bị khóa. Lý do: ${user.block_reason || "Tạm khóa bởi admin"}`
+        );
+      }
+      // Only activate if pending verification
+      if (user.status === "pending") {
+        user.status = "active";
+        user.email_verified_at = user.email_verified_at || new Date();
+        user.verify_token = null;
+        user.verify_token_expires = null;
+      }
     }
     const accessToken = signAccessToken(user._id.toString());
     const refreshToken = signRefreshToken(user._id.toString());
@@ -482,8 +515,23 @@ exports.googleLogin = async (req, res) => {
         email_verified_at: new Date(),
       });
     } else {
-      // If user exists but pending -> activate
-      if (user.status !== "active") {
+      // Check if account is banned or blocked
+      if (user.status === "banned") {
+        return res.status(403).json({ 
+          message: "Tài khoản đã bị cấm vĩnh viễn. Vui lòng liên hệ admin.",
+          reason: user.ban_reason || "Vi phạm chính sách sử dụng",
+          status: "banned"
+        });
+      }
+      if (user.status === "blocked") {
+        return res.status(403).json({ 
+          message: "Tài khoản đã bị khóa. Vui lòng liên hệ admin.",
+          reason: user.block_reason || "Tạm khóa bởi admin",
+          status: "blocked"
+        });
+      }
+      // Only activate if pending verification
+      if (user.status === "pending") {
         user.status = "active";
         user.email_verified_at = user.email_verified_at || new Date();
         user.verify_token = null;
