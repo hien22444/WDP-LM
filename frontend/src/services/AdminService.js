@@ -1,14 +1,14 @@
-import ApiService from './ApiService';
+import ApiService from "./ApiService";
 
 class AdminService {
   // Dashboard
   getDashboardStats() {
-    return ApiService.get('/admin/dashboard/stats');
+    return ApiService.get("/admin/dashboard/stats");
   }
 
   // User Management
   getUsers(params = {}) {
-    return ApiService.get('/admin/users', { params });
+    return ApiService.get("/admin/users", { params });
   }
 
   getUserById(id) {
@@ -23,8 +23,6 @@ class AdminService {
     return ApiService.delete(`/admin/users/${id}`);
   }
 
-<<<<<<< HEAD
-=======
   updateUserRole(id, role) {
     return ApiService.patch(`/admin/users/${id}/role`, { role });
   }
@@ -37,10 +35,9 @@ class AdminService {
     return ApiService.put(`/admin/users/${id}/ban`, { reason });
   }
 
->>>>>>> Quan3
   // Tutor Management
   getTutors(params = {}) {
-    return ApiService.get('/admin/tutors', { params });
+    return ApiService.get("/admin/tutors", { params });
   }
 
   getTutorById(id) {
@@ -51,22 +48,17 @@ class AdminService {
     return ApiService.put(`/admin/tutors/${id}/verification`, data);
   }
 
-<<<<<<< HEAD
-  updateTutorStatus(id, status) {
-    return ApiService.put(`/admin/tutors/${id}/status`, { status });
-=======
   updateTutorStatus(id, status, rejectionReason = null) {
     const data = { status };
     if (rejectionReason) {
       data.rejectionReason = rejectionReason;
     }
     return ApiService.put(`/admin/tutors/${id}/status`, data);
->>>>>>> Quan3
   }
 
   // Booking Management
   getBookings(params = {}) {
-    return ApiService.get('/admin/bookings', { params });
+    return ApiService.get("/admin/bookings", { params });
   }
 
   getBookingById(id) {
@@ -79,15 +71,15 @@ class AdminService {
 
   // Reports
   getRevenueReport(params = {}) {
-    return ApiService.get('/admin/reports/revenue', { params });
+    return ApiService.get("/admin/reports/revenue", { params });
   }
 
   getUserReport() {
-    return ApiService.get('/admin/reports/users');
+    return ApiService.get("/admin/reports/users");
   }
 
   getTutorReport() {
-    return ApiService.get('/admin/reports/tutors');
+    return ApiService.get("/admin/reports/tutors");
   }
 }
 

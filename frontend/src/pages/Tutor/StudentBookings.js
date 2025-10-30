@@ -1,21 +1,11 @@
 import React, { useEffect, useState } from "react";
-<<<<<<< HEAD
-=======
 import { useNavigate } from "react-router-dom";
->>>>>>> Quan3
 import BookingService from "../../services/BookingService";
 import "./StudentBookings.scss";
 
 const StudentBookings = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-<<<<<<< HEAD
-
-  const load = async () => {
-    setLoading(true);
-    try { setItems(await BookingService.listMyBookings('student')); }
-    finally { setLoading(false); }
-=======
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all"); // all, pending, accepted, completed, cancelled
   const navigate = useNavigate();
@@ -24,7 +14,7 @@ const StudentBookings = () => {
     setLoading(true);
     setError(null);
     try {
-      const bookings = await BookingService.listMyBookings('student');
+      const bookings = await BookingService.listMyBookings("student");
       setItems(bookings);
     } catch (err) {
       setError(err?.message || "Lỗi tải danh sách đặt lịch");
@@ -32,35 +22,12 @@ const StudentBookings = () => {
     } finally {
       setLoading(false);
     }
->>>>>>> Quan3
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
-<<<<<<< HEAD
-  return (
-    <div style={{ padding: 24 }}>
-      <h2>Đặt lịch của tôi</h2>
-      {loading && items.length === 0 ? (<div>Đang tải...</div>) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th>Gia sư</th><th>Thời gian</th><th>Hình thức</th><th>Giá</th><th>Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map(b => (
-              <tr key={b._id}>
-                <td>{b.tutorProfile}</td>
-                <td>{new Date(b.start).toLocaleString()} – {new Date(b.end).toLocaleString()}</td>
-                <td>{b.mode}</td>
-                <td>{(b.price||0).toLocaleString()} đ</td>
-                <td>{b.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-=======
   const getStatusBadge = (status, paymentStatus) => {
     const statusClasses = {
       pending: "badge-warning",
@@ -68,13 +35,13 @@ const StudentBookings = () => {
       rejected: "badge-danger",
       cancelled: "badge-secondary",
       completed: "badge-primary",
-      in_progress: "badge-info"
+      in_progress: "badge-info",
     };
     const paymentStatusText = {
       escrow: "⏳ Đang giữ",
       held: "🔒 Đã khóa",
       released: "✅ Đã giải phóng",
-      refunded: "💰 Đã hoàn"
+      refunded: "💰 Đã hoàn",
     };
 
     return (
@@ -93,7 +60,7 @@ const StudentBookings = () => {
 
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm("Bạn có chắc muốn hủy đặt lịch này?")) return;
-    
+
     try {
       await BookingService.cancelBooking(bookingId);
       load();
@@ -110,38 +77,37 @@ const StudentBookings = () => {
     }
   };
 
-  const filteredItems = filter === "all" 
-    ? items 
-    : items.filter(item => item.status === filter);
+  const filteredItems =
+    filter === "all" ? items : items.filter((item) => item.status === filter);
 
   return (
     <div className="student-bookings-container">
       <div className="bookings-header">
         <h2>📅 Lịch học của tôi</h2>
         <div className="filter-tabs">
-          <button 
+          <button
             className={`tab ${filter === "all" ? "active" : ""}`}
             onClick={() => setFilter("all")}
           >
             Tất cả ({items.length})
           </button>
-          <button 
+          <button
             className={`tab ${filter === "pending" ? "active" : ""}`}
             onClick={() => setFilter("pending")}
           >
-            Chờ xác nhận ({items.filter(i => i.status === "pending").length})
+            Chờ xác nhận ({items.filter((i) => i.status === "pending").length})
           </button>
-          <button 
+          <button
             className={`tab ${filter === "accepted" ? "active" : ""}`}
             onClick={() => setFilter("accepted")}
           >
-            Đã chấp nhận ({items.filter(i => i.status === "accepted").length})
+            Đã chấp nhận ({items.filter((i) => i.status === "accepted").length})
           </button>
-          <button 
+          <button
             className={`tab ${filter === "completed" ? "active" : ""}`}
             onClick={() => setFilter("completed")}
           >
-            Hoàn thành ({items.filter(i => i.status === "completed").length})
+            Hoàn thành ({items.filter((i) => i.status === "completed").length})
           </button>
         </div>
       </div>
@@ -154,7 +120,7 @@ const StudentBookings = () => {
         <div className="empty-state">
           <div className="empty-icon">📭</div>
           <p>Chưa có lịch học nào</p>
-          <button 
+          <button
             className="btn btn-primary"
             onClick={() => navigate("/tutors")}
           >
@@ -163,12 +129,15 @@ const StudentBookings = () => {
         </div>
       ) : (
         <div className="bookings-grid">
-          {filteredItems.map(booking => (
+          {filteredItems.map((booking) => (
             <div key={booking._id} className="booking-card">
               <div className="booking-header">
                 <div className="tutor-info">
-                  <img 
-                    src={booking.tutorProfile?.user?.avatar || "https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760334427/whiteava_m3gka1.jpg"}
+                  <img
+                    src={
+                      booking.tutorProfile?.user?.avatar ||
+                      "https://res.cloudinary.com/dnyvwjbbm/image/upload/v1760334427/whiteava_m3gka1.jpg"
+                    }
                     alt="avatar"
                     className="avatar"
                   />
@@ -187,27 +156,35 @@ const StudentBookings = () => {
               <div className="booking-details">
                 <div className="detail-item">
                   <span className="icon">📅</span>
-                  <span>{new Date(booking.start).toLocaleDateString('vi-VN')}</span>
+                  <span>
+                    {new Date(booking.start).toLocaleDateString("vi-VN")}
+                  </span>
                 </div>
                 <div className="detail-item">
                   <span className="icon">🕐</span>
                   <span>
-                    {new Date(booking.start).toLocaleTimeString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })} - {new Date(booking.end).toLocaleTimeString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit'
+                    {new Date(booking.start).toLocaleTimeString("vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    -{" "}
+                    {new Date(booking.end).toLocaleTimeString("vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </span>
                 </div>
                 <div className="detail-item">
                   <span className="icon">💻</span>
-                  <span>{booking.mode === "online" ? "Trực tuyến" : "Offline"}</span>
+                  <span>
+                    {booking.mode === "online" ? "Trực tuyến" : "Offline"}
+                  </span>
                 </div>
                 <div className="detail-item">
                   <span className="icon">💰</span>
-                  <span className="price">{(booking.price || 0).toLocaleString('vi-VN')} đ</span>
+                  <span className="price">
+                    {(booking.price || 0).toLocaleString("vi-VN")} đ
+                  </span>
                 </div>
               </div>
 
@@ -219,25 +196,26 @@ const StudentBookings = () => {
 
               <div className="booking-actions">
                 {booking.status === "pending" && (
-                  <button 
+                  <button
                     className="btn btn-danger btn-sm"
                     onClick={() => handleCancelBooking(booking._id)}
                   >
                     Hủy đặt lịch
                   </button>
                 )}
-                
+
                 {booking.status === "accepted" && booking.roomId && (
-                  <button 
+                  <button
                     className="btn btn-primary btn-sm"
                     onClick={() => handleJoinVideoCall(booking)}
                   >
                     📹 Vào phòng học
                   </button>
                 )}
-                
-                {(booking.status === "in_progress" || booking.status === "completed") && (
-                  <button 
+
+                {(booking.status === "in_progress" ||
+                  booking.status === "completed") && (
+                  <button
                     className="btn btn-success btn-sm"
                     onClick={() => {
                       // Navigate to review page
@@ -251,12 +229,9 @@ const StudentBookings = () => {
             </div>
           ))}
         </div>
->>>>>>> Quan3
       )}
     </div>
   );
 };
 
 export default StudentBookings;
-
-

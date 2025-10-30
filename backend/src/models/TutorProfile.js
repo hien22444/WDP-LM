@@ -12,15 +12,23 @@ const AvailabilitySlotSchema = new mongoose.Schema(
   {
     dayOfWeek: { type: Number, min: 0, max: 6, required: true }, // 0=Sun
     start: { type: String, required: true }, // "18:00"
-    end: { type: String, required: true },   // "20:00"
+    end: { type: String, required: true }, // "20:00"
   },
   { _id: false }
 );
 
 const VerificationSchema = new mongoose.Schema(
   {
-    idStatus: { type: String, enum: ["none", "pending", "approved", "rejected"], default: "none" },
-    degreeStatus: { type: String, enum: ["none", "pending", "approved", "rejected"], default: "none" },
+    idStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none",
+    },
+    degreeStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none",
+    },
     adminNotes: { type: String, default: null },
   },
   { _id: false }
@@ -28,10 +36,20 @@ const VerificationSchema = new mongoose.Schema(
 
 const TutorProfileSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true, required: true, index: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      unique: true,
+      required: true,
+      index: true,
+    },
 
     avatarUrl: { type: String, default: null },
-    gender: { type: String, enum: ["male", "female", "other", null], default: null },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", null],
+      default: null,
+    },
     dateOfBirth: { type: Date, default: null },
     city: { type: String, default: null },
     district: { type: String, default: null },
@@ -46,17 +64,24 @@ const TutorProfileSchema = new mongoose.Schema(
 
     teachModes: { type: [String], enum: ["online", "offline"], default: [] },
     languages: { type: [String], default: [] },
-    paymentType: { type: String, enum: ["per_session", "per_month", null], default: "per_session" },
+    paymentType: {
+      type: String,
+      enum: ["per_session", "per_month", null],
+      default: "per_session",
+    },
     sessionRate: { type: Number, default: 0, min: 0 },
 
     availability: { type: [AvailabilitySlotSchema], default: [] },
     hasAvailability: { type: Boolean, default: false, index: true },
 
     verification: { type: VerificationSchema, default: () => ({}) },
-    status: { type: String, enum: ["draft", "pending", "approved", "rejected"], default: "draft", index: true },
-<<<<<<< HEAD
-=======
-    
+    status: {
+      type: String,
+      enum: ["draft", "pending", "approved", "rejected"],
+      default: "draft",
+      index: true,
+    },
+
     // Rating and review fields
     rating: { type: Number, default: 0, min: 0, max: 5, index: true },
     totalReviews: { type: Number, default: 0, min: 0 },
@@ -65,25 +90,24 @@ const TutorProfileSchema = new mongoose.Schema(
       punctuality: { type: Number, default: 0, min: 0, max: 5 },
       communication: { type: Number, default: 0, min: 0, max: 5 },
       preparation: { type: Number, default: 0, min: 0, max: 5 },
-      friendliness: { type: Number, default: 0, min: 0, max: 5 }
+      friendliness: { type: Number, default: 0, min: 0, max: 5 },
     },
-    
+
     // Wallet/Earnings fields
     earnings: {
       totalEarnings: { type: Number, default: 0, min: 0 },
       availableBalance: { type: Number, default: 0, min: 0 },
-      pendingBalance: { type: Number, default: 0, min: 0 }
+      pendingBalance: { type: Number, default: 0, min: 0 },
     },
-    
+
     // Bank account for payout (optional)
     bankAccount: {
       accountNumber: { type: String, default: null },
       accountName: { type: String, default: null },
       bankName: { type: String, default: null },
       bankCode: { type: String, default: null },
-      branch: { type: String, default: null }
-    }
->>>>>>> Quan3
+      branch: { type: String, default: null },
+    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
@@ -98,5 +122,3 @@ module.exports = mongoose.model("TutorProfile", TutorProfileSchema);
 TutorProfileSchema.index({ city: 1, status: 1 });
 TutorProfileSchema.index({ "subjects.name": 1, status: 1 });
 TutorProfileSchema.index({ sessionRate: 1 });
-
-

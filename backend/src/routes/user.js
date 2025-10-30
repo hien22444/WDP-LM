@@ -10,11 +10,8 @@ router.get("/me", auth(), async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({
       user: {
-<<<<<<< HEAD
-=======
         _id: user._id,
         id: user._id,
->>>>>>> Quan3
         account: {
           email: user.email,
           role: user.role,

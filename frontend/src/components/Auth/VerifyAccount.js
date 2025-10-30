@@ -23,11 +23,7 @@ const VerifyAccount = () => {
   const [resendLoading, setResendLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const resendBtnRef = useRef(null);
-<<<<<<< HEAD
-  const [email] = useState(location.state?.email || "");
-=======
   const [email, setEmail] = useState(location.state?.email || "");
->>>>>>> Quan3
 
   // Lắng nghe cross-tab success trong MỌI trạng thái
   useEffect(() => {
@@ -131,11 +127,9 @@ const VerifyAccount = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-<<<<<<< HEAD
-=======
-  const isEmailValid = (val) => /[^@\s]+@[^@\s]+\.[^@\s]+/.test(String(val || "").trim());
+  const isEmailValid = (val) =>
+    /[^@\s]+@[^@\s]+\.[^@\s]+/.test(String(val || "").trim());
 
->>>>>>> Quan3
   // Tự động focus + scroll tới nút resend khi ở trạng thái waiting
   useEffect(() => {
     if (
@@ -155,11 +149,7 @@ const VerifyAccount = () => {
   }, [status, cooldown, resendLoading]);
 
   const handleResend = async () => {
-<<<<<<< HEAD
-    if (!email || resendLoading || cooldown > 0) return;
-=======
     if (!email || !isEmailValid(email) || resendLoading || cooldown > 0) return;
->>>>>>> Quan3
     setResendLoading(true);
     try {
       await resendVerification(email);
@@ -208,13 +198,6 @@ const VerifyAccount = () => {
               <ImSpinner9 className="spinner" />
               <h2 className="verify-title">Check Your Email</h2>
               <p className="verify-message">{message}</p>
-<<<<<<< HEAD
-              {email && (
-                <button
-                  className="retry-btn"
-                  onClick={handleResend}
-                  disabled={resendLoading || cooldown > 0}
-=======
               <div className="verify-actions">
                 {!email && (
                   <div className="inline-input">
@@ -229,8 +212,9 @@ const VerifyAccount = () => {
                 <button
                   className="retry-btn"
                   onClick={handleResend}
-                  disabled={resendLoading || cooldown > 0 || !isEmailValid(email)}
->>>>>>> Quan3
+                  disabled={
+                    resendLoading || cooldown > 0 || !isEmailValid(email)
+                  }
                   ref={resendBtnRef}
                 >
                   {resendLoading
@@ -239,17 +223,7 @@ const VerifyAccount = () => {
                     ? `Resend in ${cooldown}s`
                     : "Resend Verification"}
                 </button>
-<<<<<<< HEAD
-              )}
-              {!email && (
-                <p className="verify-hint">
-                  Không tìm thấy email từ bước đăng ký. Vui lòng quay lại trang
-                  đăng ký và nhập lại email để nhận liên kết xác minh.
-                </p>
-              )}
-=======
               </div>
->>>>>>> Quan3
             </div>
           )}
 
@@ -267,8 +241,6 @@ const VerifyAccount = () => {
               <div className="error-icon">✕</div>
               <h2 className="verify-title">Verification Failed</h2>
               <p className="verify-message">{message}</p>
-<<<<<<< HEAD
-=======
               <div className="verify-actions">
                 <div className="inline-input">
                   <input
@@ -281,7 +253,9 @@ const VerifyAccount = () => {
                 <button
                   className="retry-btn"
                   onClick={handleResend}
-                  disabled={resendLoading || cooldown > 0 || !isEmailValid(email)}
+                  disabled={
+                    resendLoading || cooldown > 0 || !isEmailValid(email)
+                  }
                 >
                   {resendLoading
                     ? "Resending..."
@@ -290,7 +264,6 @@ const VerifyAccount = () => {
                     : "Resend Verification"}
                 </button>
               </div>
->>>>>>> Quan3
               <button className="retry-btn" onClick={() => navigate("/signup")}>
                 Back to Sign Up
               </button>

@@ -85,14 +85,12 @@ const buildUserPayload = (user) => {
   };
 };
 
-<<<<<<< HEAD
-=======
 // Helper function to calculate profile completion
 const calculateProfileCompletion = (user) => {
   const requiredFields = {
-    basic_info: ['full_name', 'date_of_birth', 'gender'],
-    contact_info: ['phone_number', 'address', 'city'],
-    preferences: ['preferences']
+    basic_info: ["full_name", "date_of_birth", "gender"],
+    contact_info: ["phone_number", "address", "city"],
+    preferences: ["preferences"],
   };
 
   const missingFields = [];
@@ -100,7 +98,7 @@ const calculateProfileCompletion = (user) => {
   let totalFields = 0;
 
   // Check basic info
-  requiredFields.basic_info.forEach(field => {
+  requiredFields.basic_info.forEach((field) => {
     totalFields++;
     if (user[field]) {
       completedFields++;
@@ -110,7 +108,7 @@ const calculateProfileCompletion = (user) => {
   });
 
   // Check contact info
-  requiredFields.contact_info.forEach(field => {
+  requiredFields.contact_info.forEach((field) => {
     totalFields++;
     if (user[field]) {
       completedFields++;
@@ -120,7 +118,7 @@ const calculateProfileCompletion = (user) => {
   });
 
   // Check preferences
-  requiredFields.preferences.forEach(field => {
+  requiredFields.preferences.forEach((field) => {
     totalFields++;
     if (user[field]) {
       completedFields++;
@@ -130,7 +128,7 @@ const calculateProfileCompletion = (user) => {
   });
 
   const percentage = Math.round((completedFields / totalFields) * 100);
-  
+
   // Determine next step
   let nextStep = null;
   if (percentage < 33) {
@@ -146,11 +144,10 @@ const calculateProfileCompletion = (user) => {
   return {
     percentage,
     missingFields,
-    nextStep
+    nextStep,
   };
 };
 
->>>>>>> Quan3
 let cachedTransporter = null;
 const createTransporter = () => {
   if (cachedTransporter) return cachedTransporter;
@@ -293,36 +290,31 @@ exports.login = async (req, res) => {
     );
     if (!user)
       return res.status(401).json({ message: "Invalid email or password" });
-<<<<<<< HEAD
-    if (user.status !== "active")
-      return res
-        .status(403)
-        .json({ message: "Please verify your email before logging in." });
-=======
-    
+
     // Check account status
     if (user.status === "banned") {
-      return res.status(403).json({ 
-        message: "Tài khoản của bạn đã bị cấm vĩnh viễn. Vui lòng liên hệ admin để biết thêm chi tiết.",
+      return res.status(403).json({
+        message:
+          "Tài khoản của bạn đã bị cấm vĩnh viễn. Vui lòng liên hệ admin để biết thêm chi tiết.",
         reason: user.ban_reason || "Vi phạm chính sách sử dụng",
-        status: "banned"
+        status: "banned",
       });
     }
     if (user.status === "blocked") {
-      return res.status(403).json({ 
-        message: "Tài khoản của bạn đã bị khóa tạm thời. Vui lòng liên hệ admin để biết thêm chi tiết.",
+      return res.status(403).json({
+        message:
+          "Tài khoản của bạn đã bị khóa tạm thời. Vui lòng liên hệ admin để biết thêm chi tiết.",
         reason: user.block_reason || "Tài khoản đang bị tạm khóa",
-        status: "blocked"
+        status: "blocked",
       });
     }
     if (user.status !== "active") {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: "Please verify your email before logging in.",
-        status: user.status
+        status: user.status,
       });
     }
-    
->>>>>>> Quan3
+
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid)
       return res.status(401).json({ message: "Invalid email or password" });
@@ -330,16 +322,13 @@ exports.login = async (req, res) => {
     const refreshToken = signRefreshToken(user._id.toString());
     user.refresh_tokens.push(refreshToken);
     await user.save();
-<<<<<<< HEAD
-    res.json({ accessToken, refreshToken, user: buildUserPayload(user) });
-=======
-    
+
     // Check profile completion
     const profileCompletion = calculateProfileCompletion(user);
-    
-    res.json({ 
-      accessToken, 
-      refreshToken, 
+
+    res.json({
+      accessToken,
+      refreshToken,
       user: buildUserPayload(user),
       profileCompletion: {
         completed: user.profile_completed,
@@ -347,10 +336,9 @@ exports.login = async (req, res) => {
         firstLogin: user.first_login,
         percentage: profileCompletion.percentage,
         missingFields: profileCompletion.missingFields,
-        nextStep: profileCompletion.nextStep
-      }
+        nextStep: profileCompletion.nextStep,
+      },
     });
->>>>>>> Quan3
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Login failed" });
@@ -454,24 +442,25 @@ exports.googleRedirect = async (req, res) => {
         status: "active",
         email_verified_at: new Date(),
       });
-<<<<<<< HEAD
-    } else if (user.status !== "active") {
-      user.status = "active";
-      user.email_verified_at = user.email_verified_at || new Date();
-      user.verify_token = null;
-      user.verify_token_expires = null;
-=======
     } else {
       // Check if account is banned or blocked
       if (user.status === "banned") {
-        return res.status(403).send(
-          `Tài khoản đã bị cấm vĩnh viễn. Lý do: ${user.ban_reason || "Vi phạm chính sách"}`
-        );
+        return res
+          .status(403)
+          .send(
+            `Tài khoản đã bị cấm vĩnh viễn. Lý do: ${
+              user.ban_reason || "Vi phạm chính sách"
+            }`
+          );
       }
       if (user.status === "blocked") {
-        return res.status(403).send(
-          `Tài khoản đã bị khóa. Lý do: ${user.block_reason || "Tạm khóa bởi admin"}`
-        );
+        return res
+          .status(403)
+          .send(
+            `Tài khoản đã bị khóa. Lý do: ${
+              user.block_reason || "Tạm khóa bởi admin"
+            }`
+          );
       }
       // Only activate if pending verification
       if (user.status === "pending") {
@@ -480,7 +469,6 @@ exports.googleRedirect = async (req, res) => {
         user.verify_token = null;
         user.verify_token_expires = null;
       }
->>>>>>> Quan3
     }
     const accessToken = signAccessToken(user._id.toString());
     const refreshToken = signRefreshToken(user._id.toString());
@@ -537,28 +525,23 @@ exports.googleLogin = async (req, res) => {
         email_verified_at: new Date(),
       });
     } else {
-<<<<<<< HEAD
-      // If user exists but pending -> activate
-      if (user.status !== "active") {
-=======
       // Check if account is banned or blocked
       if (user.status === "banned") {
-        return res.status(403).json({ 
+        return res.status(403).json({
           message: "Tài khoản đã bị cấm vĩnh viễn. Vui lòng liên hệ admin.",
           reason: user.ban_reason || "Vi phạm chính sách sử dụng",
-          status: "banned"
+          status: "banned",
         });
       }
       if (user.status === "blocked") {
-        return res.status(403).json({ 
+        return res.status(403).json({
           message: "Tài khoản đã bị khóa. Vui lòng liên hệ admin.",
           reason: user.block_reason || "Tạm khóa bởi admin",
-          status: "blocked"
+          status: "blocked",
         });
       }
       // Only activate if pending verification
       if (user.status === "pending") {
->>>>>>> Quan3
         user.status = "active";
         user.email_verified_at = user.email_verified_at || new Date();
         user.verify_token = null;
@@ -769,12 +752,10 @@ exports.changePassword = async (req, res) => {
     }
 
     if (!user.password_hash) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Account doesn't have a password set. Please use social login or reset password.",
-        });
+      return res.status(400).json({
+        message:
+          "Account doesn't have a password set. Please use social login or reset password.",
+      });
     }
 
     // Verify current password
@@ -792,11 +773,9 @@ exports.changePassword = async (req, res) => {
       user.password_hash
     );
     if (isSamePassword) {
-      return res
-        .status(400)
-        .json({
-          message: "New password must be different from current password",
-        });
+      return res.status(400).json({
+        message: "New password must be different from current password",
+      });
     }
 
     // Hash new password

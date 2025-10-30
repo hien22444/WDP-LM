@@ -4,12 +4,21 @@ const Booking = require("../models/Booking");
 const TutorProfile = require("../models/TutorProfile");
 const TeachingSession = require("../models/TeachingSession");
 const TeachingSlot = require("../models/TeachingSlot");
-<<<<<<< HEAD
-=======
-const { notifyTutorBookingCreated, notifyStudentBookingDecision, notifyStudentPaymentSuccess, notifyTutorPaymentSuccess, notifyStudentPaymentHeld, notifyTutorPaymentReleased, notifyStudentRefund, notifyAdminDispute } = require("../services/NotificationService");
+const {
+  notifyTutorBookingCreated,
+  notifyStudentBookingDecision,
+  notifyStudentPaymentSuccess,
+  notifyTutorPaymentSuccess,
+  notifyStudentPaymentHeld,
+  notifyTutorPaymentReleased,
+  notifyStudentRefund,
+  notifyAdminDispute,
+} = require("../services/NotificationService");
 const EscrowService = require("../services/EscrowService");
-const { generateRoomId, generateRoomToken } = require("../services/WebRTCService");
->>>>>>> Quan3
+const {
+  generateRoomId,
+  generateRoomToken,
+} = require("../services/WebRTCService");
 
 // Student creates booking request
 router.post("/", auth(), async (req, res) => {
@@ -111,28 +120,18 @@ router.post("/", auth(), async (req, res) => {
       errors.push("Gia sư không rảnh trong khung giờ này");
     }
 
-<<<<<<< HEAD
-    // Check for existing bookings at the same time
-=======
     // Check for existing bookings at the same time (including completed ones)
->>>>>>> Quan3
     const existingBooking = await Booking.findOne({
       tutorProfile: tutorProfileId,
       start: { $lt: endTime },
       end: { $gt: startTime },
-<<<<<<< HEAD
-      status: { $in: ["pending", "accepted"] },
-=======
       status: { $in: ["pending", "accepted", "completed"] },
->>>>>>> Quan3
     });
 
     if (existingBooking) {
       errors.push("Khung giờ này đã được đặt bởi học viên khác");
     }
 
-<<<<<<< HEAD
-=======
     // Check for existing teaching slots at the same time
     const existingSlot = await TeachingSlot.findOne({
       tutorProfile: tutorProfileId,
@@ -145,7 +144,6 @@ router.post("/", auth(), async (req, res) => {
       errors.push("Khung giờ này đã có slot dạy mở, vui lòng đặt từ slot đó");
     }
 
->>>>>>> Quan3
     // Check if student has too many pending bookings (max 5)
     const pendingBookings = await Booking.countDocuments({
       student: req.user.id,
@@ -156,15 +154,9 @@ router.post("/", auth(), async (req, res) => {
       errors.push("Bạn đã có quá nhiều yêu cầu đang chờ xử lý (tối đa 5)");
     }
 
-<<<<<<< HEAD
-    // Price validation
-    if (price && (price < 1000 || price > 5000000)) {
-      errors.push("Giá buổi học phải từ 50,000 VNĐ đến 5,000,000 VNĐ");
-=======
     // Price validation (unified with teaching slot)
     if (price && (price < 2000 || price > 5000000)) {
       errors.push("Giá buổi học phải từ 2,000 VNĐ đến 5,000,000 VNĐ");
->>>>>>> Quan3
     }
 
     // Notes validation
@@ -179,12 +171,8 @@ router.post("/", auth(), async (req, res) => {
     // Create booking with tutor's session rate if price not provided
     const finalPrice = price || tutor.sessionRate;
 
-<<<<<<< HEAD
-    const booking = await Booking.create({
-=======
     // Create booking with escrow
     const booking = await EscrowService.createEscrowBooking({
->>>>>>> Quan3
       tutorProfile: tutor._id,
       student: req.user.id,
       start: startTime,
@@ -194,18 +182,18 @@ router.post("/", auth(), async (req, res) => {
       notes,
     });
 
-<<<<<<< HEAD
-=======
     // Send notification email to tutor
     try {
       const notificationResult = await notifyTutorBookingCreated(booking);
       console.log("📧 Booking notification sent:", notificationResult);
     } catch (notificationError) {
-      console.error("❌ Failed to send booking notification:", notificationError);
+      console.error(
+        "❌ Failed to send booking notification:",
+        notificationError
+      );
       // Don't fail the booking creation if notification fails
     }
 
->>>>>>> Quan3
     res
       .status(201)
       .json({ booking, message: "Đặt lịch thành công, chờ gia sư xác nhận" });
@@ -292,16 +280,12 @@ router.post("/:id/decision", auth(), async (req, res) => {
 
     // Update booking status
     if (decision === "accept") {
-<<<<<<< HEAD
-      booking.status = "accepted";
-=======
       // Hold payment in escrow
       await EscrowService.holdPayment(booking._id);
-      
+
       // Generate room ID for WebRTC session
       const roomId = generateRoomId();
       booking.roomId = roomId;
->>>>>>> Quan3
 
       // Create teaching session when booking is accepted
       const session = await TeachingSession.create({
@@ -315,10 +299,7 @@ router.post("/:id/decision", auth(), async (req, res) => {
         location:
           booking.mode === "offline" ? "Địa điểm sẽ được thông báo" : null,
         status: "scheduled",
-<<<<<<< HEAD
-=======
         roomId: roomId, // Add room ID to session
->>>>>>> Quan3
       });
 
       booking.sessionId = session._id;
@@ -328,18 +309,21 @@ router.post("/:id/decision", auth(), async (req, res) => {
 
     await booking.save();
 
-<<<<<<< HEAD
-=======
     // Send notification email to student
     try {
-      const notificationResult = await notifyStudentBookingDecision(booking, decision);
+      const notificationResult = await notifyStudentBookingDecision(
+        booking,
+        decision
+      );
       console.log("📧 Booking decision notification sent:", notificationResult);
     } catch (notificationError) {
-      console.error("❌ Failed to send booking decision notification:", notificationError);
+      console.error(
+        "❌ Failed to send booking decision notification:",
+        notificationError
+      );
       // Don't fail the decision if notification fails
     }
 
->>>>>>> Quan3
     const message =
       decision === "accept"
         ? "Đã chấp nhận yêu cầu đặt lịch"
@@ -788,8 +772,6 @@ router.post("/sessions/:id/complete", auth(), async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-=======
 // Process payment success and send room code notifications
 router.post("/:id/payment-success", auth(), async (req, res) => {
   try {
@@ -800,12 +782,18 @@ router.post("/:id/payment-success", auth(), async (req, res) => {
 
     // Check if user is the student who made the booking
     if (String(booking.student) !== String(req.user.id)) {
-      return res.status(403).json({ message: "Not authorized to process payment for this booking" });
+      return res
+        .status(403)
+        .json({
+          message: "Not authorized to process payment for this booking",
+        });
     }
 
     // Check if booking is accepted
     if (booking.status !== "accepted") {
-      return res.status(400).json({ message: "Booking must be accepted before payment" });
+      return res
+        .status(400)
+        .json({ message: "Booking must be accepted before payment" });
     }
 
     // Check if room already exists
@@ -825,30 +813,38 @@ router.post("/:id/payment-success", auth(), async (req, res) => {
     try {
       // Notify student
       const studentNotification = await notifyStudentPaymentSuccess(booking);
-      console.log("📧 Student payment success notification sent:", studentNotification);
+      console.log(
+        "📧 Student payment success notification sent:",
+        studentNotification
+      );
 
       // Notify tutor
       const tutorNotification = await notifyTutorPaymentSuccess(booking);
-      console.log("📧 Tutor payment success notification sent:", tutorNotification);
+      console.log(
+        "📧 Tutor payment success notification sent:",
+        tutorNotification
+      );
 
       res.json({
         success: true,
         message: "Payment processed successfully and notifications sent",
         roomCode: booking.roomId,
-        roomUrl: `${process.env.FRONTEND_URL}/room/${booking.roomId}`
+        roomUrl: `${process.env.FRONTEND_URL}/room/${booking.roomId}`,
       });
     } catch (notificationError) {
-      console.error("❌ Failed to send payment notifications:", notificationError);
+      console.error(
+        "❌ Failed to send payment notifications:",
+        notificationError
+      );
       // Still return success for payment processing
       res.json({
         success: true,
         message: "Payment processed successfully, but notifications failed",
         roomCode: booking.roomId,
         roomUrl: `${process.env.FRONTEND_URL}/room/${booking.roomId}`,
-        warning: "Notifications may not have been sent"
+        warning: "Notifications may not have been sent",
       });
     }
-
   } catch (error) {
     console.error("Error processing payment success:", error);
     res.status(500).json({ message: "Failed to process payment success" });
@@ -859,48 +855,54 @@ router.post("/:id/payment-success", auth(), async (req, res) => {
 router.post("/slots/:slotId/book", auth(), async (req, res) => {
   try {
     const { notes } = req.body;
-    
+
     // Get the teaching slot
     const slot = await TeachingSlot.findById(req.params.slotId);
     if (!slot) {
       return res.status(404).json({ message: "Không tìm thấy slot dạy học" });
     }
-    
+
     if (slot.status !== "open") {
       return res.status(400).json({ message: "Slot không khả dụng để đặt" });
     }
-    
+
     // Check if student is trying to book their own slot
     const tutor = await TutorProfile.findById(slot.tutorProfile);
     if (String(tutor.user) === String(req.user.id)) {
-      return res.status(400).json({ message: "Không thể đặt lịch với chính mình" });
+      return res
+        .status(400)
+        .json({ message: "Không thể đặt lịch với chính mình" });
     }
-    
+
     // Check if slot is in the future
     const now = new Date();
     if (slot.start <= now) {
-      return res.status(400).json({ message: "Không thể đặt slot trong quá khứ" });
+      return res
+        .status(400)
+        .json({ message: "Không thể đặt slot trong quá khứ" });
     }
-    
+
     // Check if slot is not too far in the future (max 3 months)
     const threeMonthsFromNow = new Date();
     threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
     if (slot.start > threeMonthsFromNow) {
-      return res.status(400).json({ message: "Không thể đặt slot quá 3 tháng trước" });
+      return res
+        .status(400)
+        .json({ message: "Không thể đặt slot quá 3 tháng trước" });
     }
-    
+
     // Check if student has too many pending bookings (max 5)
     const pendingBookings = await Booking.countDocuments({
       student: req.user.id,
       status: "pending",
     });
-    
+
     if (pendingBookings >= 5) {
-      return res.status(400).json({ 
-        message: "Bạn đã có quá nhiều yêu cầu đang chờ xử lý (tối đa 5)" 
+      return res.status(400).json({
+        message: "Bạn đã có quá nhiều yêu cầu đang chờ xử lý (tối đa 5)",
       });
     }
-    
+
     // Create booking from slot
     const booking = await Booking.create({
       tutorProfile: slot.tutorProfile,
@@ -910,27 +912,29 @@ router.post("/slots/:slotId/book", auth(), async (req, res) => {
       mode: slot.mode,
       price: slot.price,
       notes: notes || `Đặt từ slot: ${slot.courseName}`,
-      slotId: slot._id // Reference to original slot
+      slotId: slot._id, // Reference to original slot
     });
-    
+
     // Update slot status to booked
     slot.status = "booked";
     await slot.save();
-    
+
     // Send notification email to tutor
     try {
       const notificationResult = await notifyTutorBookingCreated(booking);
       console.log("📧 Slot booking notification sent:", notificationResult);
     } catch (notificationError) {
-      console.error("❌ Failed to send slot booking notification:", notificationError);
+      console.error(
+        "❌ Failed to send slot booking notification:",
+        notificationError
+      );
       // Don't fail the booking creation if notification fails
     }
-    
-    res.status(201).json({ 
-      booking, 
-      message: "Đặt lịch từ slot thành công, chờ gia sư xác nhận" 
+
+    res.status(201).json({
+      booking,
+      message: "Đặt lịch từ slot thành công, chờ gia sư xác nhận",
     });
-    
   } catch (error) {
     console.error("Error booking from slot:", error);
     res.status(500).json({ message: "Failed to book from slot" });
@@ -948,14 +952,18 @@ router.post("/:id/join-token", auth(), async (req, res) => {
     // Check if user is authorized to join this room
     const isStudent = String(booking.student) === String(req.user.id);
     const isTutor = String(booking.tutorProfile) === String(req.user.id);
-    
+
     if (!isStudent && !isTutor) {
-      return res.status(403).json({ message: "Not authorized to join this room" });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to join this room" });
     }
 
     // Check if booking is accepted
     if (booking.status !== "accepted") {
-      return res.status(400).json({ message: "Booking must be accepted to join room" });
+      return res
+        .status(400)
+        .json({ message: "Booking must be accepted to join room" });
     }
 
     // Check if room exists
@@ -966,17 +974,22 @@ router.post("/:id/join-token", auth(), async (req, res) => {
     // Check if session is still valid
     const now = new Date();
     if (now < booking.start || now > booking.end) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Session is not active",
         startTime: booking.start,
-        endTime: booking.end
+        endTime: booking.end,
       });
     }
 
     // Generate room token
-    const role = isStudent ? 'student' : 'tutor';
+    const role = isStudent ? "student" : "tutor";
     const duration = Math.ceil((booking.end - now) / (1000 * 60)); // Minutes remaining
-    const token = generateRoomToken(booking.roomId, req.user.id, role, duration);
+    const token = generateRoomToken(
+      booking.roomId,
+      req.user.id,
+      role,
+      duration
+    );
 
     res.json({
       token,
@@ -985,9 +998,8 @@ router.post("/:id/join-token", auth(), async (req, res) => {
       duration,
       startTime: booking.start,
       endTime: booking.end,
-      roomUrl: `${process.env.FRONTEND_URL}/room/${booking.roomId}?token=${token}`
+      roomUrl: `${process.env.FRONTEND_URL}/room/${booking.roomId}?token=${token}`,
     });
-
   } catch (error) {
     console.error("Error generating room token:", error);
     res.status(500).json({ message: "Failed to generate room token" });
@@ -1005,24 +1017,28 @@ router.post("/:id/complete", auth(), async (req, res) => {
     // Check if user is authorized (tutor or student)
     const isTutor = String(booking.tutorProfile) === String(req.user.id);
     const isStudent = String(booking.student) === String(req.user.id);
-    
+
     if (!isTutor && !isStudent) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
     if (booking.status !== "accepted") {
-      return res.status(400).json({ message: "Booking must be accepted to complete" });
+      return res
+        .status(400)
+        .json({ message: "Booking must be accepted to complete" });
     }
 
     // Release payment from escrow
-    await EscrowService.releasePayment(booking._id, isTutor ? "tutor" : "student");
+    await EscrowService.releasePayment(
+      booking._id,
+      isTutor ? "tutor" : "student"
+    );
 
     res.json({
       success: true,
       message: "Session completed and payment released",
-      booking
+      booking,
     });
-
   } catch (error) {
     console.error("Error completing session:", error);
     res.status(500).json({ message: "Failed to complete session" });
@@ -1034,7 +1050,7 @@ router.post("/:id/cancel", auth(), async (req, res) => {
   try {
     const { reason } = req.body;
     const booking = await Booking.findById(req.params.id);
-    
+
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
@@ -1042,7 +1058,7 @@ router.post("/:id/cancel", auth(), async (req, res) => {
     // Check if user is authorized (tutor or student)
     const isTutor = String(booking.tutorProfile) === String(req.user.id);
     const isStudent = String(booking.student) === String(req.user.id);
-    
+
     if (!isTutor && !isStudent) {
       return res.status(403).json({ message: "Not authorized" });
     }
@@ -1054,10 +1070,10 @@ router.post("/:id/cancel", auth(), async (req, res) => {
     // Calculate refund based on cancellation time
     const now = new Date();
     const timeDiff = (booking.start - now) / (1000 * 60 * 60); // hours
-    
+
     let refundAmount = booking.escrowAmount;
     let cancellationReason = reason || "Hủy bởi người dùng";
-    
+
     // If cancelled less than 12 hours before start, partial refund
     if (timeDiff < 12) {
       refundAmount = Math.round(booking.escrowAmount * 0.5); // 50% refund
@@ -1065,15 +1081,18 @@ router.post("/:id/cancel", auth(), async (req, res) => {
     }
 
     // Process refund
-    await EscrowService.refundPayment(booking._id, refundAmount, cancellationReason);
+    await EscrowService.refundPayment(
+      booking._id,
+      refundAmount,
+      cancellationReason
+    );
 
     res.json({
       success: true,
       message: "Booking cancelled and refund processed",
       refundAmount,
-      booking
+      booking,
     });
-
   } catch (error) {
     console.error("Error cancelling booking:", error);
     res.status(500).json({ message: "Failed to cancel booking" });
@@ -1085,7 +1104,7 @@ router.post("/:id/dispute", auth(), async (req, res) => {
   try {
     const { reason } = req.body;
     const booking = await Booking.findById(req.params.id);
-    
+
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
@@ -1093,13 +1112,15 @@ router.post("/:id/dispute", auth(), async (req, res) => {
     // Check if user is authorized (tutor or student)
     const isTutor = String(booking.tutorProfile) === String(req.user.id);
     const isStudent = String(booking.student) === String(req.user.id);
-    
+
     if (!isTutor && !isStudent) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
     if (booking.status !== "accepted") {
-      return res.status(400).json({ message: "Can only dispute accepted bookings" });
+      return res
+        .status(400)
+        .json({ message: "Can only dispute accepted bookings" });
     }
 
     if (!reason) {
@@ -1107,14 +1128,17 @@ router.post("/:id/dispute", auth(), async (req, res) => {
     }
 
     // Open dispute
-    await EscrowService.openDispute(booking._id, reason, isTutor ? "tutor" : "student");
+    await EscrowService.openDispute(
+      booking._id,
+      reason,
+      isTutor ? "tutor" : "student"
+    );
 
     res.json({
       success: true,
       message: "Dispute opened successfully",
-      booking
+      booking,
     });
-
   } catch (error) {
     console.error("Error opening dispute:", error);
     res.status(500).json({ message: "Failed to open dispute" });
@@ -1130,17 +1154,15 @@ router.get("/escrow/stats", auth(), async (req, res) => {
     }
 
     const stats = await EscrowService.getEscrowStats();
-    
+
     res.json({
       success: true,
-      stats
+      stats,
     });
-
   } catch (error) {
     console.error("Error getting escrow stats:", error);
     res.status(500).json({ message: "Failed to get escrow stats" });
   }
 });
 
->>>>>>> Quan3
 module.exports = router;

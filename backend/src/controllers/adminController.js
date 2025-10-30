@@ -6,36 +6,40 @@ const nodemailer = require("nodemailer");
 // Email transporter
 const createTransporter = () => {
   // Trim and clean env variables
-  const strip = (v) => (v || "").toString().trim().replace(/^['"]|['"]$/g, "");
-  
+  const strip = (v) =>
+    (v || "")
+      .toString()
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+
   let user = process.env.MAIL_USERNAME || process.env.MAIL_LEARNMATE_USERNAME;
   let pass = process.env.MAIL_PASSWORD || process.env.MAIL_LEARNMATE_PASSWORD;
-  
+
   user = strip(user);
   pass = strip(pass);
-  
+
   // Remove spaces from app password (e.g., 'abcd efgh ijkl mnop' -> 'abcdefghijklmnop')
-  if (pass && pass.includes(' ')) {
-    pass = pass.replace(/\s/g, '');
-    console.log('✅ Cleaned app password (removed spaces)');
+  if (pass && pass.includes(" ")) {
+    pass = pass.replace(/\s/g, "");
+    console.log("✅ Cleaned app password (removed spaces)");
   }
-  
+
   if (!user || !pass) {
     console.warn("⚠️ Email credentials not configured");
-    console.log('MAIL_USERNAME:', user ? 'Found' : 'Missing');
-    console.log('MAIL_PASSWORD:', pass ? 'Found' : 'Missing');
+    console.log("MAIL_USERNAME:", user ? "Found" : "Missing");
+    console.log("MAIL_PASSWORD:", pass ? "Found" : "Missing");
     return null;
   }
-  
+
   console.log(`✅ Email transporter configured for: ${user}`);
-  
+
   try {
     return nodemailer.createTransport({
       service: "gmail",
-      auth: { user, pass }
+      auth: { user, pass },
     });
   } catch (error) {
-    console.error('❌ Failed to create email transporter:', error.message);
+    console.error("❌ Failed to create email transporter:", error.message);
     return null;
   }
 };
@@ -45,36 +49,39 @@ const sendEmail = async (to, subject, html) => {
   console.log(`\n📧 Attempting to send email...`);
   console.log(`   To: ${to}`);
   console.log(`   Subject: ${subject}`);
-  
+
   try {
     const transporter = createTransporter();
-    
+
     if (!transporter) {
       console.log(`❌ [EMAIL MOCK MODE] Transporter not configured`);
       console.log(`   Would send: ${subject} to ${to}`);
       return { success: true, mode: "mock" };
     }
-    
+
     // Verify connection
     console.log(`🔄 Verifying SMTP connection...`);
     await transporter.verify();
     console.log(`✅ SMTP connection verified`);
-    
+
     // Send email
-    const from = process.env.MAIL_FROM || process.env.MAIL_USERNAME || "no-reply@edumatch.com";
+    const from =
+      process.env.MAIL_FROM ||
+      process.env.MAIL_USERNAME ||
+      "no-reply@edumatch.com";
     console.log(`📤 Sending email from: ${from}`);
-    
+
     const info = await transporter.sendMail({
       from,
       to,
       subject,
-      html
+      html,
     });
-    
+
     console.log(`✅ Email sent successfully!`);
     console.log(`   Message ID: ${info.messageId}`);
     console.log(`   Response: ${info.response}\n`);
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`❌ Failed to send email to ${to}`);
@@ -90,16 +97,21 @@ const getDashboardStats = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const totalTutors = await TutorProfile.countDocuments();
     const totalBookings = await Booking.countDocuments();
-    const pendingTutors = await TutorProfile.countDocuments({ status: "pending" });
+    const pendingTutors = await TutorProfile.countDocuments({
+      status: "pending",
+    });
     const activeUsers = await User.countDocuments({ status: "active" });
-    const completedBookings = await Booking.countDocuments({ status: "completed" });
+    const completedBookings = await Booking.countDocuments({
+      status: "completed",
+    });
 
     // Revenue calculation (assuming price field exists)
     const revenueResult = await Booking.aggregate([
       { $match: { status: "completed" } },
-      { $group: { _id: null, totalRevenue: { $sum: "$price" } } }
+      { $group: { _id: null, totalRevenue: { $sum: "$price" } } },
     ]);
-    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    const totalRevenue =
+      revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
 
     // Recent activity
     const recentUsers = await User.find()
@@ -123,12 +135,12 @@ const getDashboardStats = async (req, res) => {
         pendingTutors,
         activeUsers,
         completedBookings,
-        totalRevenue
+        totalRevenue,
       },
       recentActivity: {
         users: recentUsers,
-        bookings: recentBookings
-      }
+        bookings: recentBookings,
+      },
     });
   } catch (error) {
     console.error("Error getting dashboard stats:", error);
@@ -148,7 +160,7 @@ const getUsers = async (req, res) => {
     if (search) {
       query.$or = [
         { full_name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } }
+        { email: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -165,8 +177,8 @@ const getUsers = async (req, res) => {
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / limit),
-        total
-      }
+        total,
+      },
     });
   } catch (error) {
     console.error("Error getting users:", error);
@@ -176,9 +188,10 @@ const getUsers = async (req, res) => {
 
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id)
-      .select("-password_hash -refresh_tokens");
-    
+    const user = await User.findById(req.params.id).select(
+      "-password_hash -refresh_tokens"
+    );
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -207,9 +220,10 @@ const updateUserStatus = async (req, res) => {
 
     // Prevent unbanning - banned status is permanent
     if (currentUser.status === "banned") {
-      return res.status(403).json({ 
-        message: "Cannot change status of banned user. Banned status is permanent.",
-        currentStatus: "banned"
+      return res.status(403).json({
+        message:
+          "Cannot change status of banned user. Banned status is permanent.",
+        currentStatus: "banned",
       });
     }
 
@@ -219,7 +233,9 @@ const updateUserStatus = async (req, res) => {
       { new: true }
     ).select("-password_hash -refresh_tokens");
 
-    console.log(`✅ User ${user.email} status updated from ${currentUser.status} to ${status}`);
+    console.log(
+      `✅ User ${user.email} status updated from ${currentUser.status} to ${status}`
+    );
     res.json(user);
   } catch (error) {
     console.error("Error updating user status:", error);
@@ -256,7 +272,7 @@ const updateUserRole = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -282,10 +298,10 @@ const blockUser = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       id,
-      { 
+      {
         status: "blocked",
         block_reason: reason,
-        blocked_at: new Date()
+        blocked_at: new Date(),
       },
       { new: true }
     ).select("-password_hash -refresh_tokens");
@@ -321,12 +337,16 @@ const blockUser = async (req, res) => {
       </div>
     `;
 
-    await sendEmail(user.email, "⚠️ Tài khoản EduMatch của bạn đã bị khóa", emailHtml);
+    await sendEmail(
+      user.email,
+      "⚠️ Tài khoản EduMatch của bạn đã bị khóa",
+      emailHtml
+    );
 
     console.log(`✅ User ${user.email} blocked by admin. Reason: ${reason}`);
-    res.json({ 
-      message: "User blocked successfully", 
-      user 
+    res.json({
+      message: "User blocked successfully",
+      user,
     });
   } catch (error) {
     console.error("❌ Error blocking user:", error);
@@ -345,10 +365,10 @@ const banUser = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       id,
-      { 
+      {
         status: "banned",
         ban_reason: reason,
-        banned_at: new Date()
+        banned_at: new Date(),
       },
       { new: true }
     ).select("-password_hash -refresh_tokens");
@@ -387,12 +407,16 @@ const banUser = async (req, res) => {
       </div>
     `;
 
-    await sendEmail(user.email, "🚫 Tài khoản EduMatch của bạn đã bị cấm vĩnh viễn", emailHtml);
+    await sendEmail(
+      user.email,
+      "🚫 Tài khoản EduMatch của bạn đã bị cấm vĩnh viễn",
+      emailHtml
+    );
 
     console.log(`✅ User ${user.email} banned by admin. Reason: ${reason}`);
-    res.json({ 
-      message: "User banned successfully", 
-      user 
+    res.json({
+      message: "User banned successfully",
+      user,
     });
   } catch (error) {
     console.error("❌ Error banning user:", error);
@@ -412,22 +436,10 @@ const getTutors = async (req, res) => {
       query.$or = [
         { bio: { $regex: search, $options: "i" } },
         { city: { $regex: search, $options: "i" } },
-        { "subjects.name": { $regex: search, $options: "i" } }
+        { "subjects.name": { $regex: search, $options: "i" } },
       ];
     }
 
-<<<<<<< HEAD
-    const tutors = await TutorProfile.find(query)
-      .populate("user", "full_name email phone_number status")
-      .sort({ created_at: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await TutorProfile.countDocuments(query);
-
-    res.json({
-      tutors,
-=======
     // Populate tutors với thông tin user đầy đủ
     let tutors = await TutorProfile.find(query)
       .populate("user", "full_name email phone_number status role")
@@ -439,9 +451,9 @@ const getTutors = async (req, res) => {
     // role=tutor: hiển thị đơn đã duyệt (người đã là tutor)
     // role=all: hiển thị tất cả
     const roleFilter = role || "learner";
-    
+
     if (roleFilter !== "all") {
-      tutors = tutors.filter(tutor => {
+      tutors = tutors.filter((tutor) => {
         if (!tutor.user) return false;
         return tutor.user.role === roleFilter;
       });
@@ -453,18 +465,14 @@ const getTutors = async (req, res) => {
 
     res.json({
       tutors: paginatedTutors,
->>>>>>> Quan3
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / limit),
-        total
-<<<<<<< HEAD
-=======
+        total,
       },
       filter: {
-        role: roleFilter
->>>>>>> Quan3
-      }
+        role: roleFilter,
+      },
     });
   } catch (error) {
     console.error("Error getting tutors:", error);
@@ -474,13 +482,11 @@ const getTutors = async (req, res) => {
 
 const getTutorById = async (req, res) => {
   try {
-    const tutor = await TutorProfile.findById(req.params.id)
-<<<<<<< HEAD
-      .populate("user", "full_name email phone_number status");
-=======
-      .populate("user", "full_name email phone_number status role");
->>>>>>> Quan3
-    
+    const tutor = await TutorProfile.findById(req.params.id).populate(
+      "user",
+      "full_name email phone_number status role"
+    );
+
     if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
     }
@@ -500,13 +506,12 @@ const updateTutorVerification = async (req, res) => {
     const updateData = {};
     if (idStatus) updateData["verification.idStatus"] = idStatus;
     if (degreeStatus) updateData["verification.degreeStatus"] = degreeStatus;
-    if (adminNotes !== undefined) updateData["verification.adminNotes"] = adminNotes;
+    if (adminNotes !== undefined)
+      updateData["verification.adminNotes"] = adminNotes;
 
-    const tutor = await TutorProfile.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true }
-    ).populate("user", "full_name email phone_number status");
+    const tutor = await TutorProfile.findByIdAndUpdate(id, updateData, {
+      new: true,
+    }).populate("user", "full_name email phone_number status");
 
     if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
@@ -521,11 +526,7 @@ const updateTutorVerification = async (req, res) => {
 
 const updateTutorStatus = async (req, res) => {
   try {
-<<<<<<< HEAD
-    const { status } = req.body;
-=======
     const { status, rejectionReason } = req.body;
->>>>>>> Quan3
     const { id } = req.params;
 
     if (!["draft", "pending", "approved", "rejected"].includes(status)) {
@@ -536,28 +537,22 @@ const updateTutorStatus = async (req, res) => {
       id,
       { status },
       { new: true }
-<<<<<<< HEAD
-    ).populate("user", "full_name email phone_number status");
-=======
     ).populate("user", "full_name email phone_number status role");
->>>>>>> Quan3
 
     if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
-<<<<<<< HEAD
-=======
     // QUAN TRỌNG: Khi approve, tự động chuyển role từ learner sang tutor
     if (status === "approved" && tutor.user) {
       const user = await User.findById(tutor.user._id);
-      
+
       if (user && user.role === "learner") {
         user.role = "tutor";
         await user.save();
-        
+
         console.log(`✅ User ${user.email} role changed from learner to tutor`);
-        
+
         // Gửi email thông báo đơn được duyệt
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -565,7 +560,9 @@ const updateTutorStatus = async (req, res) => {
               <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Chúc mừng! Đơn đăng ký gia sư đã được duyệt</h1>
             </div>
             <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${user.full_name}</strong>,</p>
+              <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${
+                user.full_name
+              }</strong>,</p>
               <p style="font-size: 16px; color: #1f2937;">Đơn đăng ký làm gia sư của bạn trên <strong>EduMatch</strong> đã được phê duyệt!</p>
               
               <div style="background: white; padding: 20px; border-left: 4px solid #10b981; margin: 20px 0; border-radius: 4px;">
@@ -583,7 +580,9 @@ const updateTutorStatus = async (req, res) => {
               </div>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile" 
+                <a href="${
+                  process.env.FRONTEND_URL || "http://localhost:3000"
+                }/profile" 
                    style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
                   Xem hồ sơ gia sư của tôi
                 </a>
@@ -597,14 +596,18 @@ const updateTutorStatus = async (req, res) => {
           </div>
         `;
 
-        await sendEmail(user.email, "🎉 Đơn đăng ký gia sư đã được duyệt - EduMatch", emailHtml);
+        await sendEmail(
+          user.email,
+          "🎉 Đơn đăng ký gia sư đã được duyệt - EduMatch",
+          emailHtml
+        );
       }
     }
 
     // Gửi email nếu bị từ chối
     if (status === "rejected" && tutor.user) {
       const user = await User.findById(tutor.user._id);
-      
+
       if (user) {
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -612,15 +615,21 @@ const updateTutorStatus = async (req, res) => {
               <h1 style="color: white; margin: 0; font-size: 24px;">❌ Đơn đăng ký gia sư chưa được duyệt</h1>
             </div>
             <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${user.full_name}</strong>,</p>
+              <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${
+                user.full_name
+              }</strong>,</p>
               <p style="font-size: 16px; color: #1f2937;">Rất tiếc, đơn đăng ký làm gia sư của bạn chưa được phê duyệt.</p>
               
-              ${rejectionReason ? `
+              ${
+                rejectionReason
+                  ? `
               <div style="background: white; padding: 20px; border-left: 4px solid #ef4444; margin: 20px 0; border-radius: 4px;">
                 <p style="margin: 0; color: #ef4444; font-size: 14px; font-weight: 600;">Lý do:</p>
                 <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px;">${rejectionReason}</p>
               </div>
-              ` : ''}
+              `
+                  : ""
+              }
               
               <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0;">
                 <p style="font-size: 14px; color: #92400e; margin: 0; font-weight: 600;">💡 Bạn có thể:</p>
@@ -632,7 +641,9 @@ const updateTutorStatus = async (req, res) => {
               </div>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile" 
+                <a href="${
+                  process.env.FRONTEND_URL || "http://localhost:3000"
+                }/profile" 
                    style="background: #6b7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
                   Cập nhật hồ sơ
                 </a>
@@ -646,11 +657,14 @@ const updateTutorStatus = async (req, res) => {
           </div>
         `;
 
-        await sendEmail(user.email, "❌ Đơn đăng ký gia sư chưa được duyệt - EduMatch", emailHtml);
+        await sendEmail(
+          user.email,
+          "❌ Đơn đăng ký gia sư chưa được duyệt - EduMatch",
+          emailHtml
+        );
       }
     }
 
->>>>>>> Quan3
     res.json(tutor);
   } catch (error) {
     console.error("Error updating tutor status:", error);
@@ -667,9 +681,7 @@ const getBookings = async (req, res) => {
     let query = {};
     if (status) query.status = status;
     if (search) {
-      query.$or = [
-        { notes: { $regex: search, $options: "i" } }
-      ];
+      query.$or = [{ notes: { $regex: search, $options: "i" } }];
     }
 
     const bookings = await Booking.find(query)
@@ -687,8 +699,8 @@ const getBookings = async (req, res) => {
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / limit),
-        total
-      }
+        total,
+      },
     });
   } catch (error) {
     console.error("Error getting bookings:", error);
@@ -702,7 +714,7 @@ const getBookingById = async (req, res) => {
       .populate("student", "full_name email phone_number")
       .populate("tutorProfile", "user")
       .populate("tutorProfile.user", "full_name email phone_number");
-    
+
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
@@ -719,7 +731,11 @@ const updateBookingStatus = async (req, res) => {
     const { status } = req.body;
     const { id } = req.params;
 
-    if (!["pending", "accepted", "rejected", "cancelled", "completed"].includes(status)) {
+    if (
+      !["pending", "accepted", "rejected", "cancelled", "completed"].includes(
+        status
+      )
+    ) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
@@ -727,9 +743,10 @@ const updateBookingStatus = async (req, res) => {
       id,
       { status },
       { new: true }
-    ).populate("student", "full_name email")
-     .populate("tutorProfile", "user")
-     .populate("tutorProfile.user", "full_name email");
+    )
+      .populate("student", "full_name email")
+      .populate("tutorProfile", "user")
+      .populate("tutorProfile.user", "full_name email");
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -746,12 +763,12 @@ const updateBookingStatus = async (req, res) => {
 const getRevenueReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     let matchQuery = { status: "completed" };
     if (startDate && endDate) {
       matchQuery.created_at = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
     }
 
@@ -761,13 +778,13 @@ const getRevenueReport = async (req, res) => {
         $group: {
           _id: {
             year: { $year: "$created_at" },
-            month: { $month: "$created_at" }
+            month: { $month: "$created_at" },
           },
           totalRevenue: { $sum: "$price" },
-          bookingCount: { $sum: 1 }
-        }
+          bookingCount: { $sum: 1 },
+        },
       },
-      { $sort: { "_id.year": 1, "_id.month": 1 } }
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]);
 
     res.json(revenueData);
@@ -783,23 +800,23 @@ const getUserReport = async (req, res) => {
       {
         $group: {
           _id: "$role",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const statusStats = await User.aggregate([
       {
         $group: {
           _id: "$status",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     res.json({
       byRole: userStats,
-      byStatus: statusStats
+      byStatus: statusStats,
     });
   } catch (error) {
     console.error("Error getting user report:", error);
@@ -813,9 +830,9 @@ const getTutorReport = async (req, res) => {
       {
         $group: {
           _id: "$status",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const verificationStats = await TutorProfile.aggregate([
@@ -823,16 +840,16 @@ const getTutorReport = async (req, res) => {
         $group: {
           _id: {
             idStatus: "$verification.idStatus",
-            degreeStatus: "$verification.degreeStatus"
+            degreeStatus: "$verification.degreeStatus",
           },
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     res.json({
       byStatus: tutorStats,
-      byVerification: verificationStats
+      byVerification: verificationStats,
     });
   } catch (error) {
     console.error("Error getting tutor report:", error);
@@ -845,14 +862,10 @@ module.exports = {
   getUsers,
   getUserById,
   updateUserStatus,
-<<<<<<< HEAD
-  deleteUser,
-=======
   updateUserRole,
   deleteUser,
   blockUser,
   banUser,
->>>>>>> Quan3
   getTutors,
   getTutorById,
   updateTutorVerification,
@@ -862,5 +875,5 @@ module.exports = {
   updateBookingStatus,
   getRevenueReport,
   getUserReport,
-  getTutorReport
+  getTutorReport,
 };

@@ -1,11 +1,9 @@
 import axios from "axios";
 import Cookies from "js-cookie";
-<<<<<<< HEAD
-=======
 import { toast } from "react-toastify";
->>>>>>> Quan3
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
 const client = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 client.interceptors.request.use((config) => {
   const accessToken = Cookies.get("accessToken");
@@ -14,55 +12,55 @@ client.interceptors.request.use((config) => {
 });
 
 export const createBooking = async (payload) => {
-<<<<<<< HEAD
-  const res = await client.post(`/bookings`, payload);
-  return res.data.booking;
-=======
   try {
     const res = await client.post(`/bookings`, payload);
-    toast.success("🎉 Đặt lịch thành công! Gia sư sẽ phản hồi trong vòng 24 giờ.");
+    toast.success(
+      "🎉 Đặt lịch thành công! Gia sư sẽ phản hồi trong vòng 24 giờ."
+    );
     return res.data.booking;
   } catch (error) {
-    const message = error.response?.data?.message || "Không thể đặt lịch. Vui lòng thử lại.";
+    const message =
+      error.response?.data?.message || "Không thể đặt lịch. Vui lòng thử lại.";
     toast.error(`❌ ${message}`);
     throw error;
   }
->>>>>>> Quan3
 };
 
-export const listMyBookings = async (role = 'student') => {
+export const listMyBookings = async (role = "student") => {
   const res = await client.get(`/bookings/me`, { params: { role } });
   return res.data.items;
 };
 
 export const tutorDecision = async (id, decision) => {
-<<<<<<< HEAD
-  const res = await client.post(`/bookings/${id}/decision`, { decision });
-  return res.data.booking;
-=======
   try {
     const res = await client.post(`/bookings/${id}/decision`, { decision });
-    const message = decision === 'accept' 
-      ? "✅ Đã chấp nhận yêu cầu đặt lịch. Học viên đã được thông báo qua email."
-      : "❌ Đã từ chối yêu cầu đặt lịch. Học viên đã được thông báo qua email.";
+    const message =
+      decision === "accept"
+        ? "✅ Đã chấp nhận yêu cầu đặt lịch. Học viên đã được thông báo qua email."
+        : "❌ Đã từ chối yêu cầu đặt lịch. Học viên đã được thông báo qua email.";
     toast.success(message);
     return res.data.booking;
   } catch (error) {
-    const message = error.response?.data?.message || "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+    const message =
+      error.response?.data?.message ||
+      "Không thể xử lý yêu cầu. Vui lòng thử lại.";
     toast.error(`❌ ${message}`);
     throw error;
   }
->>>>>>> Quan3
 };
 
 // Get bookings for a specific date range
-export const getBookingsByDateRange = async (startDate, endDate, role = 'tutor') => {
+export const getBookingsByDateRange = async (
+  startDate,
+  endDate,
+  role = "tutor"
+) => {
   const res = await client.get(`/bookings/date-range`, {
-    params: { 
+    params: {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      role 
-    }
+      role,
+    },
   });
   return res.data.items;
 };
@@ -102,10 +100,6 @@ export const deleteTeachingSlot = async (id) => {
 };
 
 export const listPublicTeachingSlots = async (params = {}) => {
-<<<<<<< HEAD
-  const res = await client.get(`/bookings/slots/public`, { params });
-  return res.data.items;
-=======
   try {
     console.log("🌐 API Call: GET /bookings/slots/public", params);
     const res = await client.get(`/bookings/slots/public`, { params });
@@ -118,15 +112,12 @@ export const listPublicTeachingSlots = async (params = {}) => {
     console.error("❌ Error status:", error.response?.status);
     throw error;
   }
->>>>>>> Quan3
 };
 
 export const getPublicTeachingSlot = async (id) => {
   const res = await client.get(`/bookings/slots/${id}`);
   return res.data.slot;
 };
-<<<<<<< HEAD
-=======
 
 // Get room token for joining WebRTC session
 export const getRoomToken = async (bookingId) => {
@@ -138,10 +129,14 @@ export const getRoomToken = async (bookingId) => {
 export const processPaymentSuccess = async (bookingId) => {
   try {
     const res = await client.post(`/bookings/${bookingId}/payment-success`);
-    toast.success("🎉 Thanh toán thành công! Mã phòng học đã được gửi qua email.");
+    toast.success(
+      "🎉 Thanh toán thành công! Mã phòng học đã được gửi qua email."
+    );
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || "Không thể xử lý thanh toán. Vui lòng thử lại.";
+    const message =
+      error.response?.data?.message ||
+      "Không thể xử lý thanh toán. Vui lòng thử lại.";
     toast.error(`❌ ${message}`);
     throw error;
   }
@@ -151,18 +146,21 @@ export const processPaymentSuccess = async (bookingId) => {
 export const bookFromSlot = async (slotId, notes = "") => {
   try {
     const res = await client.post(`/bookings/slots/${slotId}/book`, { notes });
-    toast.success("🎉 Đặt lịch từ slot thành công! Gia sư sẽ phản hồi trong vòng 24 giờ.");
+    toast.success(
+      "🎉 Đặt lịch từ slot thành công! Gia sư sẽ phản hồi trong vòng 24 giờ."
+    );
     return res.data.booking;
   } catch (error) {
-    const message = error.response?.data?.message || "Không thể đặt lịch từ slot. Vui lòng thử lại.";
+    const message =
+      error.response?.data?.message ||
+      "Không thể đặt lịch từ slot. Vui lòng thử lại.";
     toast.error(`❌ ${message}`);
     throw error;
   }
 };
->>>>>>> Quan3
 // Tutor search API
 export const searchTutors = async (params) => {
-  const res = await client.get('/tutors/search', { params });
+  const res = await client.get("/tutors/search", { params });
   return res.data;
 };
 
@@ -171,8 +169,6 @@ export const getTutorProfile = async (tutorId) => {
   return res.data;
 };
 
-<<<<<<< HEAD
-=======
 // Complete session and release payment
 export const completeSession = async (bookingId) => {
   try {
@@ -180,7 +176,9 @@ export const completeSession = async (bookingId) => {
     toast.success("✅ Buổi học đã hoàn thành và thanh toán đã được chuyển!");
     return res.data.booking;
   } catch (error) {
-    const message = error.response?.data?.message || "Không thể hoàn thành buổi học. Vui lòng thử lại.";
+    const message =
+      error.response?.data?.message ||
+      "Không thể hoàn thành buổi học. Vui lòng thử lại.";
     toast.error(`❌ ${message}`);
     throw error;
   }
@@ -193,7 +191,9 @@ export const cancelBooking = async (bookingId, reason) => {
     toast.success("✅ Đã hủy buổi học và xử lý hoàn tiền!");
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || "Không thể hủy buổi học. Vui lòng thử lại.";
+    const message =
+      error.response?.data?.message ||
+      "Không thể hủy buổi học. Vui lòng thử lại.";
     toast.error(`❌ ${message}`);
     throw error;
   }
@@ -206,7 +206,9 @@ export const openDispute = async (bookingId, reason) => {
     toast.success("⚠️ Đã mở tranh chấp. Hệ thống sẽ xử lý trong vòng 48 giờ.");
     return res.data.booking;
   } catch (error) {
-    const message = error.response?.data?.message || "Không thể mở tranh chấp. Vui lòng thử lại.";
+    const message =
+      error.response?.data?.message ||
+      "Không thể mở tranh chấp. Vui lòng thử lại.";
     toast.error(`❌ ${message}`);
     throw error;
   }
@@ -218,11 +220,10 @@ export const getEscrowStats = async () => {
   return res.data.stats;
 };
 
->>>>>>> Quan3
-const bookingService = { 
-  createBooking, 
-  listMyBookings, 
-  tutorDecision, 
+const bookingService = {
+  createBooking,
+  listMyBookings,
+  tutorDecision,
   getBookingsByDateRange,
   getTutorAvailability,
   updateTutorAvailability,
@@ -231,10 +232,6 @@ const bookingService = {
   listMyTeachingSlots,
   listPublicTeachingSlots,
   getPublicTeachingSlot,
-<<<<<<< HEAD
-  searchTutors,
-  getTutorProfile
-=======
   getRoomToken,
   processPaymentSuccess,
   bookFromSlot,
@@ -243,10 +240,7 @@ const bookingService = {
   completeSession,
   cancelBooking,
   openDispute,
-  getEscrowStats
->>>>>>> Quan3
+  getEscrowStats,
 };
 
 export default bookingService;
-
-

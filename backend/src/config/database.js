@@ -3,25 +3,23 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    const uri = process.env.MONGO_URI || process.env.DB_HOST || process.env.URI_DB;
-    if (!uri) throw new Error("Missing MONGO_URI or DB_HOST or URI_DB in environment");
+    const uri =
+      process.env.MONGO_URI || process.env.DB_HOST || process.env.URI_DB;
+    if (!uri)
+      throw new Error("Missing MONGO_URI or DB_HOST or URI_DB in environment");
 
     // Mask password for log
-    const safeUri = uri.replace(/(mongodb\+srv:\/\/[^:]+):[^@]+@/, '$1:****@');
-    console.log('🔌 Mongo URI resolved:', safeUri);
+    const safeUri = uri.replace(/(mongodb\+srv:\/\/[^:]+):[^@]+@/, "$1:****@");
+    console.log("🔌 Mongo URI resolved:", safeUri);
 
-<<<<<<< HEAD
-    // Connect (deprecated options removed for Mongoose 7/8+)
-    await mongoose.connect(uri);
-    console.log("✅ Kết nối DB thành công");
-=======
     // Connect to 'test' database explicitly
     await mongoose.connect(uri, {
-      dbName: 'test' // CRITICAL: Use test database where your data lives
+      dbName: "test", // CRITICAL: Use test database where your data lives
     });
     console.log("✅ Kết nối DB thành công - Database: test");
-    console.log("📊 Bạn có thể kiểm tra dữ liệu trong Atlas at: https://cloud.mongodb.com/");
->>>>>>> Quan3
+    console.log(
+      "📊 Bạn có thể kiểm tra dữ liệu trong Atlas at: https://cloud.mongodb.com/"
+    );
   } catch (error) {
     console.error("❌ Lỗi kết nối DB:", error.message);
     process.exit(1);

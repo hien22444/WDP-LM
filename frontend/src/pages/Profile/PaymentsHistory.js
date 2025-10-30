@@ -42,25 +42,19 @@ const PaymentsHistory = () => {
   };
 
   return (
-<<<<<<< HEAD
-    <div style={{ maxWidth: 1100, margin: "28px auto", padding: "0 16px" }}>
-      <h2 style={{ fontSize: 22, marginBottom: 12 }}>Lịch sử thanh toán</h2>
-      <p style={{ color: "#6b7280", marginTop: 0 }}>
-        Xem tất cả giao dịch thanh toán của bạn.
-      </p>
-      <div style={{ display: "flex", gap: 20, marginTop: 18 }}>
-=======
     <div style={{ maxWidth: 1200, margin: "28px auto", padding: "0 16px" }}>
-      <div style={{
-        background: "linear-gradient(180deg, #f7f9fc 0%, #ffffff 100%)",
-        border: "1px solid #eef2f7",
-        borderRadius: 16,
-        padding: "18px 20px",
-        marginBottom: 18,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between"
-      }}>
+      <div
+        style={{
+          background: "linear-gradient(180deg, #f7f9fc 0%, #ffffff 100%)",
+          border: "1px solid #eef2f7",
+          borderRadius: 16,
+          padding: "18px 20px",
+          marginBottom: 18,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <div>
           <h2 style={{ fontSize: 22, margin: 0 }}>Lịch sử thanh toán</h2>
           <p style={{ color: "#6b7280", margin: "6px 0 0 0" }}>
@@ -68,16 +62,12 @@ const PaymentsHistory = () => {
           </p>
         </div>
         <div>
-          <button
-            className="btn btn-outline-primary"
-            onClick={refresh}
-          >
+          <button className="btn btn-outline-primary" onClick={refresh}>
             Làm mới
           </button>
         </div>
       </div>
       <div style={{ display: "flex", gap: 20 }}>
->>>>>>> Quan3
         <div style={{ flex: 1 }}>
           <div
             style={{
@@ -119,16 +109,15 @@ const PaymentsHistory = () => {
                       onClick={() => setSelected(p)}
                       style={{
                         cursor: "pointer",
-<<<<<<< HEAD
-                        borderBottom: "1px solid #fafafa",
-                      }}
-=======
                         borderBottom: "1px solid #f3f6fb",
                         transition: "background .15s ease",
                       }}
-                      onMouseEnter={(e)=> e.currentTarget.style.background = "#fcfdff"}
-                      onMouseLeave={(e)=> e.currentTarget.style.background = "transparent"}
->>>>>>> Quan3
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#fcfdff")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
                       <td style={{ padding: "12px 8px", fontWeight: 600 }}>
                         {p.orderCode || p._id}
@@ -144,20 +133,28 @@ const PaymentsHistory = () => {
                           : "—"}
                       </td>
                       <td style={{ padding: "12px 8px" }}>
-<<<<<<< HEAD
-                        {p.status || p.paymentStatus || "PENDING"}
-=======
-                        <span style={{
-                          background: (p.status||p.paymentStatus)==="CANCELLED"?"#fde8e8": (p.status||p.paymentStatus)==="SUCCESS"?"#e8f7ee":"#fff8e6",
-                          color: (p.status||p.paymentStatus)==="CANCELLED"?"#b91c1c": (p.status||p.paymentStatus)==="SUCCESS"?"#0e9f6e":"#9a6b00",
-                          padding: "4px 10px",
-                          borderRadius: 999,
-                          fontWeight: 600,
-                          border: "1px solid rgba(0,0,0,.05)"
-                        }}>
+                        <span
+                          style={{
+                            background:
+                              (p.status || p.paymentStatus) === "CANCELLED"
+                                ? "#fde8e8"
+                                : (p.status || p.paymentStatus) === "SUCCESS"
+                                ? "#e8f7ee"
+                                : "#fff8e6",
+                            color:
+                              (p.status || p.paymentStatus) === "CANCELLED"
+                                ? "#b91c1c"
+                                : (p.status || p.paymentStatus) === "SUCCESS"
+                                ? "#0e9f6e"
+                                : "#9a6b00",
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            fontWeight: 600,
+                            border: "1px solid rgba(0,0,0,.05)",
+                          }}
+                        >
                           {p.status || p.paymentStatus || "PENDING"}
                         </span>
->>>>>>> Quan3
                       </td>
                       <td style={{ padding: "12px 8px" }}>
                         {p.createdAt
@@ -209,20 +206,32 @@ const PaymentsHistory = () => {
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <strong>Trạng thái:</strong>{" "}
-<<<<<<< HEAD
-                  {selected.status || selected.paymentStatus || "PENDING"}
-=======
-                  <span style={{
-                    background: (selected.status||selected.paymentStatus)==="CANCELLED"?"#fde8e8": (selected.status||selected.paymentStatus)==="SUCCESS"?"#e8f7ee":"#fff8e6",
-                    color: (selected.status||selected.paymentStatus)==="CANCELLED"?"#b91c1c": (selected.status||selected.paymentStatus)==="SUCCESS"?"#0e9f6e":"#9a6b00",
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                    fontWeight: 600,
-                    border: "1px solid rgba(0,0,0,.05)"
-                  }}>
+                  <span
+                    style={{
+                      background:
+                        (selected.status || selected.paymentStatus) ===
+                        "CANCELLED"
+                          ? "#fde8e8"
+                          : (selected.status || selected.paymentStatus) ===
+                            "SUCCESS"
+                          ? "#e8f7ee"
+                          : "#fff8e6",
+                      color:
+                        (selected.status || selected.paymentStatus) ===
+                        "CANCELLED"
+                          ? "#b91c1c"
+                          : (selected.status || selected.paymentStatus) ===
+                            "SUCCESS"
+                          ? "#0e9f6e"
+                          : "#9a6b00",
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      fontWeight: 600,
+                      border: "1px solid rgba(0,0,0,.05)",
+                    }}
+                  >
                     {selected.status || selected.paymentStatus || "PENDING"}
                   </span>
->>>>>>> Quan3
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <strong>Thời gian:</strong>{" "}

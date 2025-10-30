@@ -4,14 +4,10 @@ const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-<<<<<<< HEAD
-const connectDB = require("./src/config/database");
-=======
 const http = require("http");
 const connectDB = require("./src/config/database");
 const WebRTCSocket = require("./src/socket/webrtcSocket");
 const ChatSocket = require("./src/socket/chatSocket");
->>>>>>> Quan3
 
 // ========================
 // Load environment variables
@@ -394,12 +390,9 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-<<<<<<< HEAD
-=======
 // Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
->>>>>>> Quan3
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
@@ -413,9 +406,6 @@ const paymentRoutes = require("./src/routes/payment");
 const tutorRoutes = require("./src/routes/tutor");
 const bookingRoutes = require("./src/routes/booking");
 const adminRoutes = require("./src/routes/admin");
-<<<<<<< HEAD
-const aiRoutes = require("./src/routes/ai");
-=======
 const adminContractsRoutes = require("./src/routes/admin-contracts");
 const aiRoutes = require("./src/routes/ai");
 const reviewRoutes = require("./src/routes/review");
@@ -423,7 +413,6 @@ const profileCompletionRoutes = require("./src/routes/profile-completion");
 const tutorVerificationRoutes = require("./src/routes/tutor-verification");
 const adminVerificationRoutes = require("./src/routes/admin-verification");
 const notificationRoutes = require("./src/routes/notification");
->>>>>>> Quan3
 const {
   googleStart,
   googleRedirect,
@@ -436,9 +425,6 @@ app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/tutors", tutorRoutes);
 app.use("/api/v1/bookings", bookingRoutes);
 app.use("/api/v1/admin", adminRoutes);
-<<<<<<< HEAD
-app.use("/api/v1/ai", aiRoutes);
-=======
 app.use("/api/v1/admin/contracts", adminContractsRoutes);
 app.use("/api/v1/ai", aiRoutes);
 app.use("/api/v1/reviews", reviewRoutes);
@@ -447,7 +433,6 @@ app.use("/api/v1/tutor-verification", tutorVerificationRoutes);
 app.use("/api/v1/admin/verification", adminVerificationRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/wallet", require("./src/routes/wallet"));
->>>>>>> Quan3
 
 // Google OAuth routes
 app.get("/google/start", googleStart);
@@ -462,35 +447,28 @@ app.use((err, req, res, next) => {
 });
 
 // ========================
-<<<<<<< HEAD
-// Start server
-=======
 // Start server with Socket.io
->>>>>>> Quan3
 // ========================
 const PORT = process.env.PORT || 5000;
 connectDB()
   .then(() => {
-<<<<<<< HEAD
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-=======
     // Create HTTP server
     const server = http.createServer(app);
-    
+
     // Initialize WebRTC Socket.io
     const webrtcSocket = new WebRTCSocket(server);
     webrtcSocket.setupWebRTCNamespace();
-    
+
     // Initialize Chat Socket.io (using root namespace)
     const chatSocket = new ChatSocket(webrtcSocket.io);
     chatSocket.initializeChatNamespace();
-    
+
     console.log(`💬 Chat Socket.io: Using /chat namespace`);
-    
+
     // Store socket instances for potential use in routes
     app.locals.webrtcSocket = webrtcSocket;
     app.locals.chatSocket = chatSocket;
-    
+
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🔌 WebRTC Socket.io namespace: /webrtc`);
@@ -501,23 +479,22 @@ connectDB()
     try {
       const CronManager = require("./src/cron/index");
       const cronManager = new CronManager();
-      
+
       // Graceful shutdown for cron jobs
-      process.on('SIGINT', () => {
-        console.log('\n🛑 Shutting down gracefully...');
+      process.on("SIGINT", () => {
+        console.log("\n🛑 Shutting down gracefully...");
         cronManager.stopAll();
         process.exit(0);
       });
-      
-      process.on('SIGTERM', () => {
-        console.log('\n🛑 Terminating...');
+
+      process.on("SIGTERM", () => {
+        console.log("\n🛑 Terminating...");
         cronManager.stopAll();
         process.exit(0);
       });
     } catch (error) {
       console.error("❌ Failed to start cron jobs:", error.message);
     }
->>>>>>> Quan3
   })
   .catch((err) => {
     console.error("Failed to connect DB", err);

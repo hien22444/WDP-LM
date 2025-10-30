@@ -4,10 +4,7 @@ const { auth } = require("../middlewares/auth");
 const TutorProfile = require("../models/TutorProfile");
 const User = require("../models/User");
 const TeachingSlot = require("../models/TeachingSlot");
-<<<<<<< HEAD
-=======
 const Booking = require("../models/Booking");
->>>>>>> Quan3
 const { upload } = require("../config/cloudinary");
 
 // Search tutors (public) - keep BEFORE any dynamic :id routes
@@ -17,32 +14,11 @@ router.get("/search", async (req, res) => {
     const {
       search = "",
       subject = "",
-<<<<<<< HEAD
-=======
       grade = "",
->>>>>>> Quan3
       location = "",
       mode = "",
       minPrice = 0,
       maxPrice = 10000000,
-<<<<<<< HEAD
-      page = 1,
-      limit = 20,
-      sortBy = "rating",
-      includePending
-    } = req.query;
-
-    const filter = { };
-    if (includePending) {
-      filter.status = { $in: ["approved", "pending"] };
-    } else {
-      filter.status = "approved";
-      filter.hasAvailability = true; // Chỉ hiển thị gia sư đã cập nhật lịch dạy
-    }
-    const subjectRegex = subject ? new RegExp(subject, "i") : null;
-    if (subjectRegex) {
-      // support subjects stored as strings or objects { subject/name/level }
-=======
       minRating = 0,
       maxRating = 5,
       experience = "",
@@ -50,33 +26,28 @@ router.get("/search", async (req, res) => {
       limit = 20,
       sortBy = "rating",
       includePending,
-      smartSuggest = false
+      smartSuggest = false,
     } = req.query;
 
-    const filter = { };
+    const filter = {};
     // Hiển thị gia sư đã duyệt và đang chờ duyệt (loại bỏ draft)
     if (includePending) {
       filter.status = { $in: ["approved", "pending"] };
     } else {
       filter.status = { $in: ["approved", "pending"] }; // Hiển thị cả approved và pending
     }
-    
+
     // Subject filter
     const subjectRegex = subject ? new RegExp(subject, "i") : null;
     if (subjectRegex) {
->>>>>>> Quan3
       filter.$or = [
         { subjects: { $in: [subjectRegex] } },
         { "subjects.subject": subjectRegex },
         { "subjects.name": subjectRegex },
-        { "subjects.level": subjectRegex }
+        { "subjects.level": subjectRegex },
       ];
     }
-<<<<<<< HEAD
-    if (location) filter.city = new RegExp(location, "i");
-    if (mode) filter.teachModes = { $in: [mode] };
-=======
-    
+
     // Grade filter
     if (grade) {
       const gradeRegex = new RegExp(grade, "i");
@@ -84,33 +55,30 @@ router.get("/search", async (req, res) => {
         ...(filter.$or || []),
         { "subjects.grade": gradeRegex },
         { "subjects.level": gradeRegex },
-        { grades: { $in: [gradeRegex] } }
+        { grades: { $in: [gradeRegex] } },
       ];
     }
-    
+
     // Location filter
     if (location) filter.city = new RegExp(location, "i");
-    
+
     // Mode filter
     if (mode) filter.teachModes = { $in: [mode] };
-    
+
     // Price filter
->>>>>>> Quan3
     if (minPrice || maxPrice) {
       filter.sessionRate = {};
       if (minPrice) filter.sessionRate.$gte = Number(minPrice);
       if (maxPrice) filter.sessionRate.$lte = Number(maxPrice);
     }
-<<<<<<< HEAD
-=======
-    
+
     // Rating filter
     if (minRating || maxRating) {
       filter.rating = {};
       if (minRating) filter.rating.$gte = Number(minRating);
       if (maxRating) filter.rating.$lte = Number(maxRating);
     }
-    
+
     // Experience filter
     if (experience) {
       const expYears = Number(experience);
@@ -118,7 +86,6 @@ router.get("/search", async (req, res) => {
         filter.experience = { $gte: expYears };
       }
     }
->>>>>>> Quan3
 
     let searchQuery = {};
     if (search) {
@@ -127,7 +94,10 @@ router.get("/search", async (req, res) => {
       // Also match tutors who have open slots with matching courseName
       let slotTutorIds = [];
       try {
-        const slots = await TeachingSlot.find({ courseName: searchRegex, status: "open" }).select("tutorProfile");
+        const slots = await TeachingSlot.find({
+          courseName: searchRegex,
+          status: "open",
+        }).select("tutorProfile");
         slotTutorIds = [...new Set(slots.map((s) => String(s.tutorProfile)))];
       } catch (e) {
         console.warn("search slots failed", e?.message);
@@ -140,54 +110,84 @@ router.get("/search", async (req, res) => {
           { "subjects.subject": searchRegex },
           { "subjects.name": searchRegex },
           { city: searchRegex },
-          ...(slotTutorIds.length ? [{ _id: { $in: slotTutorIds } }] : [])
-        ]
+          ...(slotTutorIds.length ? [{ _id: { $in: slotTutorIds } }] : []),
+        ],
       };
     }
 
     const finalFilter = { ...filter, ...searchQuery };
 
-<<<<<<< HEAD
-=======
     // Smart suggestion logic
     if (smartSuggest === "true" && req.user) {
       // Get user's learning history and preferences
-      const userHistory = await Booking.find({ 
+      const userHistory = await Booking.find({
         student: req.user.id,
-        status: "completed"
+        status: "completed",
       }).populate("tutorProfile", "subjects rating experience");
-      
+
       // Calculate preference scores
       const subjectPreferences = {};
       const pricePreferences = [];
-      
-      userHistory.forEach(booking => {
+
+      userHistory.forEach((booking) => {
         const tutor = booking.tutorProfile;
         if (tutor) {
           // Track subject preferences
-          tutor.subjects.forEach(subject => {
-            subjectPreferences[subject] = (subjectPreferences[subject] || 0) + 1;
+          tutor.subjects.forEach((subject) => {
+            subjectPreferences[subject] =
+              (subjectPreferences[subject] || 0) + 1;
           });
-          
+
           // Track price preferences
           pricePreferences.push(booking.price);
         }
       });
-      
+
       // Add preference-based sorting
       if (Object.keys(subjectPreferences).length > 0) {
         finalFilter.$expr = {
           $add: [
             { $multiply: ["$rating", 0.4] },
-            { $multiply: [{ $size: { $setIntersection: ["$subjects", Object.keys(subjectPreferences)] } }, 0.3] },
+            {
+              $multiply: [
+                {
+                  $size: {
+                    $setIntersection: [
+                      "$subjects",
+                      Object.keys(subjectPreferences),
+                    ],
+                  },
+                },
+                0.3,
+              ],
+            },
             { $multiply: ["$experience", 0.2] },
-            { $multiply: [{ $subtract: [5, { $divide: [{ $subtract: ["$sessionRate", { $avg: pricePreferences }] }, 100000] }] }, 0.1] }
-          ]
+            {
+              $multiply: [
+                {
+                  $subtract: [
+                    5,
+                    {
+                      $divide: [
+                        {
+                          $subtract: [
+                            "$sessionRate",
+                            { $avg: pricePreferences },
+                          ],
+                        },
+                        100000,
+                      ],
+                    },
+                  ],
+                },
+                0.1,
+              ],
+            },
+          ],
         };
       }
     }
 
->>>>>>> Quan3
     let sort = {};
     switch (sortBy) {
       case "rating":
@@ -200,14 +200,10 @@ router.get("/search", async (req, res) => {
         sort = { sessionRate: -1 };
         break;
       case "experience":
-<<<<<<< HEAD
-        sort = { experienceYears: -1 };
-=======
         sort = { experience: -1 };
         break;
       case "smart":
         sort = smartSuggest === "true" ? { $expr: 1 } : { rating: -1 };
->>>>>>> Quan3
         break;
       default:
         sort = { rating: -1 };
@@ -215,11 +211,7 @@ router.get("/search", async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
     const tutors = await TutorProfile.find(finalFilter)
-<<<<<<< HEAD
-      .populate("user", "full_name avatar phone_number email")
-=======
       .populate("user", "full_name image phone_number email")
->>>>>>> Quan3
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
@@ -232,11 +224,10 @@ router.get("/search", async (req, res) => {
       userId: tutor.user?._id,
       name: tutor.user?.full_name,
       avatar:
-<<<<<<< HEAD
-        tutor.user?.avatar ||
-=======
-        tutor.user?.image || tutor.avatarUrl || tutor.avatar || tutor.profileImage ||
->>>>>>> Quan3
+        tutor.user?.image ||
+        tutor.avatarUrl ||
+        tutor.avatar ||
+        tutor.profileImage ||
         "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
       subjects: tutor.subjects || [],
       location: tutor.city || "Chưa cập nhật",
@@ -247,7 +238,7 @@ router.get("/search", async (req, res) => {
       teachModes: tutor.teachModes || [],
       bio: tutor.bio || "Chưa có giới thiệu",
       verified: tutor.status === "approved",
-      isIncomplete: tutor.status !== "approved"
+      isIncomplete: tutor.status !== "approved",
     }));
 
     res.json({
@@ -273,13 +264,18 @@ router.get("/me", auth(), async (req, res) => {
     let profile = await TutorProfile.findOne({ user: req.user.id });
     if (!profile) {
       console.log("Creating new tutor profile for user:", req.user.id);
-      profile = await TutorProfile.create({ user: req.user.id, status: "draft" });
+      profile = await TutorProfile.create({
+        user: req.user.id,
+        status: "draft",
+      });
       console.log("Created profile:", profile._id);
     }
     res.json({ profile });
   } catch (e) {
     console.error("Error in /tutors/me:", e);
-    res.status(500).json({ message: "Failed to load profile", error: e.message });
+    res
+      .status(500)
+      .json({ message: "Failed to load profile", error: e.message });
   }
 });
 
@@ -288,21 +284,21 @@ router.get("/:id/courses", async (req, res) => {
   try {
     // Relaxed visibility: allow fetching courses by tutor id even if profile chưa approved
     const tutor = await TutorProfile.findOne({ _id: req.params.id });
-    
+
     if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
     // Get open teaching slots for this tutor
     const TeachingSlot = require("../models/TeachingSlot");
-    const courses = await TeachingSlot.find({ 
-      tutorProfile: req.params.id, 
+    const courses = await TeachingSlot.find({
+      tutorProfile: req.params.id,
       status: "open",
-      start: { $gte: new Date() } // Only future slots
+      start: { $gte: new Date() }, // Only future slots
     }).sort({ start: 1 });
 
     // Format response
-    const formattedCourses = courses.map(course => ({
+    const formattedCourses = courses.map((course) => ({
       id: course._id,
       courseName: course.courseName,
       start: course.start,
@@ -313,18 +309,17 @@ router.get("/:id/courses", async (req, res) => {
       notes: course.notes,
       capacity: course.capacity,
       availableSlots: course.capacity,
-      date: course.start.toISOString().split('T')[0],
+      date: course.start.toISOString().split("T")[0],
       time: {
         start: course.start.toTimeString().substring(0, 5),
-        end: course.end.toTimeString().substring(0, 5)
-      }
+        end: course.end.toTimeString().substring(0, 5),
+      },
     }));
 
-    res.json({ 
-      courses: formattedCourses, 
-      message: "Courses retrieved successfully" 
+    res.json({
+      courses: formattedCourses,
+      message: "Courses retrieved successfully",
     });
-
   } catch (error) {
     console.error("Get tutor courses error:", error);
     res.status(500).json({ message: "Failed to get tutor courses" });
@@ -338,32 +333,26 @@ router.get("/:id", async (req, res) => {
     let tutor = null;
     const id = req.params.id;
     if (mongoose.isValidObjectId(id)) {
-      tutor = await TutorProfile.findOne({ _id: id })
-<<<<<<< HEAD
-        .populate("user", "full_name avatar phone_number email status");
-=======
-        .populate("user", "full_name phone_number email status image");
->>>>>>> Quan3
+      tutor = await TutorProfile.findOne({ _id: id }).populate(
+        "user",
+        "full_name phone_number email status image"
+      );
     }
     // Fallback: if not found by profile id, try by user id
     if (!tutor && mongoose.isValidObjectId(id)) {
-      tutor = await TutorProfile.findOne({ user: id })
-<<<<<<< HEAD
-        .populate("user", "full_name avatar phone_number email status");
-=======
-        .populate("user", "full_name phone_number email status image");
->>>>>>> Quan3
+      tutor = await TutorProfile.findOne({ user: id }).populate(
+        "user",
+        "full_name phone_number email status image"
+      );
     }
     // Fallback by email
-    if (!tutor && id && id.includes('@')) {
-      const user = await require('../models/User').findOne({ email: id });
+    if (!tutor && id && id.includes("@")) {
+      const user = await require("../models/User").findOne({ email: id });
       if (user) {
-        tutor = await TutorProfile.findOne({ user: user._id })
-<<<<<<< HEAD
-          .populate("user", "full_name avatar phone_number email status");
-=======
-          .populate("user", "full_name phone_number email status image");
->>>>>>> Quan3
+        tutor = await TutorProfile.findOne({ user: user._id }).populate(
+          "user",
+          "full_name phone_number email status image"
+        );
       }
     }
 
@@ -371,39 +360,13 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
-<<<<<<< HEAD
-    // Format response
-    const formattedTutor = {
-      id: tutor._id,
-      userId: tutor.user._id,
-      name: tutor.user.full_name,
-      avatar: tutor.user.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      subjects: tutor.subjects || [],
-      location: tutor.city || "Chưa cập nhật",
-      rating: tutor.rating || 0,
-      reviewCount: tutor.reviewCount || 0,
-      experience: `${tutor.experienceYears || 0} năm`,
-      price: tutor.sessionRate || 0,
-      teachModes: tutor.teachModes || [],
-      bio: tutor.bio || "Chưa có giới thiệu",
-      verified: tutor.status === "approved",
-      isDraft: tutor.status !== "approved" || !tutor.hasAvailability,
-      phone: tutor.user.phone_number,
-      email: tutor.user.email,
-      languages: tutor.languages || [],
-      idDocumentUrls: tutor.idDocumentUrls || [],
-      availability: tutor.availability || []
-    };
-
-    res.json({ tutor: formattedTutor, message: "Tutor profile retrieved successfully" });
-=======
     // Helper to convert relative paths to absolute URLs for public consumption
     const toAbsoluteUrl = (p) => {
-      if (!p) return '';
-      if (typeof p !== 'string') return p;
-      if (p.startsWith('http')) return p;
-      const serverUrl = process.env.SERVER_URL || 'http://localhost:5000';
-      return `${serverUrl}/${p.replace(/^\/?/, '')}`;
+      if (!p) return "";
+      if (typeof p !== "string") return p;
+      if (p.startsWith("http")) return p;
+      const serverUrl = process.env.SERVER_URL || "http://localhost:5000";
+      return `${serverUrl}/${p.replace(/^\/?/, "")}`;
     };
 
     // Public-safe document lists: expose degree/other documents, but DO NOT expose ID documents
@@ -417,55 +380,60 @@ router.get("/:id", async (req, res) => {
 
     // Normalize subjects to preserve name + level for the UI
     const normalizedSubjects = Array.isArray(tutor.subjects)
-      ? tutor.subjects.map((s) => {
-          if (!s) return null;
-          if (typeof s === 'string') return s;
-          return s.name || s.subject || s.level || '';
-        }).filter(Boolean)
+      ? tutor.subjects
+          .map((s) => {
+            if (!s) return null;
+            if (typeof s === "string") return s;
+            return s.name || s.subject || s.level || "";
+          })
+          .filter(Boolean)
       : [];
 
     // Format response with richer registration info
     const formattedTutor = {
       id: tutor._id,
       userId: tutor.user?._id || null,
-      name: tutor.user?.full_name || tutor.user?.fullName || 'Gia sư',
+      name: tutor.user?.full_name || tutor.user?.fullName || "Gia sư",
       // Prefer user's image (profile avatar), then tutor's avatarUrl
       avatarUrl: tutor.user?.image || tutor.avatarUrl || null,
-      avatar: 
+      avatar:
         toAbsoluteUrl(
           tutor.user?.image ||
-          tutor.avatarUrl ||
-          tutor.avatar ||
-          tutor.profileImage
-        ) || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+            tutor.avatarUrl ||
+            tutor.avatar ||
+            tutor.profileImage
+        ) ||
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
       subjects: normalizedSubjects,
-      location: tutor.city || tutor.location || 'Chưa cập nhật',
+      location: tutor.city || tutor.location || "Chưa cập nhật",
       rating: tutor.rating || 0,
       reviewCount: tutor.reviewCount || 0,
       experience: `${tutor.experienceYears || tutor.experience || 0} năm`,
       price: tutor.sessionRate || tutor.hourlyRate || tutor.price || 0,
       teachModes: tutor.teachModes || [],
-      bio: tutor.bio || tutor.description || 'Chưa có giới thiệu',
-      verified: tutor.status === 'approved',
-      isDraft: tutor.status !== 'approved' || !tutor.hasAvailability,
+      bio: tutor.bio || tutor.description || "Chưa có giới thiệu",
+      verified: tutor.status === "approved",
+      isDraft: tutor.status !== "approved" || !tutor.hasAvailability,
       phone: tutor.user?.phone_number || tutor.phone,
       email: tutor.user?.email || tutor.email,
       languages: tutor.languages || [],
       availability: tutor.availability || [],
 
       // Registration fields
-      education: tutor.education || '',
-      teachingStyle: tutor.teachingStyle || '',
+      education: tutor.education || "",
+      teachingStyle: tutor.teachingStyle || "",
       achievements: tutor.achievements || [],
       certificates: tutor.certificates || [],
       degrees: tutor.degrees || [],
 
       // Media fields normalized to absolute URLs
-      gallery: Array.isArray(tutor.gallery) ? tutor.gallery.map(toAbsoluteUrl) : [],
+      gallery: Array.isArray(tutor.gallery)
+        ? tutor.gallery.map(toAbsoluteUrl)
+        : [],
       portfolio: Array.isArray(tutor.portfolio)
         ? tutor.portfolio.map((item) => ({
             ...item,
-            image: toAbsoluteUrl(item?.image || item)
+            image: toAbsoluteUrl(item?.image || item),
           }))
         : [],
       uploads: Array.isArray(tutor.uploads)
@@ -474,30 +442,29 @@ router.get("/:id", async (req, res) => {
 
       // Verification summary (statuses) and public-safe docs
       verification: {
-        degreeStatus: verification.degreeStatus || 'pending',
-        idStatus: verification.idStatus || 'pending',
-        otherStatus: verification.otherStatus || 'pending',
+        degreeStatus: verification.degreeStatus || "pending",
+        idStatus: verification.idStatus || "pending",
+        otherStatus: verification.otherStatus || "pending",
         degreeDocuments,
-        otherDocuments
-      }
+        otherDocuments,
+      },
     };
 
-    res.json({ tutor: formattedTutor, message: 'Tutor profile retrieved successfully' });
->>>>>>> Quan3
-
+    res.json({
+      tutor: formattedTutor,
+      message: "Tutor profile retrieved successfully",
+    });
   } catch (error) {
     console.error("Get tutor profile error:", error);
     res.status(500).json({ message: "Failed to get tutor profile" });
   }
 });
 
-<<<<<<< HEAD
-=======
 // Get tutor availability (slots trống và bận)
 router.get("/:id/availability", async (req, res) => {
   try {
     const tutorId = req.params.id;
-    
+
     // Find tutor profile
     const tutor = await TutorProfile.findById(tutorId);
     if (!tutor) {
@@ -510,42 +477,44 @@ router.get("/:id/availability", async (req, res) => {
     // Get all bookings for this tutor (next 2 weeks)
     const twoWeeksFromNow = new Date();
     twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
-    
+
     const bookings = await Booking.find({
       tutorProfile: tutorId,
       status: { $in: ["accepted", "completed", "in_progress"] },
-      start: { $gte: new Date(), $lte: twoWeeksFromNow }
-    }).select('start end');
+      start: { $gte: new Date(), $lte: twoWeeksFromNow },
+    }).select("start end");
 
     // Calculate available slots for next 14 days
     const availableSlots = [];
     const bookedSlots = [];
-    
+
     for (let day = 0; day < 14; day++) {
       const currentDate = new Date();
       currentDate.setDate(currentDate.getDate() + day);
       const dayOfWeek = currentDate.getDay(); // 0=Sunday, 1=Monday, ...
 
       // Find availability for this day of week
-      const dayAvailability = availability.filter(a => a.dayOfWeek === dayOfWeek);
+      const dayAvailability = availability.filter(
+        (a) => a.dayOfWeek === dayOfWeek
+      );
 
       for (const slot of dayAvailability) {
-        const [startHour, startMin] = slot.start.split(':').map(Number);
-        const [endHour, endMin] = slot.end.split(':').map(Number);
-        
+        const [startHour, startMin] = slot.start.split(":").map(Number);
+        const [endHour, endMin] = slot.end.split(":").map(Number);
+
         const slotStart = new Date(currentDate);
         slotStart.setHours(startHour, startMin, 0, 0);
-        
+
         const slotEnd = new Date(currentDate);
         slotEnd.setHours(endHour, endMin, 0, 0);
 
         // Check if this slot conflicts with any booking
-        const isBooked = bookings.some(booking => {
+        const isBooked = bookings.some((booking) => {
           const bookingStart = new Date(booking.start);
           const bookingEnd = new Date(booking.end);
-          
+
           // Check for overlap
-          return (slotStart < bookingEnd && slotEnd > bookingStart);
+          return slotStart < bookingEnd && slotEnd > bookingStart;
         });
 
         if (isBooked) {
@@ -553,14 +522,14 @@ router.get("/:id/availability", async (req, res) => {
             date: slotStart.toISOString(),
             start: slot.start,
             end: slot.end,
-            available: false
+            available: false,
           });
         } else {
           availableSlots.push({
             date: slotStart.toISOString(),
             start: slot.start,
             end: slot.end,
-            available: true
+            available: true,
           });
         }
       }
@@ -570,17 +539,15 @@ router.get("/:id/availability", async (req, res) => {
       availability: {
         weekly: availability, // General weekly schedule
         slots: availableSlots, // Available slots for next 14 days
-        booked: bookedSlots // Booked slots
-      }
+        booked: bookedSlots, // Booked slots
+      },
     });
-
   } catch (error) {
     console.error("Get tutor availability error:", error);
     res.status(500).json({ message: "Failed to get tutor availability" });
   }
 });
 
->>>>>>> Quan3
 // Get my tutor profile (create if not exists as draft)
 router.get("/me", auth(), async (req, res) => {
   try {
@@ -588,13 +555,18 @@ router.get("/me", auth(), async (req, res) => {
     let profile = await TutorProfile.findOne({ user: req.user.id });
     if (!profile) {
       console.log("Creating new tutor profile for user:", req.user.id);
-      profile = await TutorProfile.create({ user: req.user.id, status: "draft" });
+      profile = await TutorProfile.create({
+        user: req.user.id,
+        status: "draft",
+      });
       console.log("Created profile:", profile._id);
     }
     res.json({ profile });
   } catch (e) {
     console.error("Error in /tutors/me:", e);
-    res.status(500).json({ message: "Failed to load profile", error: e.message });
+    res
+      .status(500)
+      .json({ message: "Failed to load profile", error: e.message });
   }
 });
 
@@ -606,7 +578,8 @@ router.patch("/me/basic", auth(), async (req, res) => {
     // Sanitize only; don't block with strict validation (frontend flow simplified)
     const update = {};
     if (avatarUrl) update.avatarUrl = String(avatarUrl);
-    if (gender && ['male','female','other'].includes(gender)) update.gender = gender;
+    if (gender && ["male", "female", "other"].includes(gender))
+      update.gender = gender;
     if (dateOfBirth) {
       const dt = new Date(dateOfBirth);
       if (!isNaN(dt.getTime())) update.dateOfBirth = dt;
@@ -633,10 +606,16 @@ router.patch("/me/expertise", auth(), async (req, res) => {
     let { subjects, experienceYears, experiencePlaces } = req.body;
     if (!Array.isArray(subjects)) subjects = [];
     experienceYears = Number(experienceYears || 0);
-    
+
     const profile = await TutorProfile.findOneAndUpdate(
       { user: req.user.id },
-      { $set: { subjects, experienceYears, experiencePlaces: experiencePlaces || null } },
+      {
+        $set: {
+          subjects,
+          experienceYears,
+          experiencePlaces: experiencePlaces || null,
+        },
+      },
       { new: true, upsert: true }
     );
     res.json({ profile });
@@ -646,30 +625,31 @@ router.patch("/me/expertise", auth(), async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-=======
 // Update entire tutor profile (comprehensive update)
 router.patch("/me", auth(), async (req, res) => {
   try {
     const updateData = {};
-    
+
     // Map form fields to database fields
     if (req.body.introduction) updateData.bio = req.body.introduction;
     if (req.body.subjects && Array.isArray(req.body.subjects)) {
       // Convert string array to object array format
-      updateData.subjects = req.body.subjects.map(subject => {
-        if (typeof subject === 'string') {
+      updateData.subjects = req.body.subjects.map((subject) => {
+        if (typeof subject === "string") {
           return { name: subject, level: null };
         }
         return subject;
       });
     }
-    if (req.body.experience) updateData.experienceYears = parseInt(req.body.experience) || 0;
-    if (req.body.hourlyRate) updateData.sessionRate = parseInt(req.body.hourlyRate);
+    if (req.body.experience)
+      updateData.experienceYears = parseInt(req.body.experience) || 0;
+    if (req.body.hourlyRate)
+      updateData.sessionRate = parseInt(req.body.hourlyRate);
     if (req.body.location) updateData.city = req.body.location;
     if (req.body.education) updateData.education = req.body.education;
     if (req.body.university) updateData.university = req.body.university;
-    if (req.body.teachingMethod) updateData.teachingMethod = req.body.teachingMethod;
+    if (req.body.teachingMethod)
+      updateData.teachingMethod = req.body.teachingMethod;
     if (req.body.achievements) updateData.achievements = req.body.achievements;
 
     const profile = await TutorProfile.findOneAndUpdate(
@@ -677,15 +657,16 @@ router.patch("/me", auth(), async (req, res) => {
       { $set: updateData },
       { new: true, upsert: true }
     );
-    
+
     res.json({ profile });
   } catch (e) {
     console.error("/tutors/me error:", e?.message);
-    res.status(500).json({ message: "Failed to update profile", error: e.message });
+    res
+      .status(500)
+      .json({ message: "Failed to update profile", error: e.message });
   }
 });
 
->>>>>>> Quan3
 // Update teaching preferences
 router.patch("/me/preferences", auth(), async (req, res) => {
   try {
@@ -707,33 +688,38 @@ router.patch("/me/preferences", auth(), async (req, res) => {
       .map((l) => String(l).trim().toLowerCase())
       .filter(Boolean)
       .map((l) => languageMap[l] || l); // accept both code and full name
-    
+
     // Validation rules
     const errors = [];
-    
+
     // Teach modes validation (at least one mode required)
     if (!teachModes || teachModes.length === 0) {
       errors.push("Phải chọn ít nhất 1 hình thức dạy học");
     } else {
-      const validModes = ['online', 'offline'];
-      const invalidModes = teachModes.filter(mode => !validModes.includes(mode));
+      const validModes = ["online", "offline"];
+      const invalidModes = teachModes.filter(
+        (mode) => !validModes.includes(mode)
+      );
       if (invalidModes.length > 0) {
         errors.push("Hình thức dạy học không hợp lệ");
       }
     }
-    
+
     // Languages validation (at least one language required)
     if (!languages || languages.length === 0) {
       errors.push("Phải chọn ít nhất 1 ngôn ngữ");
     } else if (languages.length > 5) {
       errors.push("Không được chọn quá 5 ngôn ngữ");
     }
-    
+
     // Payment type validation
-    if (paymentType && !['per_session', 'per_hour', 'per_month'].includes(paymentType)) {
+    if (
+      paymentType &&
+      !["per_session", "per_hour", "per_month"].includes(paymentType)
+    ) {
       errors.push("Loại thanh toán không hợp lệ");
     }
-    
+
     // Session rate validation
     if (sessionRate !== undefined) {
       if (sessionRate < 50000) {
@@ -742,14 +728,21 @@ router.patch("/me/preferences", auth(), async (req, res) => {
         errors.push("Giá mỗi buổi học tối đa là 5,000,000 VNĐ");
       }
     }
-    
+
     if (errors.length > 0) {
       return res.status(400).json({ message: "Validation failed", errors });
     }
-    
+
     const profile = await TutorProfile.findOneAndUpdate(
       { user: req.user.id },
-      { $set: { teachModes: teachModes || [], languages: languages || [], paymentType, sessionRate } },
+      {
+        $set: {
+          teachModes: teachModes || [],
+          languages: languages || [],
+          paymentType,
+          sessionRate,
+        },
+      },
       { new: true, upsert: true }
     );
     res.json({ profile });
@@ -762,10 +755,10 @@ router.patch("/me/preferences", auth(), async (req, res) => {
 router.put("/me/availability", auth(), async (req, res) => {
   try {
     const { availability } = req.body; // [{dayOfWeek,start,end},...]
-    
+
     // Validation rules
     const errors = [];
-    
+
     if (!availability || availability.length === 0) {
       errors.push("Phải thiết lập ít nhất 1 khung giờ rảnh");
     } else {
@@ -773,48 +766,77 @@ router.put("/me/availability", auth(), async (req, res) => {
       if (availability.length > 20) {
         errors.push("Không được đặt quá 20 khung giờ trong tuần");
       }
-      
+
       // Validate each time slot
       availability.forEach((slot, index) => {
         const { dayOfWeek, start, end } = slot;
-        
+
         // Day validation
-        if (!dayOfWeek || !['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].includes(dayOfWeek)) {
-          errors.push(`Khung giờ thứ ${index + 1}: Ngày trong tuần không hợp lệ`);
+        if (
+          !dayOfWeek ||
+          ![
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+          ].includes(dayOfWeek)
+        ) {
+          errors.push(
+            `Khung giờ thứ ${index + 1}: Ngày trong tuần không hợp lệ`
+          );
         }
-        
+
         // Time validation
         if (!start || !end) {
-          errors.push(`Khung giờ thứ ${index + 1}: Thời gian bắt đầu và kết thúc là bắt buộc`);
+          errors.push(
+            `Khung giờ thứ ${
+              index + 1
+            }: Thời gian bắt đầu và kết thúc là bắt buộc`
+          );
         } else {
           const startTime = new Date(`2000-01-01T${start}:00`);
           const endTime = new Date(`2000-01-01T${end}:00`);
-          
+
           // Check if start time is before end time
           if (startTime >= endTime) {
-            errors.push(`Khung giờ thứ ${index + 1}: Thời gian bắt đầu phải trước thời gian kết thúc`);
+            errors.push(
+              `Khung giờ thứ ${
+                index + 1
+              }: Thời gian bắt đầu phải trước thời gian kết thúc`
+            );
           }
-          
+
           // Check if duration is at least 1 hour
           const duration = (endTime - startTime) / (1000 * 60 * 60);
           if (duration < 1) {
-            errors.push(`Khung giờ thứ ${index + 1}: Mỗi buổi học phải ít nhất 1 giờ`);
+            errors.push(
+              `Khung giờ thứ ${index + 1}: Mỗi buổi học phải ít nhất 1 giờ`
+            );
           }
-          
+
           // Check if duration is not more than 8 hours
           if (duration > 8) {
-            errors.push(`Khung giờ thứ ${index + 1}: Mỗi buổi học không được quá 8 giờ`);
+            errors.push(
+              `Khung giờ thứ ${index + 1}: Mỗi buổi học không được quá 8 giờ`
+            );
           }
-          
+
           // Check if time is within working hours (6 AM - 10 PM)
           const startHour = startTime.getHours();
           const endHour = endTime.getHours();
           if (startHour < 6 || endHour > 22) {
-            errors.push(`Khung giờ thứ ${index + 1}: Thời gian dạy học phải trong khoảng 6:00 - 22:00`);
+            errors.push(
+              `Khung giờ thứ ${
+                index + 1
+              }: Thời gian dạy học phải trong khoảng 6:00 - 22:00`
+            );
           }
         }
       });
-      
+
       // Check for overlapping time slots on the same day
       const daySlots = {};
       availability.forEach((slot, index) => {
@@ -824,26 +846,37 @@ router.put("/me/availability", auth(), async (req, res) => {
         }
         daySlots[dayOfWeek].push({ start, end, index });
       });
-      
-      Object.keys(daySlots).forEach(day => {
-        const slots = daySlots[day].sort((a, b) => a.start.localeCompare(b.start));
+
+      Object.keys(daySlots).forEach((day) => {
+        const slots = daySlots[day].sort((a, b) =>
+          a.start.localeCompare(b.start)
+        );
         for (let i = 1; i < slots.length; i++) {
-          const prevEnd = new Date(`2000-01-01T${slots[i-1].end}:00`);
+          const prevEnd = new Date(`2000-01-01T${slots[i - 1].end}:00`);
           const currStart = new Date(`2000-01-01T${slots[i].start}:00`);
           if (prevEnd > currStart) {
-            errors.push(`Khung giờ bị trùng lặp vào ${day}: khung ${slots[i-1].index + 1} và khung ${slots[i].index + 1}`);
+            errors.push(
+              `Khung giờ bị trùng lặp vào ${day}: khung ${
+                slots[i - 1].index + 1
+              } và khung ${slots[i].index + 1}`
+            );
           }
         }
       });
     }
-    
+
     if (errors.length > 0) {
       return res.status(400).json({ message: "Validation failed", errors });
     }
-    
+
     const profile = await TutorProfile.findOneAndUpdate(
       { user: req.user.id },
-      { $set: { availability: availability || [], hasAvailability: (availability && availability.length > 0) } },
+      {
+        $set: {
+          availability: availability || [],
+          hasAvailability: availability && availability.length > 0,
+        },
+      },
       { new: true, upsert: true }
     );
     res.json({ profile });
@@ -857,22 +890,28 @@ router.post("/me/submit", auth(), async (req, res) => {
   try {
     const profile = await TutorProfile.findOne({ user: req.user.id });
     if (!profile) {
-      const created = await TutorProfile.create({ user: req.user.id, status: "draft" });
-      return res.json({ profile: created, message: "Hồ sơ được khởi tạo, vui lòng bổ sung thông tin" });
+      const created = await TutorProfile.create({
+        user: req.user.id,
+        status: "draft",
+      });
+      return res.json({
+        profile: created,
+        message: "Hồ sơ được khởi tạo, vui lòng bổ sung thông tin",
+      });
     }
-    
+
     // Validation rules for submission (collect as warnings; do not block)
     const warnings = [];
-    
+
     // Idempotent: nếu đã gửi/đã duyệt, trả 200 để frontend không báo lỗi
     if (profile.status === "pending") {
       return res.json({ profile, message: "Hồ sơ đang chờ duyệt" });
     }
-    
+
     if (profile.status === "approved") {
       return res.json({ profile, message: "Hồ sơ đã được duyệt" });
     }
-    
+
     // Required fields validation (relaxed to phù hợp quy trình rút gọn)
     if (!profile.subjects || profile.subjects.length === 0) {
       warnings.push("Nên thêm ít nhất 1 môn/khóa dạy");
@@ -889,142 +928,196 @@ router.post("/me/submit", auth(), async (req, res) => {
       warnings.push("Nên tải giấy tờ tùy thân (ít nhất 1 ảnh)");
     }
     // Không yêu cầu teachModes/languages/payment/availability trong quy trình tối giản
-    
+
     // Không chặn gửi duyệt; luôn cập nhật trạng thái pending
 
     const updatedProfile = await TutorProfile.findOneAndUpdate(
       { user: req.user.id },
-      { $set: { status: "pending", "verification.idStatus": "pending", "verification.degreeStatus": "pending" } },
+      {
+        $set: {
+          status: "pending",
+          "verification.idStatus": "pending",
+          "verification.degreeStatus": "pending",
+        },
+      },
       { new: true }
     );
-    return res.json({ profile: updatedProfile, message: "Hồ sơ đã gửi chờ duyệt thành công", warnings });
+    return res.json({
+      profile: updatedProfile,
+      message: "Hồ sơ đã gửi chờ duyệt thành công",
+      warnings,
+    });
   } catch (e) {
     console.error("/tutors/me/submit error:", e?.message);
-    return res.status(200).json({ message: "Đã tiếp nhận yêu cầu gửi duyệt", warnings: ["Gặp lỗi không nghiêm trọng khi ghi log" ] });
+    return res
+      .status(200)
+      .json({
+        message: "Đã tiếp nhận yêu cầu gửi duyệt",
+        warnings: ["Gặp lỗi không nghiêm trọng khi ghi log"],
+      });
   }
 });
 
 // Get tutor availability
 router.get("/me/availability", auth(), async (req, res) => {
-	try {
+  try {
     const tutorProfile = await TutorProfile.findOne({ user: req.user.id });
-		if (!tutorProfile) {
-			return res.status(404).json({ message: "Tutor profile not found" });
-		}
+    if (!tutorProfile) {
+      return res.status(404).json({ message: "Tutor profile not found" });
+    }
 
-		res.json({ 
-			availability: tutorProfile.availability || [],
-			message: "Availability retrieved successfully" 
-		});
-	} catch (error) {
-		console.error("Get availability error:", error);
-		res.status(500).json({ message: "Failed to get availability" });
-	}
+    res.json({
+      availability: tutorProfile.availability || [],
+      message: "Availability retrieved successfully",
+    });
+  } catch (error) {
+    console.error("Get availability error:", error);
+    res.status(500).json({ message: "Failed to get availability" });
+  }
 });
 
 // Update tutor availability
 router.put("/me/availability", auth(), async (req, res) => {
-	try {
-		const { availability } = req.body;
+  try {
+    const { availability } = req.body;
 
-		if (!availability || !Array.isArray(availability)) {
-			return res.status(400).json({ message: "Availability must be an array" });
-		}
+    if (!availability || !Array.isArray(availability)) {
+      return res.status(400).json({ message: "Availability must be an array" });
+    }
 
-		// Validate availability format
-		const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-		const isValid = availability.every(slot => 
-			slot.dayOfWeek && 
-			validDays.includes(slot.dayOfWeek.toLowerCase()) &&
-			slot.start && 
-			slot.end &&
-			slot.start < slot.end
-		);
+    // Validate availability format
+    const validDays = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
+    const isValid = availability.every(
+      (slot) =>
+        slot.dayOfWeek &&
+        validDays.includes(slot.dayOfWeek.toLowerCase()) &&
+        slot.start &&
+        slot.end &&
+        slot.start < slot.end
+    );
 
-		if (!isValid) {
-			return res.status(400).json({ 
-				message: "Invalid availability format. Each slot must have dayOfWeek, start, and end times" 
-			});
-		}
+    if (!isValid) {
+      return res.status(400).json({
+        message:
+          "Invalid availability format. Each slot must have dayOfWeek, start, and end times",
+      });
+    }
 
     const tutorProfile = await TutorProfile.findOneAndUpdate(
       { user: req.user.id },
-			{ $set: { availability, hasAvailability: (availability && availability.length > 0) } },
-			{ new: true, runValidators: true }
-		);
+      {
+        $set: {
+          availability,
+          hasAvailability: availability && availability.length > 0,
+        },
+      },
+      { new: true, runValidators: true }
+    );
 
-		if (!tutorProfile) {
-			return res.status(404).json({ message: "Tutor profile not found" });
-		}
+    if (!tutorProfile) {
+      return res.status(404).json({ message: "Tutor profile not found" });
+    }
 
-		res.json({ 
-			availability: tutorProfile.availability,
-			message: "Availability updated successfully" 
-		});
-	} catch (error) {
-		console.error("Update availability error:", error);
-		res.status(500).json({ message: "Failed to update availability" });
-	}
+    res.json({
+      availability: tutorProfile.availability,
+      message: "Availability updated successfully",
+    });
+  } catch (error) {
+    console.error("Update availability error:", error);
+    res.status(500).json({ message: "Failed to update availability" });
+  }
 });
 
 // (duplicate older /search removed)
 
 // Upload ID document
-router.post("/me/upload-id", auth(), upload.array('files', 5), async (req, res) => {
-  try {
-    const files = req.files || [];
-    
-    // Validation rules
-    const errors = [];
-    
-    if (files.length === 0) {
-      errors.push("Phải chọn ít nhất 1 file để upload");
-    }
-    
-    if (files.length > 5) {
-      errors.push("Không được upload quá 5 file");
-    }
-    
-    // Check file types and sizes
-    files.forEach((file, index) => {
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      
-      if (!allowedTypes.includes(file.mimetype)) {
-        errors.push(`File thứ ${index + 1}: Chỉ chấp nhận file ảnh (JPG, PNG, WebP)`);
+router.post(
+  "/me/upload-id",
+  auth(),
+  upload.array("files", 5),
+  async (req, res) => {
+    try {
+      const files = req.files || [];
+
+      // Validation rules
+      const errors = [];
+
+      if (files.length === 0) {
+        errors.push("Phải chọn ít nhất 1 file để upload");
       }
-      
-      if (file.size > maxSize) {
-        errors.push(`File thứ ${index + 1}: Kích thước file không được quá 5MB`);
+
+      if (files.length > 5) {
+        errors.push("Không được upload quá 5 file");
       }
-    });
-    
-    if (errors.length > 0) {
-      return res.status(400).json({ message: "Validation failed", errors });
+
+      // Check file types and sizes
+      files.forEach((file, index) => {
+        const allowedTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/webp",
+        ];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!allowedTypes.includes(file.mimetype)) {
+          errors.push(
+            `File thứ ${index + 1}: Chỉ chấp nhận file ảnh (JPG, PNG, WebP)`
+          );
+        }
+
+        if (file.size > maxSize) {
+          errors.push(
+            `File thứ ${index + 1}: Kích thước file không được quá 5MB`
+          );
+        }
+      });
+
+      if (errors.length > 0) {
+        return res.status(400).json({ message: "Validation failed", errors });
+      }
+
+      const urls = files.map((f) => f.path);
+
+      // Check if user already has too many ID documents (max 10)
+      const profile = await TutorProfile.findOne({ user: req.user.id });
+      if (
+        profile &&
+        profile.idDocumentUrls &&
+        profile.idDocumentUrls.length + urls.length > 10
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Không được upload quá 10 giấy tờ tùy thân" });
+      }
+
+      const updatedProfile = await TutorProfile.findOneAndUpdate(
+        { user: req.user.id },
+        {
+          $push: { idDocumentUrls: { $each: urls } },
+          $set: { "verification.idStatus": "pending", status: "pending" },
+        },
+        { new: true, upsert: true }
+      );
+
+      res.json({
+        profile: updatedProfile,
+        uploaded: urls.length,
+        message: "Upload giấy tờ tùy thân thành công",
+      });
+    } catch (e) {
+      res.status(500).json({ message: "Failed to upload ID documents" });
     }
-    
-    const urls = files.map(f => f.path);
-    
-    // Check if user already has too many ID documents (max 10)
-    const profile = await TutorProfile.findOne({ user: req.user.id });
-    if (profile && profile.idDocumentUrls && profile.idDocumentUrls.length + urls.length > 10) {
-      return res.status(400).json({ message: "Không được upload quá 10 giấy tờ tùy thân" });
-    }
-    
-    const updatedProfile = await TutorProfile.findOneAndUpdate(
-      { user: req.user.id },
-      { 
-        $push: { idDocumentUrls: { $each: urls } }, 
-        $set: { "verification.idStatus": "pending", status: "pending" } 
-      },
-      { new: true, upsert: true }
-    );
-    
-    res.json({ profile: updatedProfile, uploaded: urls.length, message: "Upload giấy tờ tùy thân thành công" });
-  } catch (e) {
-    res.status(500).json({ message: "Failed to upload ID documents" });
   }
-});
+);
 
 // Public search tutors (approved only)
 // (duplicate older /search removed)
@@ -1033,86 +1126,111 @@ router.post("/me/upload-id", auth(), upload.array('files', 5), async (req, res) 
 // (duplicate older /:id removed)
 
 // Upload degree/certificates
-router.post("/me/upload-degree", auth(), upload.array('files', 5), async (req, res) => {
-  try {
-    const files = req.files || [];
-    
-    // Validation rules
-    const errors = [];
-    
-    if (files.length === 0) {
-      errors.push("Phải chọn ít nhất 1 file để upload");
-    }
-    
-    if (files.length > 5) {
-      errors.push("Không được upload quá 5 file");
-    }
-    
-    // Check file types and sizes
-    files.forEach((file, index) => {
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
-      const maxSize = 10 * 1024 * 1024; // 10MB for degree documents
-      
-      if (!allowedTypes.includes(file.mimetype)) {
-        errors.push(`File thứ ${index + 1}: Chỉ chấp nhận file ảnh (JPG, PNG, WebP) hoặc PDF`);
-      }
-      
-      if (file.size > maxSize) {
-        errors.push(`File thứ ${index + 1}: Kích thước file không được quá 10MB`);
-      }
-    });
-    
-    if (errors.length > 0) {
-      return res.status(400).json({ message: "Validation failed", errors });
-    }
-    
-    const urls = files.map(f => f.path);
-    
-    // Check if user already has too many degree documents (max 15)
-    const profile = await TutorProfile.findOne({ user: req.user.id });
-    if (profile && profile.degreeDocumentUrls && profile.degreeDocumentUrls.length + urls.length > 15) {
-      return res.status(400).json({ message: "Không được upload quá 15 bằng cấp/chứng chỉ" });
-    }
-    
-    const updatedProfile = await TutorProfile.findOneAndUpdate(
-      { user: req.user.id },
-      { 
-        $push: { degreeDocumentUrls: { $each: urls } }, 
-        $set: { "verification.degreeStatus": "pending", status: "pending" } 
-      },
-      { new: true, upsert: true }
-    );
-    
-    res.json({ profile: updatedProfile, uploaded: urls.length, message: "Upload bằng cấp/chứng chỉ thành công" });
-  } catch (e) {
-    res.status(500).json({ message: "Failed to upload degree documents" });
-  }
-});
+router.post(
+  "/me/upload-degree",
+  auth(),
+  upload.array("files", 5),
+  async (req, res) => {
+    try {
+      const files = req.files || [];
 
-<<<<<<< HEAD
-=======
+      // Validation rules
+      const errors = [];
+
+      if (files.length === 0) {
+        errors.push("Phải chọn ít nhất 1 file để upload");
+      }
+
+      if (files.length > 5) {
+        errors.push("Không được upload quá 5 file");
+      }
+
+      // Check file types and sizes
+      files.forEach((file, index) => {
+        const allowedTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/webp",
+          "application/pdf",
+        ];
+        const maxSize = 10 * 1024 * 1024; // 10MB for degree documents
+
+        if (!allowedTypes.includes(file.mimetype)) {
+          errors.push(
+            `File thứ ${
+              index + 1
+            }: Chỉ chấp nhận file ảnh (JPG, PNG, WebP) hoặc PDF`
+          );
+        }
+
+        if (file.size > maxSize) {
+          errors.push(
+            `File thứ ${index + 1}: Kích thước file không được quá 10MB`
+          );
+        }
+      });
+
+      if (errors.length > 0) {
+        return res.status(400).json({ message: "Validation failed", errors });
+      }
+
+      const urls = files.map((f) => f.path);
+
+      // Check if user already has too many degree documents (max 15)
+      const profile = await TutorProfile.findOne({ user: req.user.id });
+      if (
+        profile &&
+        profile.degreeDocumentUrls &&
+        profile.degreeDocumentUrls.length + urls.length > 15
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Không được upload quá 15 bằng cấp/chứng chỉ" });
+      }
+
+      const updatedProfile = await TutorProfile.findOneAndUpdate(
+        { user: req.user.id },
+        {
+          $push: { degreeDocumentUrls: { $each: urls } },
+          $set: { "verification.degreeStatus": "pending", status: "pending" },
+        },
+        { new: true, upsert: true }
+      );
+
+      res.json({
+        profile: updatedProfile,
+        uploaded: urls.length,
+        message: "Upload bằng cấp/chứng chỉ thành công",
+      });
+    } catch (e) {
+      res.status(500).json({ message: "Failed to upload degree documents" });
+    }
+  }
+);
+
 // Admin endpoint to approve all tutors
 router.post("/admin/approve-all", async (req, res) => {
   try {
     console.log("🔧 Approving all tutors...");
-    
+
     const result = await TutorProfile.updateMany(
       {}, // Update all documents
-      { 
-        $set: { 
-          status: 'approved',
+      {
+        $set: {
+          status: "approved",
           hasAvailability: true,
-          verified: true
-        } 
+          verified: true,
+        },
       }
     );
-    
+
     console.log(`✅ Approved ${result.modifiedCount} tutors`);
-    
+
     res.json({
       message: "All tutors approved successfully",
       matched: result.matchedCount,
-      modified: result.modifiedCount
+      modified: result.modifiedCount,
     });
   } catch (error) {
     console.error("❌ Error approving tutors:", error);
@@ -1120,6 +1238,4 @@ router.post("/admin/approve-all", async (req, res) => {
   }
 });
 
->>>>>>> Quan3
 module.exports = router;
-
