@@ -11,6 +11,10 @@ const TeachingSessionSchema = new mongoose.Schema(
     mode: { type: String, enum: ["online", "offline"], required: true },
     location: { type: String, default: null },
     meetingLink: { type: String, default: null }, // For online sessions
+<<<<<<< HEAD
+=======
+    roomId: { type: String, default: null, index: true }, // WebRTC room ID
+>>>>>>> Quan3
     status: { 
       type: String, 
       enum: ["scheduled", "ongoing", "completed", "cancelled", "no_show"], 

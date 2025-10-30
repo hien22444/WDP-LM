@@ -15,7 +15,11 @@ class DashboardService {
         case "tutor":
           return { success: true, data: this.getTutorMockData() };
         case "admin":
+<<<<<<< HEAD
           return { success: true, data: this.getAdminMockData() };
+=======
+          return { success: true, data: this.getTutorMockData() };
+>>>>>>> Quan3
         default:
           throw error;
       }
@@ -146,12 +150,16 @@ class DashboardService {
   }
 
   static getAdminMockData() {
+<<<<<<< HEAD
     return {
       totalUsers: 2847,
       activeTutors: 156,
       monthlyRevenue: 247000000,
       activeCourses: 89,
     };
+=======
+    return this.getTutorMockData();
+>>>>>>> Quan3
   }
 }
 

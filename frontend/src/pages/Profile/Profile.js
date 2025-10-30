@@ -44,16 +44,35 @@ const Profile = () => {
   // Fetch user profile data
   const fetchUserProfile = async () => {
     try {
+<<<<<<< HEAD
       setLoading(true);
       const response = await getCurrentUserApi();
       setUserProfile(response.user);
       setError(null);
+=======
+      console.log('🔍 Profile: Fetching user profile...');
+      setLoading(true);
+      const response = await getCurrentUserApi();
+      console.log('✅ Profile: User profile data:', response.user);
+      setUserProfile(response.user);
+      setError(null);
+      
+>>>>>>> Quan3
       // Fetch tutor onboarding status in parallel (ignore error silently)
       try {
         const tp = await TutorService.getMyTutorProfile();
         setTutorProfile(tp);
       } catch (e) {
+<<<<<<< HEAD
         // noop
+=======
+        // Nếu không có tutor profile từ API, kiểm tra localStorage
+        const localTutorProfile = localStorage.getItem('tutorProfile');
+        if (localTutorProfile) {
+          const parsedProfile = JSON.parse(localTutorProfile);
+          setTutorProfile(parsedProfile);
+        }
+>>>>>>> Quan3
       }
     } catch (err) {
       setError("Không thể tải thông tin người dùng");
@@ -74,6 +93,7 @@ const Profile = () => {
     fetchUserProfile();
   }, [isAuthenticated, navigate]);
 
+<<<<<<< HEAD
   // Debug user role
   useEffect(() => {
     console.log("=== PROFILE ROLE DEBUG ===");
@@ -83,6 +103,9 @@ const Profile = () => {
     console.log("Computed role:", role);
     console.log("==========================");
   }, [user, userProfile, role]);
+=======
+  // (debug removed)
+>>>>>>> Quan3
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -124,7 +147,11 @@ const Profile = () => {
       case "tutor":
         return "Gia sư";
       case "admin":
+<<<<<<< HEAD
         return "Quản trị viên";
+=======
+        return "Quản trị";
+>>>>>>> Quan3
       default:
         return role;
     }
@@ -200,6 +227,10 @@ const Profile = () => {
     }
   };
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> Quan3
   const handleAvatarUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -272,6 +303,10 @@ const Profile = () => {
   };
 
   if (loading) {
+<<<<<<< HEAD
+=======
+    console.log('🔄 Profile: Loading state is true');
+>>>>>>> Quan3
     return (
       <div className="profile-container">
         <div className="profile-loading">
@@ -295,6 +330,15 @@ const Profile = () => {
     );
   }
 
+<<<<<<< HEAD
+=======
+  console.log('🔍 Profile: Rendering...');
+  console.log('  - userProfile:', userProfile);
+  console.log('  - tutorProfile:', tutorProfile);
+  console.log('  - loading:', loading);
+  console.log('  - error:', error);
+
+>>>>>>> Quan3
   return (
     <div className="profile-container">
       <div className="sidebar">
@@ -315,9 +359,15 @@ const Profile = () => {
                 <path
                   d="M8.7998 18.2444V15.1833C8.7998 14.4389 9.41086 13.8278 10.1553 13.8278H12.8442C13.2081 13.8278 13.5571 13.9723 13.8142 14.2294C14.0714 14.4866 14.2159 14.8356 14.2159 15.1994V18.2444C14.2135 18.8556 14.7125 19.3611 15.3236 19.3722H17.4331C18.1609 19.3722 18.8588 19.0833 19.374 18.568C19.8893 18.0528 20.1781 17.3549 20.1781 16.627V9.75001C20.1781 9.15695 19.9 8.59306 19.4248 8.20139L13.1359 2.97917C12.2217 2.20306 10.8837 2.20306 9.96953 2.97917L3.68064 8.20139C3.20544 8.59306 2.92731 9.15695 2.92731 9.75001V16.627C2.92731 18.1364 4.14975 19.3589 5.65919 19.3589H7.76864C8.39309 19.3589 8.89619 18.8558 8.89619 18.2314L8.7998 18.2444Z"
                   stroke="#292D32"
+<<<<<<< HEAD
                   stroke-width="1.40417"
                   stroke-linecap="round"
                   stroke-linejoin="round"
+=======
+                  strokeWidth="1.40417"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+>>>>>>> Quan3
                 />
               </svg>
             </i>
@@ -367,16 +417,28 @@ const Profile = () => {
                   <path
                     d="M17.4245 11.7167C19.8584 11.7167 20.8694 10.7806 19.9707 7.71011C19.3623 5.64131 17.5837 3.8627 15.5149 3.25423C12.4444 2.35556 11.5083 3.36656 11.5083 5.80045V8.49645C11.5083 10.7806 12.4444 11.7167 14.3166 11.7167H17.4245Z"
                     stroke="#292D32"
+<<<<<<< HEAD
                     stroke-width="1.40417"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+=======
+                    strokeWidth="1.40417"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+>>>>>>> Quan3
                   />
                   <path
                     d="M18.9973 14.2442C18.1267 18.5784 13.9704 21.7237 9.24302 20.9561C5.69516 20.3851 2.84002 17.5299 2.25964 13.9821C1.50139 9.27341 4.628 5.11708 8.94347 4.23714"
                     stroke="#292D32"
+<<<<<<< HEAD
                     stroke-width="1.40417"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+=======
+                    strokeWidth="1.40417"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+>>>>>>> Quan3
                   />
                 </g>
               </svg>
@@ -399,39 +461,71 @@ const Profile = () => {
                   <path
                     d="M17.1063 10.8951V14.6395C17.1063 14.8829 17.0969 15.1169 17.0688 15.3416C16.8535 17.8691 15.3651 19.1235 12.6223 19.1235H12.2479C12.0138 19.1235 11.7892 19.2358 11.6487 19.423L10.5254 20.9208C10.0293 21.5855 9.22422 21.5855 8.72808 20.9208L7.60473 19.423C7.48304 19.2639 7.21158 19.1235 7.00564 19.1235H6.6312C3.645 19.1235 2.14722 18.384 2.14722 14.6395V10.8951C2.14722 8.15227 3.41097 6.66386 5.92911 6.44855C6.15378 6.42047 6.38781 6.4111 6.6312 6.4111H12.6223C15.6085 6.4111 17.1063 7.90889 17.1063 10.8951Z"
                     stroke="#292D32"
+<<<<<<< HEAD
                     stroke-width="1.40417"
                     stroke-miterlimit="10"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+=======
+                    strokeWidth="1.40417"
+                    strokeMiterlimit="10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+>>>>>>> Quan3
                   />
                   <path
                     d="M20.8508 7.15064V10.8951C20.8508 13.6472 19.5871 15.1263 17.0689 15.3416C17.097 15.1169 17.1064 14.8829 17.1064 14.6395V10.8951C17.1064 7.90889 15.6086 6.4111 12.6224 6.4111H6.63128C6.38789 6.4111 6.15387 6.42047 5.9292 6.44855C6.1445 3.93041 7.63292 2.66666 10.3757 2.66666H16.3668C19.353 2.66666 20.8508 4.16444 20.8508 7.15064Z"
                     stroke="#292D32"
+<<<<<<< HEAD
                     stroke-width="1.40417"
                     stroke-miterlimit="10"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+=======
+                    strokeWidth="1.40417"
+                    strokeMiterlimit="10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+>>>>>>> Quan3
                   />
                   <path
                     d="M12.9083 13.1979H12.9167"
                     stroke="#292D32"
+<<<<<<< HEAD
                     stroke-width="1.87222"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+=======
+                    strokeWidth="1.87222"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+>>>>>>> Quan3
                   />
                   <path
                     d="M9.63193 13.1979H9.64036"
                     stroke="#292D32"
+<<<<<<< HEAD
                     stroke-width="1.87222"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+=======
+                    strokeWidth="1.87222"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+>>>>>>> Quan3
                   />
                   <path
                     d="M6.35557 13.1979H6.36399"
                     stroke="#292D32"
+<<<<<<< HEAD
                     stroke-width="1.87222"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+=======
+                    strokeWidth="1.87222"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+>>>>>>> Quan3
                   />
                 </g>
               </svg>
@@ -491,6 +585,7 @@ const Profile = () => {
         </div>
 
         {/* Tutor onboarding status banner */}
+<<<<<<< HEAD
         {tutorProfile?.status && (
           <div className={`tutor-status-banner status-${tutorProfile.status}`}>
             <div className="status-info">
@@ -508,6 +603,28 @@ const Profile = () => {
               {tutorProfile?.verification?.adminNotes && (
                 <span className="admin-notes">
                   {" "}
+=======
+        {(tutorProfile?.status || (role === "student" && !tutorProfile)) && (
+          <div className={`tutor-status-banner status-${tutorProfile?.status || "pending"}`}>
+            <div className="status-info">
+              <span className="status-dot" />
+              <strong>
+                {tutorProfile?.status === "approved" &&
+                  "Hồ sơ gia sư đã được duyệt"}
+                {tutorProfile?.status === "pending" &&
+                  "Hồ sơ gia sư đang chờ duyệt"}
+                {tutorProfile?.status === "rejected" &&
+                  "Hồ sơ gia sư bị từ chối"}
+                {tutorProfile?.status === "draft" &&
+                  "Bạn chưa hoàn tất đăng ký gia sư"}
+                {!tutorProfile?.status && role === "student" &&
+                  "Bạn chưa hoàn tất đăng ký gia sư"}
+              </strong>
+              {/* debug block removed */}
+              {tutorProfile?.verification?.adminNotes && (
+                <span className="admin-notes">
+                  <strong>Ghi chú:</strong>
+>>>>>>> Quan3
                   — {tutorProfile.verification.adminNotes}
                 </span>
               )}
@@ -516,11 +633,19 @@ const Profile = () => {
               <button
                 type="button"
                 className="btn-secondary"
+<<<<<<< HEAD
                 onClick={() => navigate("/tutor/onboarding")}
               >
                 Cập nhật hồ sơ gia sư
               </button>
               {tutorProfile.status === "approved" ? (
+=======
+                onClick={() => navigate('/tutor/profile-update')}
+              >
+                Cập nhật hồ sơ gia sư
+              </button>
+              {tutorProfile?.status === "approved" ? (
+>>>>>>> Quan3
                 <button
                   type="button"
                   className="btn-primary"
@@ -743,6 +868,10 @@ const Profile = () => {
           </div>
         </div>
       </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> Quan3
     </div>
   );
 };

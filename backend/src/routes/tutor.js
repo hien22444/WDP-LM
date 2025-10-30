@@ -4,6 +4,10 @@ const { auth } = require("../middlewares/auth");
 const TutorProfile = require("../models/TutorProfile");
 const User = require("../models/User");
 const TeachingSlot = require("../models/TeachingSlot");
+<<<<<<< HEAD
+=======
+const Booking = require("../models/Booking");
+>>>>>>> Quan3
 const { upload } = require("../config/cloudinary");
 
 // Search tutors (public) - keep BEFORE any dynamic :id routes
@@ -13,10 +17,15 @@ router.get("/search", async (req, res) => {
     const {
       search = "",
       subject = "",
+<<<<<<< HEAD
+=======
+      grade = "",
+>>>>>>> Quan3
       location = "",
       mode = "",
       minPrice = 0,
       maxPrice = 10000000,
+<<<<<<< HEAD
       page = 1,
       limit = 20,
       sortBy = "rating",
@@ -33,6 +42,29 @@ router.get("/search", async (req, res) => {
     const subjectRegex = subject ? new RegExp(subject, "i") : null;
     if (subjectRegex) {
       // support subjects stored as strings or objects { subject/name/level }
+=======
+      minRating = 0,
+      maxRating = 5,
+      experience = "",
+      page = 1,
+      limit = 20,
+      sortBy = "rating",
+      includePending,
+      smartSuggest = false
+    } = req.query;
+
+    const filter = { };
+    // Hiển thị gia sư đã duyệt và đang chờ duyệt (loại bỏ draft)
+    if (includePending) {
+      filter.status = { $in: ["approved", "pending"] };
+    } else {
+      filter.status = { $in: ["approved", "pending"] }; // Hiển thị cả approved và pending
+    }
+    
+    // Subject filter
+    const subjectRegex = subject ? new RegExp(subject, "i") : null;
+    if (subjectRegex) {
+>>>>>>> Quan3
       filter.$or = [
         { subjects: { $in: [subjectRegex] } },
         { "subjects.subject": subjectRegex },
@@ -40,13 +72,53 @@ router.get("/search", async (req, res) => {
         { "subjects.level": subjectRegex }
       ];
     }
+<<<<<<< HEAD
     if (location) filter.city = new RegExp(location, "i");
     if (mode) filter.teachModes = { $in: [mode] };
+=======
+    
+    // Grade filter
+    if (grade) {
+      const gradeRegex = new RegExp(grade, "i");
+      filter.$or = [
+        ...(filter.$or || []),
+        { "subjects.grade": gradeRegex },
+        { "subjects.level": gradeRegex },
+        { grades: { $in: [gradeRegex] } }
+      ];
+    }
+    
+    // Location filter
+    if (location) filter.city = new RegExp(location, "i");
+    
+    // Mode filter
+    if (mode) filter.teachModes = { $in: [mode] };
+    
+    // Price filter
+>>>>>>> Quan3
     if (minPrice || maxPrice) {
       filter.sessionRate = {};
       if (minPrice) filter.sessionRate.$gte = Number(minPrice);
       if (maxPrice) filter.sessionRate.$lte = Number(maxPrice);
     }
+<<<<<<< HEAD
+=======
+    
+    // Rating filter
+    if (minRating || maxRating) {
+      filter.rating = {};
+      if (minRating) filter.rating.$gte = Number(minRating);
+      if (maxRating) filter.rating.$lte = Number(maxRating);
+    }
+    
+    // Experience filter
+    if (experience) {
+      const expYears = Number(experience);
+      if (!isNaN(expYears)) {
+        filter.experience = { $gte: expYears };
+      }
+    }
+>>>>>>> Quan3
 
     let searchQuery = {};
     if (search) {
@@ -75,6 +147,47 @@ router.get("/search", async (req, res) => {
 
     const finalFilter = { ...filter, ...searchQuery };
 
+<<<<<<< HEAD
+=======
+    // Smart suggestion logic
+    if (smartSuggest === "true" && req.user) {
+      // Get user's learning history and preferences
+      const userHistory = await Booking.find({ 
+        student: req.user.id,
+        status: "completed"
+      }).populate("tutorProfile", "subjects rating experience");
+      
+      // Calculate preference scores
+      const subjectPreferences = {};
+      const pricePreferences = [];
+      
+      userHistory.forEach(booking => {
+        const tutor = booking.tutorProfile;
+        if (tutor) {
+          // Track subject preferences
+          tutor.subjects.forEach(subject => {
+            subjectPreferences[subject] = (subjectPreferences[subject] || 0) + 1;
+          });
+          
+          // Track price preferences
+          pricePreferences.push(booking.price);
+        }
+      });
+      
+      // Add preference-based sorting
+      if (Object.keys(subjectPreferences).length > 0) {
+        finalFilter.$expr = {
+          $add: [
+            { $multiply: ["$rating", 0.4] },
+            { $multiply: [{ $size: { $setIntersection: ["$subjects", Object.keys(subjectPreferences)] } }, 0.3] },
+            { $multiply: ["$experience", 0.2] },
+            { $multiply: [{ $subtract: [5, { $divide: [{ $subtract: ["$sessionRate", { $avg: pricePreferences }] }, 100000] }] }, 0.1] }
+          ]
+        };
+      }
+    }
+
+>>>>>>> Quan3
     let sort = {};
     switch (sortBy) {
       case "rating":
@@ -87,7 +200,14 @@ router.get("/search", async (req, res) => {
         sort = { sessionRate: -1 };
         break;
       case "experience":
+<<<<<<< HEAD
         sort = { experienceYears: -1 };
+=======
+        sort = { experience: -1 };
+        break;
+      case "smart":
+        sort = smartSuggest === "true" ? { $expr: 1 } : { rating: -1 };
+>>>>>>> Quan3
         break;
       default:
         sort = { rating: -1 };
@@ -95,7 +215,11 @@ router.get("/search", async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
     const tutors = await TutorProfile.find(finalFilter)
+<<<<<<< HEAD
       .populate("user", "full_name avatar phone_number email")
+=======
+      .populate("user", "full_name image phone_number email")
+>>>>>>> Quan3
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
@@ -108,7 +232,11 @@ router.get("/search", async (req, res) => {
       userId: tutor.user?._id,
       name: tutor.user?.full_name,
       avatar:
+<<<<<<< HEAD
         tutor.user?.avatar ||
+=======
+        tutor.user?.image || tutor.avatarUrl || tutor.avatar || tutor.profileImage ||
+>>>>>>> Quan3
         "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
       subjects: tutor.subjects || [],
       location: tutor.city || "Chưa cập nhật",
@@ -211,19 +339,31 @@ router.get("/:id", async (req, res) => {
     const id = req.params.id;
     if (mongoose.isValidObjectId(id)) {
       tutor = await TutorProfile.findOne({ _id: id })
+<<<<<<< HEAD
         .populate("user", "full_name avatar phone_number email status");
+=======
+        .populate("user", "full_name phone_number email status image");
+>>>>>>> Quan3
     }
     // Fallback: if not found by profile id, try by user id
     if (!tutor && mongoose.isValidObjectId(id)) {
       tutor = await TutorProfile.findOne({ user: id })
+<<<<<<< HEAD
         .populate("user", "full_name avatar phone_number email status");
+=======
+        .populate("user", "full_name phone_number email status image");
+>>>>>>> Quan3
     }
     // Fallback by email
     if (!tutor && id && id.includes('@')) {
       const user = await require('../models/User').findOne({ email: id });
       if (user) {
         tutor = await TutorProfile.findOne({ user: user._id })
+<<<<<<< HEAD
           .populate("user", "full_name avatar phone_number email status");
+=======
+          .populate("user", "full_name phone_number email status image");
+>>>>>>> Quan3
       }
     }
 
@@ -231,6 +371,7 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
+<<<<<<< HEAD
     // Format response
     const formattedTutor = {
       id: tutor._id,
@@ -255,6 +396,94 @@ router.get("/:id", async (req, res) => {
     };
 
     res.json({ tutor: formattedTutor, message: "Tutor profile retrieved successfully" });
+=======
+    // Helper to convert relative paths to absolute URLs for public consumption
+    const toAbsoluteUrl = (p) => {
+      if (!p) return '';
+      if (typeof p !== 'string') return p;
+      if (p.startsWith('http')) return p;
+      const serverUrl = process.env.SERVER_URL || 'http://localhost:5000';
+      return `${serverUrl}/${p.replace(/^\/?/, '')}`;
+    };
+
+    // Public-safe document lists: expose degree/other documents, but DO NOT expose ID documents
+    const verification = tutor.verification || {};
+    const degreeDocuments = Array.isArray(verification.degreeDocuments)
+      ? verification.degreeDocuments.map(toAbsoluteUrl)
+      : [];
+    const otherDocuments = Array.isArray(verification.otherDocuments)
+      ? verification.otherDocuments.map(toAbsoluteUrl)
+      : [];
+
+    // Normalize subjects to preserve name + level for the UI
+    const normalizedSubjects = Array.isArray(tutor.subjects)
+      ? tutor.subjects.map((s) => {
+          if (!s) return null;
+          if (typeof s === 'string') return s;
+          return s.name || s.subject || s.level || '';
+        }).filter(Boolean)
+      : [];
+
+    // Format response with richer registration info
+    const formattedTutor = {
+      id: tutor._id,
+      userId: tutor.user?._id || null,
+      name: tutor.user?.full_name || tutor.user?.fullName || 'Gia sư',
+      // Prefer user's image (profile avatar), then tutor's avatarUrl
+      avatarUrl: tutor.user?.image || tutor.avatarUrl || null,
+      avatar: 
+        toAbsoluteUrl(
+          tutor.user?.image ||
+          tutor.avatarUrl ||
+          tutor.avatar ||
+          tutor.profileImage
+        ) || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+      subjects: normalizedSubjects,
+      location: tutor.city || tutor.location || 'Chưa cập nhật',
+      rating: tutor.rating || 0,
+      reviewCount: tutor.reviewCount || 0,
+      experience: `${tutor.experienceYears || tutor.experience || 0} năm`,
+      price: tutor.sessionRate || tutor.hourlyRate || tutor.price || 0,
+      teachModes: tutor.teachModes || [],
+      bio: tutor.bio || tutor.description || 'Chưa có giới thiệu',
+      verified: tutor.status === 'approved',
+      isDraft: tutor.status !== 'approved' || !tutor.hasAvailability,
+      phone: tutor.user?.phone_number || tutor.phone,
+      email: tutor.user?.email || tutor.email,
+      languages: tutor.languages || [],
+      availability: tutor.availability || [],
+
+      // Registration fields
+      education: tutor.education || '',
+      teachingStyle: tutor.teachingStyle || '',
+      achievements: tutor.achievements || [],
+      certificates: tutor.certificates || [],
+      degrees: tutor.degrees || [],
+
+      // Media fields normalized to absolute URLs
+      gallery: Array.isArray(tutor.gallery) ? tutor.gallery.map(toAbsoluteUrl) : [],
+      portfolio: Array.isArray(tutor.portfolio)
+        ? tutor.portfolio.map((item) => ({
+            ...item,
+            image: toAbsoluteUrl(item?.image || item)
+          }))
+        : [],
+      uploads: Array.isArray(tutor.uploads)
+        ? tutor.uploads.map((u) => ({ ...u, url: toAbsoluteUrl(u?.url || u) }))
+        : [],
+
+      // Verification summary (statuses) and public-safe docs
+      verification: {
+        degreeStatus: verification.degreeStatus || 'pending',
+        idStatus: verification.idStatus || 'pending',
+        otherStatus: verification.otherStatus || 'pending',
+        degreeDocuments,
+        otherDocuments
+      }
+    };
+
+    res.json({ tutor: formattedTutor, message: 'Tutor profile retrieved successfully' });
+>>>>>>> Quan3
 
   } catch (error) {
     console.error("Get tutor profile error:", error);
@@ -262,6 +491,96 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
+// Get tutor availability (slots trống và bận)
+router.get("/:id/availability", async (req, res) => {
+  try {
+    const tutorId = req.params.id;
+    
+    // Find tutor profile
+    const tutor = await TutorProfile.findById(tutorId);
+    if (!tutor) {
+      return res.status(404).json({ message: "Tutor not found" });
+    }
+
+    // Get tutor's availability (general schedule)
+    const availability = tutor.availability || [];
+
+    // Get all bookings for this tutor (next 2 weeks)
+    const twoWeeksFromNow = new Date();
+    twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+    
+    const bookings = await Booking.find({
+      tutorProfile: tutorId,
+      status: { $in: ["accepted", "completed", "in_progress"] },
+      start: { $gte: new Date(), $lte: twoWeeksFromNow }
+    }).select('start end');
+
+    // Calculate available slots for next 14 days
+    const availableSlots = [];
+    const bookedSlots = [];
+    
+    for (let day = 0; day < 14; day++) {
+      const currentDate = new Date();
+      currentDate.setDate(currentDate.getDate() + day);
+      const dayOfWeek = currentDate.getDay(); // 0=Sunday, 1=Monday, ...
+
+      // Find availability for this day of week
+      const dayAvailability = availability.filter(a => a.dayOfWeek === dayOfWeek);
+
+      for (const slot of dayAvailability) {
+        const [startHour, startMin] = slot.start.split(':').map(Number);
+        const [endHour, endMin] = slot.end.split(':').map(Number);
+        
+        const slotStart = new Date(currentDate);
+        slotStart.setHours(startHour, startMin, 0, 0);
+        
+        const slotEnd = new Date(currentDate);
+        slotEnd.setHours(endHour, endMin, 0, 0);
+
+        // Check if this slot conflicts with any booking
+        const isBooked = bookings.some(booking => {
+          const bookingStart = new Date(booking.start);
+          const bookingEnd = new Date(booking.end);
+          
+          // Check for overlap
+          return (slotStart < bookingEnd && slotEnd > bookingStart);
+        });
+
+        if (isBooked) {
+          bookedSlots.push({
+            date: slotStart.toISOString(),
+            start: slot.start,
+            end: slot.end,
+            available: false
+          });
+        } else {
+          availableSlots.push({
+            date: slotStart.toISOString(),
+            start: slot.start,
+            end: slot.end,
+            available: true
+          });
+        }
+      }
+    }
+
+    res.json({
+      availability: {
+        weekly: availability, // General weekly schedule
+        slots: availableSlots, // Available slots for next 14 days
+        booked: bookedSlots // Booked slots
+      }
+    });
+
+  } catch (error) {
+    console.error("Get tutor availability error:", error);
+    res.status(500).json({ message: "Failed to get tutor availability" });
+  }
+});
+
+>>>>>>> Quan3
 // Get my tutor profile (create if not exists as draft)
 router.get("/me", auth(), async (req, res) => {
   try {
@@ -327,6 +646,46 @@ router.patch("/me/expertise", auth(), async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
+// Update entire tutor profile (comprehensive update)
+router.patch("/me", auth(), async (req, res) => {
+  try {
+    const updateData = {};
+    
+    // Map form fields to database fields
+    if (req.body.introduction) updateData.bio = req.body.introduction;
+    if (req.body.subjects && Array.isArray(req.body.subjects)) {
+      // Convert string array to object array format
+      updateData.subjects = req.body.subjects.map(subject => {
+        if (typeof subject === 'string') {
+          return { name: subject, level: null };
+        }
+        return subject;
+      });
+    }
+    if (req.body.experience) updateData.experienceYears = parseInt(req.body.experience) || 0;
+    if (req.body.hourlyRate) updateData.sessionRate = parseInt(req.body.hourlyRate);
+    if (req.body.location) updateData.city = req.body.location;
+    if (req.body.education) updateData.education = req.body.education;
+    if (req.body.university) updateData.university = req.body.university;
+    if (req.body.teachingMethod) updateData.teachingMethod = req.body.teachingMethod;
+    if (req.body.achievements) updateData.achievements = req.body.achievements;
+
+    const profile = await TutorProfile.findOneAndUpdate(
+      { user: req.user.id },
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
+    
+    res.json({ profile });
+  } catch (e) {
+    console.error("/tutors/me error:", e?.message);
+    res.status(500).json({ message: "Failed to update profile", error: e.message });
+  }
+});
+
+>>>>>>> Quan3
 // Update teaching preferences
 router.patch("/me/preferences", auth(), async (req, res) => {
   try {
@@ -730,5 +1089,37 @@ router.post("/me/upload-degree", auth(), upload.array('files', 5), async (req, r
   }
 });
 
+<<<<<<< HEAD
+=======
+// Admin endpoint to approve all tutors
+router.post("/admin/approve-all", async (req, res) => {
+  try {
+    console.log("🔧 Approving all tutors...");
+    
+    const result = await TutorProfile.updateMany(
+      {}, // Update all documents
+      { 
+        $set: { 
+          status: 'approved',
+          hasAvailability: true,
+          verified: true
+        } 
+      }
+    );
+    
+    console.log(`✅ Approved ${result.modifiedCount} tutors`);
+    
+    res.json({
+      message: "All tutors approved successfully",
+      matched: result.matchedCount,
+      modified: result.modifiedCount
+    });
+  } catch (error) {
+    console.error("❌ Error approving tutors:", error);
+    res.status(500).json({ message: "Failed to approve tutors" });
+  }
+});
+
+>>>>>>> Quan3
 module.exports = router;
 

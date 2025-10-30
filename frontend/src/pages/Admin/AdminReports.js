@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Calendar, Download } from 'lucide-react';
 import AdminService from '../../services/AdminService';
@@ -313,4 +314,13 @@ const AdminReports = () => {
   );
 };
 
+=======
+import React from 'react';
+const AdminReports = () => (
+  <div>
+    <h2>Quản lý Report</h2>
+    <div className="admin-card">Danh sách report sẽ hiển thị ở đây.</div>
+  </div>
+);
+>>>>>>> Quan3
 export default AdminReports;

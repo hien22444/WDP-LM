@@ -54,6 +54,36 @@ const TutorProfileSchema = new mongoose.Schema(
 
     verification: { type: VerificationSchema, default: () => ({}) },
     status: { type: String, enum: ["draft", "pending", "approved", "rejected"], default: "draft", index: true },
+<<<<<<< HEAD
+=======
+    
+    // Rating and review fields
+    rating: { type: Number, default: 0, min: 0, max: 5, index: true },
+    totalReviews: { type: Number, default: 0, min: 0 },
+    ratingCategories: {
+      teaching: { type: Number, default: 0, min: 0, max: 5 },
+      punctuality: { type: Number, default: 0, min: 0, max: 5 },
+      communication: { type: Number, default: 0, min: 0, max: 5 },
+      preparation: { type: Number, default: 0, min: 0, max: 5 },
+      friendliness: { type: Number, default: 0, min: 0, max: 5 }
+    },
+    
+    // Wallet/Earnings fields
+    earnings: {
+      totalEarnings: { type: Number, default: 0, min: 0 },
+      availableBalance: { type: Number, default: 0, min: 0 },
+      pendingBalance: { type: Number, default: 0, min: 0 }
+    },
+    
+    // Bank account for payout (optional)
+    bankAccount: {
+      accountNumber: { type: String, default: null },
+      accountName: { type: String, default: null },
+      bankName: { type: String, default: null },
+      bankCode: { type: String, default: null },
+      branch: { type: String, default: null }
+    }
+>>>>>>> Quan3
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

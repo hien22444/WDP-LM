@@ -4,7 +4,11 @@ import { useNavigate } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import "./TutorSchedule.scss";
+<<<<<<< HEAD
 import BookingService from "../../services/BookingService";
+=======
+import BookingService, { listMyTeachingSlots, deleteTeachingSlot } from "../../services/BookingService";
+>>>>>>> Quan3
 import BackHomeButton from "../../components/Common/BackHomeButton";
 
 const TutorSchedule = () => {
@@ -40,7 +44,11 @@ const TutorSchedule = () => {
     try {
       const [bookingsData, slotsData] = await Promise.all([
         BookingService.listMyBookings('tutor'),
+<<<<<<< HEAD
         BookingService.listMyTeachingSlots()
+=======
+        listMyTeachingSlots()
+>>>>>>> Quan3
       ]);
       setBookings(bookingsData || []);
       setTeachingSlots(slotsData || []);
@@ -543,7 +551,11 @@ const TutorSchedule = () => {
                   className="btn-reject"
                   onClick={async () => {
                     try {
+<<<<<<< HEAD
                       await BookingService.deleteTeachingSlot(selectedSlot._id);
+=======
+                      await deleteTeachingSlot(selectedSlot._id);
+>>>>>>> Quan3
                       setSelectedSlot(null);
                       await loadBookings();
                     } catch (e) {

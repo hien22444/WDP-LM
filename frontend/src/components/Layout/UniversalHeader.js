@@ -9,6 +9,13 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import Cookies from "js-cookie";
 import { logout } from "../../redux/slices/userSlice";
+<<<<<<< HEAD
+=======
+// TEMPORARILY DISABLED - Causing lag (requires ChatProvider)
+// import NotificationCenter from "../Notifications/NotificationCenter";
+import { toast } from "react-toastify";
+import "./UniversalHeader.scss";
+>>>>>>> Quan3
 
 const UniversalHeader = () => {
   const navigate = useNavigate();
@@ -16,6 +23,11 @@ const UniversalHeader = () => {
   const userState = useSelector((s) => s.user);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
+<<<<<<< HEAD
+=======
+  const [showRoomModal, setShowRoomModal] = useState(false);
+  const [roomCode, setRoomCode] = useState("");
+>>>>>>> Quan3
   const dropdownRef = useRef(null);
 
   const role = useMemo(
@@ -42,6 +54,22 @@ const UniversalHeader = () => {
     navigate("/");
   }, [dispatch, navigate]);
 
+<<<<<<< HEAD
+=======
+  // Handle join room with code
+  const handleJoinRoom = useCallback(() => {
+    if (!roomCode.trim()) {
+      toast.error("Vui lòng nhập mã phòng học");
+      return;
+    }
+
+    // Navigate to room with code
+    navigate(`/room/${roomCode.trim()}`);
+    setShowRoomModal(false);
+    setRoomCode("");
+  }, [roomCode, navigate]);
+
+>>>>>>> Quan3
   useEffect(() => {
     const onClickOutside = (e) => {
       if (!dropdownRef.current) return;
@@ -52,6 +80,7 @@ const UniversalHeader = () => {
   }, [isMenuOpen]);
 
   return (
+<<<<<<< HEAD
     <header
       style={{
         background: "#fff",
@@ -162,11 +191,48 @@ const UniversalHeader = () => {
               boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
             }}
           >
+=======
+    <header className="universal-header">
+      <div className="header-container">
+        {/* Left Section */}
+        <div className="header-left-section">
+          {/* Logo */}
+          <div className="logo-container" onClick={() => navigate("/")}>
+            <img
+              src="/edumatch-logo.png"
+              alt="EduMatch"
+              className="logo-image"
+            />
+            <span className="logo-text">EduMatch</span>
+          </div>
+
+          {/* Nav */}
+          <nav className="main-nav">
+            <button className="nav-button" onClick={() => navigate("/tutors")}>
+              Danh sách gia sư
+            </button>
+            <button className="nav-button" onClick={() => navigate("/courses")}>
+              Khóa học
+            </button>
+            <button className="nav-button" onClick={() => navigate("/tutor/onboarding")}>
+              Trở thành gia sư
+            </button>
+            <button className="nav-button" onClick={() => navigate("/about")}>
+              Về Chúng Tôi
+            </button>
+          </nav>
+        </div>
+
+        {/* Center Section - Search */}
+        <div className="search-container">
+          <div className="search-box">
+>>>>>>> Quan3
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter")
+<<<<<<< HEAD
                   navigate(`/tutor?q=${encodeURIComponent(search.trim())}`);
               }}
               placeholder="Tìm kiếm gia sư, môn học..."
@@ -194,18 +260,51 @@ const UniversalHeader = () => {
                 alignItems: "center",
                 justifyContent: "center",
               }}
+=======
+                  navigate(`/courses?q=${encodeURIComponent(search.trim())}`);
+              }}
+              placeholder="Tìm kiếm gia sư, môn học..."
+              className="search-input"
+            />
+            <button
+              onClick={() =>
+                navigate(`/courses?q=${encodeURIComponent(search.trim())}`)
+              }
+              className="search-button"
+>>>>>>> Quan3
             >
               <i className="fas fa-search" />
             </button>
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Avatar */}
         <div ref={dropdownRef} style={{ position: "relative", zIndex: 2000 }}>
+=======
+        {/* Right Section */}
+        <div className="header-right-elements">
+          {/* Notifications */}
+          {/* TEMPORARILY DISABLED - Causing lag (requires ChatProvider) */}
+          {/* <NotificationCenter /> */}
+
+          {/* Join Room Button */}
+          <button
+            onClick={() => setShowRoomModal(true)}
+            className="join-room-button"
+          >
+            <i className="fas fa-video"></i>
+            Phòng Học
+          </button>
+
+          {/* Avatar */}
+          <div ref={dropdownRef} className="avatar-container">
+>>>>>>> Quan3
           <img
             src={avatar}
             alt="avatar"
             onClick={() => setIsMenuOpen((v) => !v)}
+<<<<<<< HEAD
             style={{
               width: 42,
               height: 42,
@@ -230,11 +329,17 @@ const UniversalHeader = () => {
               display: isMenuOpen ? "block" : "none",
             }}
           >
+=======
+            className="avatar-image"
+          />
+          <div className={`user-dropdown ${isMenuOpen ? 'open' : ''}`}>
+>>>>>>> Quan3
             <button
               onClick={() => {
                 setIsMenuOpen(false);
                 navigate("/profile");
               }}
+<<<<<<< HEAD
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -243,6 +348,9 @@ const UniversalHeader = () => {
                 border: "none",
                 cursor: "pointer",
               }}
+=======
+              className="dropdown-item"
+>>>>>>> Quan3
             >
               Trang cá nhân
             </button>
@@ -251,6 +359,7 @@ const UniversalHeader = () => {
                 setIsMenuOpen(false);
                 navigate("/courses");
               }}
+<<<<<<< HEAD
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -259,6 +368,9 @@ const UniversalHeader = () => {
                 border: "none",
                 cursor: "pointer",
               }}
+=======
+              className="dropdown-item"
+>>>>>>> Quan3
             >
               Khóa học của tôi
             </button>
@@ -267,6 +379,7 @@ const UniversalHeader = () => {
                 setIsMenuOpen(false);
                 navigate("/bookings/me");
               }}
+<<<<<<< HEAD
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -275,6 +388,9 @@ const UniversalHeader = () => {
                 border: "none",
                 cursor: "pointer",
               }}
+=======
+              className="dropdown-item"
+>>>>>>> Quan3
             >
               Lịch học
             </button>
@@ -283,6 +399,7 @@ const UniversalHeader = () => {
                 setIsMenuOpen(false);
                 navigate("/payments");
               }}
+<<<<<<< HEAD
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -291,6 +408,9 @@ const UniversalHeader = () => {
                 border: "none",
                 cursor: "pointer",
               }}
+=======
+              className="dropdown-item"
+>>>>>>> Quan3
             >
               Lịch sử thanh toán
             </button>
@@ -299,6 +419,7 @@ const UniversalHeader = () => {
                 setIsMenuOpen(false);
                 navigate("/change-password");
               }}
+<<<<<<< HEAD
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -322,12 +443,80 @@ const UniversalHeader = () => {
                 cursor: "pointer",
                 color: "#e11d48",
               }}
+=======
+              className="dropdown-item"
+            >
+              Đổi mật khẩu
+            </button>
+            <div className="dropdown-divider" />
+            <button
+              onClick={handleLogout}
+              className="dropdown-item logout"
+>>>>>>> Quan3
             >
               Đăng xuất
             </button>
           </div>
         </div>
+<<<<<<< HEAD
       </div>
+=======
+        </div>
+      </div>
+
+      {/* Join Room Modal */}
+      {showRoomModal && (
+        <div className="modal-overlay" onClick={() => setShowRoomModal(false)}>
+          <div className="room-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Tham gia phòng học</h3>
+              <button
+                onClick={() => setShowRoomModal(false)}
+                className="modal-close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <label>Mã phòng học</label>
+              <input
+                type="text"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value)}
+                placeholder="Nhập mã phòng học..."
+                className="room-code-input"
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleJoinRoom();
+                  }
+                }}
+                autoFocus
+              />
+              <p className="input-help">
+                Nhập mã phòng học được cung cấp bởi gia sư
+              </p>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                onClick={() => setShowRoomModal(false)}
+                className="btn-cancel"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleJoinRoom}
+                className="btn-join"
+              >
+                <i className="fas fa-video"></i>
+                Tham gia
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+>>>>>>> Quan3
     </header>
   );
 };

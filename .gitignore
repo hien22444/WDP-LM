@@ -1,4 +1,95 @@
-# Ignore node_modules folders
-backend/node_modules/
-frontend/node_modules/
-backend/.env
+# ===========================================
+# DEPENDENCIES - Không push node_modules
+# ===========================================
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# ===========================================
+# ENVIRONMENT VARIABLES - Không push .env
+# ===========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ===========================================
+# LOGS - Không push các file log
+# ===========================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+*.log
+logs/
+*.log.*
+
+# ===========================================
+# CACHE & TEMPORARY FILES
+# ===========================================
+.npm
+.yarn-integrity
+.cache/
+.parcel-cache/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.eslintcache
+*.tsbuildinfo
+tmp/
+temp/
+
+# ===========================================
+# BUILD OUTPUTS - Không push build files
+# ===========================================
+build/
+dist/
+.next/
+.nuxt/
+out/
+storybook-out/
+
+# ===========================================
+# EDITOR & IDE FILES
+# ===========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===========================================
+# OS GENERATED FILES
+# ===========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===========================================
+# COVERAGE & TEST FILES
+# ===========================================
+coverage/
+*.lcov
+.nyc_output/
+
+# ===========================================
+# RUNTIME DATA
+# ===========================================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ===========================================
+# PACKAGE MANAGER FILES
+# ===========================================
+*.tgz
+.yarn/
+.pnp.*

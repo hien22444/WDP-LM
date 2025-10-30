@@ -41,6 +41,14 @@ const userSlice = createSlice({
       };
       Cookies.remove("accessToken");
       Cookies.remove("refreshToken");
+<<<<<<< HEAD
+=======
+      
+      // Clear chat-related localStorage
+      localStorage.removeItem("chatMessages");
+      localStorage.removeItem("chatNotifications");
+      localStorage.removeItem("activeChats");
+>>>>>>> Quan3
     },
     registerStart: (state) => {
       state.loading = true;

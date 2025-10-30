@@ -1,6 +1,10 @@
 const payOS = require("../config/payos");
 const TeachingSlot = require("../models/TeachingSlot");
 const Payment = require("../models/Payment");
+const Booking = require("../models/Booking");
+const TeachingSession = require("../models/TeachingSession");
+const { generateRoomId } = require("../services/WebRTCService");
+const { notifyStudentPaymentSuccess, notifyTutorPaymentSuccess } = require("../services/NotificationService");
 
 // Tạo link thanh toán
 const createPaymentLink = async (req, res) => {
@@ -235,21 +239,73 @@ const receiveWebhook = async (req, res) => {
           );
 
           if (payment && payment.slotId) {
-            // Update teaching slot status
-            const slotUpdateResult = await TeachingSlot.updateOne(
-              { _id: payment.slotId },
-              {
-                $set: { status: "booked" },
-                $push: {
-                  bookings: {
-                    userId: payment.userId,
-                    paymentId: payment._id,
-                    bookedAt: new Date(),
-                  },
-                },
+            // Get the teaching slot
+            const slot = await TeachingSlot.findById(payment.slotId);
+            if (slot) {
+              // Update teaching slot status
+              slot.status = "booked";
+              slot.bookings = slot.bookings || [];
+              slot.bookings.push({
+                userId: payment.userId,
+                paymentId: payment._id,
+                bookedAt: new Date(),
+              });
+              await slot.save();
+              console.log("📚 Slot update result:", slot._id);
+
+              // Create booking from slot
+              try {
+                const roomId = generateRoomId();
+                const booking = await Booking.create({
+                  tutorProfile: slot.tutorProfile,
+                  student: payment.userId,
+                  start: slot.start,
+                  end: slot.end,
+                  mode: slot.mode,
+                  price: slot.price,
+                  notes: `Đặt từ slot: ${slot.courseName}`,
+                  slotId: slot._id,
+                  roomId: roomId,
+                  status: "accepted" // Auto-accept since payment is completed
+                });
+
+                // Create teaching session
+                const session = await TeachingSession.create({
+                  booking: booking._id,
+                  tutorProfile: slot.tutorProfile,
+                  student: payment.userId,
+                  startTime: slot.start,
+                  endTime: slot.end,
+                  courseName: slot.courseName,
+                  mode: slot.mode,
+                  location: slot.location,
+                  status: "scheduled",
+                  roomId: roomId,
+                });
+
+                booking.sessionId = session._id;
+                await booking.save();
+
+                console.log("📝 Booking created:", booking._id);
+                console.log("📝 Teaching session created:", session._id);
+
+                // Send payment success notifications
+                try {
+                  const studentNotification = await notifyStudentPaymentSuccess(booking);
+                  console.log("📧 Student payment success notification sent:", studentNotification);
+
+                  const tutorNotification = await notifyTutorPaymentSuccess(booking);
+                  console.log("📧 Tutor payment success notification sent:", tutorNotification);
+                } catch (notificationError) {
+                  console.error("❌ Failed to send payment notifications:", notificationError);
+                  // Don't fail the payment processing if notification fails
+                }
+
+              } catch (bookingError) {
+                console.error("❌ Error creating booking from slot:", bookingError);
+                // Don't fail the payment processing if booking creation fails
               }
-            );
-            console.log("📚 Slot update result:", slotUpdateResult);
+            }
           }
         } else {
           console.log(`❕ Order ${orderCode} status is: ${status}`);
@@ -419,19 +475,63 @@ const verifyPayment = async (req, res) => {
 
         // Update teaching slot if applicable
         if (payment.slotId) {
-          await TeachingSlot.updateOne(
-            { _id: payment.slotId },
-            {
-              $set: { status: "booked" },
-              $push: {
-                bookings: {
-                  userId: payment.userId,
-                  paymentId: payment._id,
-                  bookedAt: new Date(),
-                },
-              },
+          const slot = await TeachingSlot.findById(payment.slotId);
+          if (slot) {
+            slot.status = "booked";
+            slot.bookings = slot.bookings || [];
+            slot.bookings.push({
+              userId: payment.userId,
+              paymentId: payment._id,
+              bookedAt: new Date(),
+            });
+            await slot.save();
+
+            // Create booking from slot if not exists
+            const existingBooking = await Booking.findOne({ slotId: slot._id });
+            if (!existingBooking) {
+              try {
+                const roomId = generateRoomId();
+                const booking = await Booking.create({
+                  tutorProfile: slot.tutorProfile,
+                  student: payment.userId,
+                  start: slot.start,
+                  end: slot.end,
+                  mode: slot.mode,
+                  price: slot.price,
+                  notes: `Đặt từ slot: ${slot.courseName}`,
+                  slotId: slot._id,
+                  roomId: roomId,
+                  status: "accepted"
+                });
+
+                const session = await TeachingSession.create({
+                  booking: booking._id,
+                  tutorProfile: slot.tutorProfile,
+                  student: payment.userId,
+                  startTime: slot.start,
+                  endTime: slot.end,
+                  courseName: slot.courseName,
+                  mode: slot.mode,
+                  location: slot.location,
+                  status: "scheduled",
+                  roomId: roomId,
+                });
+
+                booking.sessionId = session._id;
+                await booking.save();
+
+                // Send notifications
+                try {
+                  await notifyStudentPaymentSuccess(booking);
+                  await notifyTutorPaymentSuccess(booking);
+                } catch (notificationError) {
+                  console.error("❌ Failed to send payment notifications:", notificationError);
+                }
+              } catch (bookingError) {
+                console.error("❌ Error creating booking from slot:", bookingError);
+              }
             }
-          );
+          }
         }
 
         return res.json({

@@ -10,9 +10,18 @@ const connectDB = async () => {
     const safeUri = uri.replace(/(mongodb\+srv:\/\/[^:]+):[^@]+@/, '$1:****@');
     console.log('🔌 Mongo URI resolved:', safeUri);
 
+<<<<<<< HEAD
     // Connect (deprecated options removed for Mongoose 7/8+)
     await mongoose.connect(uri);
     console.log("✅ Kết nối DB thành công");
+=======
+    // Connect to 'test' database explicitly
+    await mongoose.connect(uri, {
+      dbName: 'test' // CRITICAL: Use test database where your data lives
+    });
+    console.log("✅ Kết nối DB thành công - Database: test");
+    console.log("📊 Bạn có thể kiểm tra dữ liệu trong Atlas at: https://cloud.mongodb.com/");
+>>>>>>> Quan3
   } catch (error) {
     console.error("❌ Lỗi kết nối DB:", error.message);
     process.exit(1);

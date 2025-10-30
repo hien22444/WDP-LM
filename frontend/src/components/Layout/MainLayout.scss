@@ -2,10 +2,22 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+<<<<<<< HEAD
+=======
+  width: 100%;
+  margin: 0;
+  padding: 0;
+>>>>>>> Quan3
 
   .main-content {
     flex: 1;
     min-height: calc(100vh - 140px); // Adjust based on header/footer height
+<<<<<<< HEAD
+=======
+    width: 100%;
+    margin: 0;
+    padding: 0;
+>>>>>>> Quan3
   }
 
   .back-to-top {

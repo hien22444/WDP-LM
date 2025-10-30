@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, CheckCircle, XCircle, Eye } from 'lucide-react';
 import AdminService from '../../services/AdminService';
@@ -445,5 +446,15 @@ const AdminBookings = () => {
     </div>
   );
 };
+=======
+import React from 'react';
+
+const AdminBookings = () => (
+      <div>
+    <h2>Quản lý Booking</h2>
+    <div className="admin-card">Danh sách booking sẽ hiển thị ở đây.</div>
+    </div>
+  );
+>>>>>>> Quan3
 
 export default AdminBookings;

@@ -1,0 +1,184 @@
+.tutor-profile-update-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999; // Very high z-index to ensure it's on top
+  
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(0px); // Disable backdrop blur
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    filter: brightness(1.1) contrast(1.2); // Increase brightness and contrast
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 30px;
+      border-bottom: 1px solid #e0e0e0;
+
+      h2 {
+        margin: 0;
+        color: #6c5ce7;
+        font-size: 1.8rem;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      .close-button {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        color: #999;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+          color: #333;
+        }
+      }
+    }
+
+    .update-form {
+      padding: 30px;
+
+      .form-section {
+        margin-bottom: 25px;
+
+        h3 {
+          margin: 0 0 15px 0;
+          color: #333;
+          font-size: 1.3rem;
+          font-weight: 600;
+          text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-control {
+          width: 100%;
+          padding: 12px 18px;
+          border: 2px solid #ddd;
+          border-radius: 6px;
+          font-size: 1.1rem;
+          font-weight: 400;
+          transition: border-color 0.3s;
+
+          &:focus {
+            outline: none;
+            border-color: #6c5ce7;
+          }
+
+          &::placeholder {
+            color: #999;
+          }
+        }
+
+        textarea.form-control {
+          resize: vertical;
+          min-height: 100px;
+        }
+      }
+
+      .subjects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+
+        .subject-checkbox {
+          display: flex;
+          align-items: center;
+          padding: 10px;
+          border: 2px solid #e0e0e0;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.3s;
+
+          &:hover {
+            border-color: #6c5ce7;
+            background: #f8f7ff;
+          }
+
+          input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+          }
+
+          input[type="checkbox"]:checked + span {
+            color: #6c5ce7;
+            font-weight: 500;
+          }
+
+          span {
+            flex: 1;
+          }
+        }
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+
+        .btn-cancel,
+        .btn-submit {
+          padding: 14px 35px;
+          border: none;
+          border-radius: 6px;
+          font-size: 1.15rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+
+        .btn-cancel {
+          background: #f0f0f0;
+          color: #666;
+
+          &:hover {
+            background: #e0e0e0;
+          }
+        }
+
+        .btn-submit {
+          background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+          }
+        }
+      }
+    }
+  }
+}

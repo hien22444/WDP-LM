@@ -441,9 +441,15 @@ const Dashboard = () => {
                         </button>
                         <button
                           className="action-btn tertiary"
+<<<<<<< HEAD
                           onClick={() => navigate("/tutor/earnings")}
                         >
                           💰 Thu nhập
+=======
+                          onClick={() => navigate("/tutor/wallet")}
+                        >
+                          💰 Ví của tôi
+>>>>>>> Quan3
                         </button>
                         <button
                           className="action-btn quaternary"
