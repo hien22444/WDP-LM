@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import * as TutorService from "../../services/TutorService";
-import BackHomeButton from "../../components/Common/BackHomeButton";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { getAllTutors } from "../../services/CombinedTutorService";
 import "./TutorList.scss";
 
 const TutorList = () => {
@@ -20,42 +19,79 @@ const TutorList = () => {
   const [location, setLocation] = useState("");
   const [filters, setFilters] = useState({
     gender: "",
-    search: ""
+    search: "",
   });
 
-  const loadTutors = async () => {
+  const loadTutors = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setTutors([]); // Clear existing tutors while loading
+      console.log("🔍 Starting to load tutors...");
 
-      const data = await TutorService.searchTutors({
+      // Log các tham số tìm kiếm
+      console.log("Search params:", {
         page: currentPage,
-        limit: 12,
-        query: query,
-        subject: subject,
-        grade: grade,
-        location: location,
-        sortBy: "rating",
-        includePending: false
+        limit: 50,
+        query,
+        subject,
+        grade,
+        location,
+        filters,
       });
 
+      // Sử dụng service mới để lấy tất cả gia sư
+      const data = await getAllTutors();
+      console.log("🔍 Fetched all tutors:", data);
+
+      // Log chi tiết để debug
+      console.log("🔍 Raw API Response:", data);
+      console.log("🔍 Tutors array:", data?.tutors);
+
+      if (data?.tutors) {
+        console.log("🔍 Số lượng gia sư:", data.tutors.length);
+        console.log(
+          "🔍 Chi tiết từng gia sư:",
+          data.tutors.map((t) => ({
+            id: t.id,
+            name: t.name,
+            email: t.email,
+            status: t.status,
+          }))
+        );
+      }
+
       console.log("📊 Tutors loaded:", data);
-      
-      // Map API response to component expected format
-      const tutors = (data?.tutors || []).map(tutor => {
+      console.log("📊 Raw tutors array:", data?.tutors);
+      console.log(
+        "📊 Tutors status check:",
+        data?.tutors?.map((t) => ({ id: t.id, status: t.status, name: t.name }))
+      );
+
+      // Kiểm tra dữ liệu API trả về
+      console.log("🔍 Full API response:", data);
+      console.log(
+        "🔍 Tutors array from API:",
+        Array.isArray(data?.tutors) ? data.tutors : "Not an array"
+      );
+      console.log("🔍 Number of tutors:", data?.tutors?.length || 0);
+
+      // Map dữ liệu và log chi tiết từng bước
+      const tutors = (data?.tutors || []).map((tutor) => {
+        console.log("🔍 Processing tutor:", tutor.name, tutor.email);
         // Parse experience to extract years
         let experienceYears = 0;
         if (tutor.experience) {
           const match = tutor.experience.match(/(\d+)/);
           experienceYears = match ? parseInt(match[1]) : 0;
         }
-        
+
         // Format subjects properly
-        const formattedSubjects = (tutor.subjects || []).map(subject => {
-          if (typeof subject === 'string') return subject;
+        const formattedSubjects = (tutor.subjects || []).map((subject) => {
+          if (typeof subject === "string") return subject;
           if (subject.name) return subject.name;
           if (subject.subject) return subject.subject;
-          return 'Môn học';
+          return "Môn học";
         });
 
         // Get a proper name
@@ -67,10 +103,15 @@ const TutorList = () => {
         return {
           _id: tutor.id,
           user: {
-            full_name: displayName
+            full_name: displayName,
           },
-          avatarUrl: tutor.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-          subjects: formattedSubjects.length > 0 ? formattedSubjects : ["Chưa cập nhật môn học"],
+          avatarUrl:
+            tutor.avatar ||
+            "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+          subjects:
+            formattedSubjects.length > 0
+              ? formattedSubjects
+              : ["Chưa cập nhật môn học"],
           location: tutor.location || "Chưa cập nhật",
           rating: tutor.rating || 0,
           reviewCount: tutor.reviewCount || 0,
@@ -78,7 +119,7 @@ const TutorList = () => {
           sessionRate: tutor.price || 0,
           bio: tutor.bio || "Chưa có giới thiệu",
           verified: tutor.verified || false,
-          teachModes: tutor.teachModes || []
+          teachModes: tutor.teachModes || [],
         };
       });
 
@@ -87,15 +128,20 @@ const TutorList = () => {
       setTotalTutors(data?.total || 0);
     } catch (e) {
       console.error("❌ Error loading tutors:", e);
-      setError(`Không tải được danh sách gia sư: ${e.message}`);
+      setTutors([]); // Ensure tutors is empty on error
+      setError(
+        e.message || "Không tải được danh sách gia sư. Vui lòng thử lại sau."
+      );
+      setTotalTutors(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, query, subject, grade, location, filters]);
 
   useEffect(() => {
     loadTutors();
-  }, [currentPage, query, subject, grade, location]);
+  }, [loadTutors]);
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -196,7 +242,9 @@ const TutorList = () => {
             <label>Giới tính</label>
             <select
               value={filters.gender}
-              onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+              onChange={(e) =>
+                setFilters({ ...filters, gender: e.target.value })
+              }
               className="filter-select"
             >
               <option value="">Tất cả</option>
@@ -260,7 +308,8 @@ const TutorList = () => {
                   src={tutor.avatarUrl}
                   alt={tutor.user?.full_name || "Gia sư"}
                   onError={(e) => {
-                    e.target.src = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+                    e.target.src =
+                      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
                   }}
                 />
                 <div className="online-status">
@@ -275,10 +324,10 @@ const TutorList = () => {
                   </h3>
                 </div>
                 <p className="tutor-subjects">
-                  {tutor.subjects?.length > 0 
-                    ? tutor.subjects.slice(0, 2).join(", ") + (tutor.subjects.length > 2 ? "..." : "")
-                    : "Chưa cập nhật môn học"
-                  }
+                  {tutor.subjects?.length > 0
+                    ? tutor.subjects.slice(0, 2).join(", ") +
+                      (tutor.subjects.length > 2 ? "..." : "")
+                    : "Chưa cập nhật môn học"}
                 </p>
                 <div className="tutor-rating">
                   <div className="stars">
@@ -320,12 +369,8 @@ const TutorList = () => {
               </div>
 
               <div className="tutor-actions">
-                <button className="btn btn-outline">
-                  📞 Gọi ngay
-                </button>
-                <button className="btn btn-primary">
-                  Xem hồ sơ
-                </button>
+                <button className="btn btn-outline">📞 Gọi ngay</button>
+                <button className="btn btn-primary">Xem hồ sơ</button>
               </div>
             </div>
           ))}
@@ -355,7 +400,7 @@ const TutorList = () => {
             Trước
           </button>
           <div className="pagination-info">
-            Trang {currentPage} - {totalTutors} gia sư
+            Trang {currentPage}/{totalPages} ({totalTutors} gia sư)
           </div>
           <button
             className="pagination-btn"

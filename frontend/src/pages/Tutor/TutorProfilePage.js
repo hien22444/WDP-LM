@@ -2122,22 +2122,53 @@ const TutorProfilePage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="mode">Hình thức dạy học *</label>
-                  <select
-                    id="mode"
-                    value={bookingData.mode}
-                    onChange={(e) =>
-                      handleBookingInputChange("mode", e.target.value)
-                    }
-                    required
+                  <label>Hình thức dạy học *</label>
+                  <div
+                    style={{ display: "flex", gap: "20px", marginTop: "10px" }}
                   >
-                    {tutor.teachModes?.includes("online") && (
-                      <option value="online">Trực tuyến</option>
-                    )}
-                    {tutor.teachModes?.includes("offline") && (
-                      <option value="offline">Trực tiếp</option>
-                    )}
-                  </select>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="mode"
+                        value="online"
+                        checked={bookingData.mode === "online"}
+                        onChange={(e) =>
+                          handleBookingInputChange("mode", e.target.value)
+                        }
+                        required
+                        style={{ width: "20px", height: "20px" }}
+                      />
+                      <span style={{ fontSize: "15px" }}>Trực tuyến</span>
+                    </label>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="mode"
+                        value="offline"
+                        checked={bookingData.mode === "offline"}
+                        onChange={(e) =>
+                          handleBookingInputChange("mode", e.target.value)
+                        }
+                        required
+                        style={{ width: "20px", height: "20px" }}
+                      />
+                      <span style={{ fontSize: "15px" }}>Trực tiếp</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="form-group">

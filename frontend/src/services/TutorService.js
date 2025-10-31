@@ -4,6 +4,12 @@ import Cookies from "js-cookie";
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
 
+// Log the API URL for debugging
+console.log("Using API URL for tutor service:", API_BASE_URL);
+
+// Debug API URL
+console.log("Using API URL:", API_BASE_URL);
+
 const client = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 client.interceptors.request.use((config) => {
   const accessToken = Cookies.get("accessToken");
@@ -55,63 +61,71 @@ export const uploadDegreeDocuments = async (files) => {
   return res.data;
 };
 
-export const searchTutors = async (query) => {
-  let params = {};
+export const searchTutors = async (query = {}) => {
+  const params = {
+    role: "tutor",
+    status: "active",
+    page: 1,
+    limit: 100,
+  };
 
-  if (typeof query === "string") {
-    // Xử lý query string cũ
-    const queryString = query;
-    const keywords = queryString.toLowerCase().split(" ");
+  console.log("🔍 Starting to fetch tutors with params:", params);
 
-    params = {
-      q: queryString,
-      // Tìm theo môn học
-      subjects: keywords.filter((word) =>
-        ["toán", "lý", "hóa", "sinh", "văn", "anh", "sử", "địa"].includes(word)
-      ),
-      // Tìm theo cấp độ
-      levels: keywords.filter((word) =>
-        [
-          "cấp 1",
-          "cấp 2",
-          "cấp 3",
-          "đại học",
-          "tiểu học",
-          "thcs",
-          "thpt",
-        ].includes(word)
-      ),
-      // Tìm theo hình thức
-      mode: keywords.includes("online")
-        ? "online"
-        : keywords.includes("offline")
-        ? "offline"
-        : undefined,
-      // Các tham số khác
-      page: 1,
-      limit: 50,
-    };
-  } else if (typeof query === "object" && query !== null) {
-    // Xử lý object parameters mới
-    params = {
-      search: query.search || "",
-      subject: query.subject || "",
-      location: query.location || "",
-      mode: query.mode || "",
-      minPrice: query.minPrice || "",
-      maxPrice: query.maxPrice || "",
-      sortBy: query.sortBy || "rating",
-      page: query.page || 1,
-      limit: query.limit || 50,
-    };
+  try {
+    // Thử gọi API admin trước
+    try {
+      console.log("🔍 Attempting to fetch from admin endpoint...");
+      const adminRes = await client.get(`/admin/users`, { params });
+      console.log("✅ Admin API success:", adminRes.data);
+
+      const tutors =
+        adminRes.data.users?.filter((user) => user.role === "tutor") || [];
+      return {
+        tutors: tutors,
+        total: tutors.length,
+        totalPages: 1,
+      };
+    } catch (adminError) {
+      console.log(
+        "⚠️ Admin API failed, falling back to regular search...",
+        adminError
+      );
+      const res = await client.get(`/tutors/search`, { params });
+      console.log("✅ Regular search API Response:", res.data);
+
+      if (
+        !res.data ||
+        (!Array.isArray(res.data.tutors) && !Array.isArray(res.data))
+      ) {
+        console.error("❌ Invalid response format:", res.data);
+        return { tutors: [], total: 0, totalPages: 1 };
+      }
+
+      // Xử lý dữ liệu trả về, đảm bảo format đúng
+      const tutors = Array.isArray(res.data.tutors)
+        ? res.data.tutors
+        : Array.isArray(res.data)
+        ? res.data
+        : [];
+
+      console.log("✅ Found tutors:", tutors.length);
+
+      return {
+        tutors: tutors,
+        total: tutors.length,
+        totalPages: Math.ceil(tutors.length / params.limit),
+      };
+    }
+  } catch (error) {
+    if (error.response?.status === 404) {
+      console.log("⚠️ /tutors/all not found, trying /tutors/search");
+      // Fallback to /tutors/search if /tutors/all is not available
+      const searchRes = await client.get("/tutors/search", { params });
+      return searchRes.data;
+    }
+    console.error("❌ API Error:", error.response?.data || error.message);
+    throw error;
   }
-
-  // Add includePending to show all tutors (approved + pending)
-  params.includePending = true;
-
-  console.log("🔍 TutorService searchTutors params:", params);
-  const res = await client.get(`/tutors/search`, { params });
-  return res.data;
 };
 
 export const getTutorCourses = async (tutorId) => {
