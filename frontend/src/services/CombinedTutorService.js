@@ -21,19 +21,50 @@ export const getAllTutors = async () => {
   let lastError = null;
 
   // Try all available endpoints in sequence
+  // Ưu tiên /tutors/search vì nó trả về TutorProfile với đầy đủ thông tin
   const endpoints = [
     {
-      url: "/admin/users",
-      params: { role: "tutor", status: "active", limit: 100 },
+      url: "/tutors/search",
+      params: { limit: 1000, includePending: true },
       transform: (data) => {
+        console.log("🔍 /tutors/search response:", data);
+        return {
+          tutors: data.tutors || [],
+          total: data.pagination?.count || data.tutors?.length || 0,
+          totalPages: data.pagination?.total || 1,
+        };
+      },
+    },
+    {
+      url: "/admin/users",
+      params: { role: "tutor", limit: 1000 },
+      transform: (data) => {
+        console.log("🔍 /admin/users response:", data);
         const tutors =
           data.users?.filter((user) => user.role === "tutor") || [];
-        return { tutors, total: tutors.length, totalPages: 1 };
+        // Transform users thành format giống tutors
+        const formattedTutors = tutors.map(user => ({
+          id: user._id || user.id,
+          userId: user._id || user.id,
+          name: user.full_name || user.name || "Gia sư",
+          email: user.email,
+          avatar: user.image || user.avatar,
+          subjects: [],
+          location: "Chưa cập nhật",
+          rating: 0,
+          reviewCount: 0,
+          experience: "0 năm",
+          price: 0,
+          teachModes: [],
+          bio: "Chưa có giới thiệu",
+          verified: user.status === "active"
+        }));
+        return { tutors: formattedTutors, total: formattedTutors.length, totalPages: 1 };
       },
     },
     {
       url: "/tutors",
-      params: { limit: 100, status: "active" },
+      params: { limit: 1000 },
       transform: (data) => ({
         tutors: data.tutors || [],
         total: data.total || data.tutors?.length || 0,
@@ -42,7 +73,7 @@ export const getAllTutors = async () => {
     },
     {
       url: "/tutors/all",
-      params: { limit: 100 },
+      params: { limit: 1000 },
       transform: (data) => ({
         tutors: Array.isArray(data) ? data : data.tutors || [],
         total: Array.isArray(data)
@@ -50,11 +81,6 @@ export const getAllTutors = async () => {
           : data.total || data.tutors?.length || 0,
         totalPages: data.totalPages || 1,
       }),
-    },
-    {
-      url: "/tutors/search",
-      params: { limit: 100 },
-      transform: (data) => data,
     },
   ];
 

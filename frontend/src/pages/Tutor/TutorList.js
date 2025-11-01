@@ -41,8 +41,10 @@ const TutorList = () => {
       });
 
       // Sử dụng service mới để lấy tất cả gia sư
+      // Không truyền params để lấy TẤT CẢ tutors, sau đó filter ở frontend
       const data = await getAllTutors();
       console.log("🔍 Fetched all tutors:", data);
+      console.log("🔍 Total tutors from API:", data?.tutors?.length || 0);
 
       // Log chi tiết để debug
       console.log("🔍 Raw API Response:", data);

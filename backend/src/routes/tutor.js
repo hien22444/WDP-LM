@@ -65,18 +65,22 @@ router.get("/search", async (req, res) => {
     // Mode filter
     if (mode) filter.teachModes = { $in: [mode] };
 
-    // Price filter
-    if (minPrice || maxPrice) {
-      filter.sessionRate = {};
-      if (minPrice) filter.sessionRate.$gte = Number(minPrice);
+    // Price filter - chỉ filter khi có giá trị min hoặc max được chỉ định
+    if (minPrice && minPrice > 0) {
+      filter.sessionRate = { $gte: Number(minPrice) };
       if (maxPrice) filter.sessionRate.$lte = Number(maxPrice);
+    } else if (maxPrice && maxPrice < 10000000) {
+      // Chỉ filter maxPrice nếu nó khác giá trị mặc định
+      filter.sessionRate = { $lte: Number(maxPrice) };
     }
 
-    // Rating filter
-    if (minRating || maxRating) {
-      filter.rating = {};
-      if (minRating) filter.rating.$gte = Number(minRating);
-      if (maxRating) filter.rating.$lte = Number(maxRating);
+    // Rating filter - chỉ filter khi có giá trị min hoặc max được chỉ định
+    if (minRating && minRating > 0) {
+      filter.rating = { $gte: Number(minRating) };
+      if (maxRating && maxRating < 5) filter.rating.$lte = Number(maxRating);
+    } else if (maxRating && maxRating < 5) {
+      // Chỉ filter maxRating nếu nó khác giá trị mặc định
+      filter.rating = { $lte: Number(maxRating) };
     }
 
     // Experience filter
@@ -116,6 +120,11 @@ router.get("/search", async (req, res) => {
     }
 
     const finalFilter = { ...filter, ...searchQuery };
+    
+    // DEBUG: Log filter để kiểm tra
+    console.log('🔍 /tutors/search - finalFilter:', JSON.stringify(finalFilter, null, 2));
+    console.log('🔍 /tutors/search - includePending:', includePending);
+    console.log('🔍 /tutors/search - page:', page, 'limit:', limit);
 
     // Smart suggestion logic
     if (smartSuggest === "true" && req.user) {
@@ -210,12 +219,20 @@ router.get("/search", async (req, res) => {
     }
 
     const skip = (Number(page) - 1) * Number(limit);
+    
+    // DEBUG: Count trước khi query
+    const totalBeforeQuery = await TutorProfile.countDocuments(finalFilter);
+    console.log('🔍 /tutors/search - Total matching filter:', totalBeforeQuery);
+    
     const tutors = await TutorProfile.find(finalFilter)
       .populate("user", "full_name image phone_number email")
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
       .lean();
+
+    console.log('🔍 /tutors/search - Tutors found after query:', tutors.length);
+    console.log('🔍 /tutors/search - Tutor IDs:', tutors.map(t => t._id));
 
     const total = await TutorProfile.countDocuments(finalFilter);
 

@@ -163,6 +163,12 @@ export const ChatProvider = ({ children }) => {
     const initializeSocket = (userId, userData) => {
       console.log('🔍 ChatContext: Initializing socket with userId:', userId);
       
+      // Nếu socket đã tồn tại và connected, không tạo mới
+      if (socket && socket.connected && previousUserId === userId) {
+        console.log('✅ ChatContext: Socket already connected for same user, skipping');
+        return;
+      }
+      
       // Check if user has changed (login/logout)
       if (previousUserId && previousUserId !== userId) {
         console.log('ChatContext: User changed, clearing chat state');
@@ -189,7 +195,8 @@ export const ChatProvider = ({ children }) => {
       console.log('🔍 ChatContext: Connecting to socket:', socketUrl);
       
       const newSocket = io(socketUrl, {
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        reconnection: false // Tắt auto-reconnect để tránh vòng lặp
       });
 
       setSocket(newSocket);
@@ -292,7 +299,15 @@ export const ChatProvider = ({ children }) => {
     }
 
     initializeSocket(userId, currentUser);
-  }, [currentUser, previousUserId, socket, setActiveChats, setNotifications, setUnreadCount]);
+    
+    // Cleanup function
+    return () => {
+      if (socket) {
+        console.log('🔍 ChatContext: Cleaning up socket on unmount');
+        socket.disconnect();
+      }
+    };
+  }, [currentUser]); // CHỈ depend vào currentUser, bỏ socket và các setter functions
 
   // Request notification permission
   useEffect(() => {

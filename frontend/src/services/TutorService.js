@@ -62,24 +62,26 @@ export const uploadDegreeDocuments = async (files) => {
 };
 
 export const searchTutors = async (query = {}) => {
+  // Use the provided query params or default to empty object
   const params = {
-    role: "tutor",
-    status: "active",
-    page: 1,
-    limit: 100,
+    ...query, // Spread the query params to include any filters
+    limit: 1000, // Set a high limit to get all tutors
+    sortBy: "rating", // Sort by rating by default
+    includePending: true // Include both approved and pending tutors
   };
 
   console.log("🔍 Starting to fetch tutors with params:", params);
 
   try {
-    // Thử gọi API admin trước
+    // First try the admin endpoint
     try {
       console.log("🔍 Attempting to fetch from admin endpoint...");
-      const adminRes = await client.get(`/admin/users`, { params });
+      const adminRes = await client.get(`/admin/users`, { 
+        params: { ...params, role: "tutor" } 
+      });
       console.log("✅ Admin API success:", adminRes.data);
 
-      const tutors =
-        adminRes.data.users?.filter((user) => user.role === "tutor") || [];
+      const tutors = adminRes.data.users || [];
       return {
         tutors: tutors,
         total: tutors.length,
@@ -90,13 +92,12 @@ export const searchTutors = async (query = {}) => {
         "⚠️ Admin API failed, falling back to regular search...",
         adminError
       );
-      const res = await client.get(`/tutors/search`, { params });
+      // Remove role from params for regular search
+      const { role, ...searchParams } = params;
+      const res = await client.get(`/tutors/search`, { params: searchParams });
       console.log("✅ Regular search API Response:", res.data);
 
-      if (
-        !res.data ||
-        (!Array.isArray(res.data.tutors) && !Array.isArray(res.data))
-      ) {
+      if (!res.data || !Array.isArray(res.data.tutors)) {
         console.error("❌ Invalid response format:", res.data);
         return { tutors: [], total: 0, totalPages: 1 };
       }

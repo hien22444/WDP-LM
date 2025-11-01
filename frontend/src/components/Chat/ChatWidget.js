@@ -78,6 +78,12 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
   }, [currentUser, previousUserId]);
 
   useEffect(() => {
+    // Prevent re-running if socket already exists and is connected
+    if (socket && isConnected) {
+      console.log('ChatWidget: Socket already connected, skipping reconnection');
+      return;
+    }
+
     if (isOpen && tutor) {
       let chatSocket = null;
       let cachedUserId = null; // Cache userId for this socket session
@@ -86,7 +92,8 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
       const fetchUserAndConnect = async () => {
         // Create new socket connection to chat namespace
         chatSocket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000/chat', {
-          transports: ['websocket', 'polling']
+          transports: ['websocket', 'polling'],
+          reconnection: false // Disable auto-reconnection to prevent loops
         });
         
         setSocket(chatSocket);
