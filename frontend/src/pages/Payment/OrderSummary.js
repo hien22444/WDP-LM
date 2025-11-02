@@ -30,28 +30,12 @@ const OrderSummary = () => {
     setPayError("");
     try {
       setPayLoading(true);
+
+      // Simplified payload structure
       const payload = {
         product: {
-          id: slot._id,
-          name: slot.courseName,
-          unitPrice: slot.price || 0,
-          quantity: 1,
-        },
-        metadata: {
-          tutorId: slot.tutorProfile?._id,
-          slotId: slot._id,
-          contractDetails: {
-            scheduleInfo: weeklySchedule,
-            courseInfo: {
-              name: slot.courseName,
-              mode: slot.mode,
-              location: slot.location,
-            },
-            tutorInfo: {
-              id: slot.tutorProfile?._id,
-              name: slot.tutorProfile?.user?.full_name,
-            },
-          },
+          name: `Khóa học: ${slot.courseName}`,
+          unitPrice: parseInt(slot.price) || 100000,
         },
       };
 
@@ -159,46 +143,38 @@ const OrderSummary = () => {
                   </label>
                   <div className="fw-semibold">{slot.courseName}</div>
                 </div>
-
-                <div className="mb-3">
-                  <label className="text-secondary small d-block">
-                    Lịch học trong tuần
-                  </label>
-                  {weeklySchedule.length > 0 ? (
-                    <div className="row g-2">
-                      {weeklySchedule.map((row) => (
-                        <div key={row.day} className="col-12">
-                          <div className="border rounded-3 p-2">
-                            <div className="fw-semibold">{row.day}</div>
-                            <div className="text-secondary small">
-                              {row.times.join(", ")}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                {/* --- BẮT ĐẦU ĐOẠN CODE MỚI --- */}
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label className="text-secondary small d-block">
+                      Ngày bắt đầu
+                    </label>
+                    <div className="fw-semibold">
+                      {slot.start
+                        ? new Date(slot.start).toLocaleDateString("vi-VN")
+                        : "Chưa xác định"}
                     </div>
-                  ) : (
-                    <div>
-                      {new Date(slot.start).toLocaleDateString()}{" "}
-                      {new Date(slot.start).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      {" – "}
-                      {new Date(slot.end).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="text-secondary small d-block">
+                      Ngày kết thúc
+                    </label>
+                    <div className="fw-semibold">
+                      {slot.end
+                        ? new Date(slot.end).toLocaleDateString("vi-VN")
+                        : "Chưa xác định"}
                     </div>
-                  )}
+                  </div>
                 </div>
-
+                {/* --- KẾT THÚC ĐOẠN CODE MỚI --- */}
                 <div className="row">
                   <div className="col-md-6 mb-3">
                     <label className="text-secondary small d-block">
                       Hình thức
                     </label>
-                    <div>{slot.mode === "online" ? "Online" : "Offline"}</div>
+                    <div>
+                      {slot.mode === "online" ? "Trực tuyến" : "Trực tiếp"}
+                    </div>
                   </div>
 
                   <div className="col-md-6 mb-3">

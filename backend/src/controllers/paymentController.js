@@ -8,29 +8,27 @@ const { notifyStudentPaymentSuccess, notifyTutorPaymentSuccess } = require("../s
 
 // Tạo link thanh toán
 const createPaymentLink = async (req, res) => {
-  // FIX: orderCode phải là một SỐ NGUYÊN DƯƠNG hợp lệ theo PayOS.
-  // PayOS yêu cầu order_code là integer, positive và <= Number.MAX_SAFE_INTEGER.
-  // Sinh orderCode an toàn: seconds-since-epoch (smaller than ms) + 3-digit random suffix.
-  const seconds = Math.floor(Date.now() / 1000);
-  const suffix = Math.floor(Math.random() * 900) + 100; // 100..999
-  let orderCode = Number(String(seconds) + String(suffix));
-  // Safety checks
-  if (
-    !Number.isFinite(orderCode) ||
-    !Number.isInteger(orderCode) ||
-    orderCode <= 0
-  ) {
-    orderCode = seconds; // fallback
-  }
-  if (orderCode > Number.MAX_SAFE_INTEGER) {
-    orderCode = seconds; // ensure below safe integer
-  }
+  try {
+    // Validate input
+    const { product } = req.body;
+    if (!product || !product.unitPrice || product.unitPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Giá tiền không hợp lệ"
+      });
+    }
 
-  // Determine amount server-side: prefer DB price from TeachingSlot (slotId),
-  // fallback to payload.product.unitPrice if provided by client.
-  let amount = null;
-  let productName = "Thanh toán đơn hàng WDP-LM";
-  let slotId = null;
+    // Create simple order code
+    const orderCode = Date.now();
+    
+    // Create payment with minimum required fields
+    const order = {
+      orderCode,
+      amount: product.unitPrice,
+      description: product.name || "Thanh toán khóa học",
+      cancelUrl: `${process.env.FRONTEND_URL}/payment/cancel`,
+      returnUrl: `${process.env.FRONTEND_URL}/payment/success`
+    };
 
   try {
     const payload = req.body || {};
@@ -196,16 +194,27 @@ const receiveWebhook = async (req, res) => {
         message: webhookData.message,
       });
 
-      try {
-        // Log incoming status for debugging
-        console.log("🔍 Processing payment status:", {
-          orderCode,
-          status,
-          rawStatus: webhookData.data.status,
-          description: webhookData.data.description,
-        });
+    try {
+      console.log("Creating payment with PayOS:", order);
+      const paymentLink = await payOS.paymentRequests.create(order);
+      console.log("Payment link created:", paymentLink);
 
-        // PayOS can send either "PAID" or "COMPLETED" for successful payments
+      // Save payment to database
+      const payment = await Payment.create({
+        orderCode: String(orderCode),
+        amount: order.amount,
+        description: order.description,
+        status: "PENDING",
+        metadata: req.body
+      });
+
+      return res.json({
+        success: true,
+        checkoutUrl: paymentLink.checkoutUrl,
+        qrUrl: paymentLink.qrUrl,
+        amount: order.amount,
+        orderCode
+      });        // PayOS can send either "PAID" or "COMPLETED" for successful payments
         // Check both the status and the response code
         if (
           webhookData.code === "00" &&
