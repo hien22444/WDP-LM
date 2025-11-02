@@ -1857,13 +1857,35 @@ const TutorProfilePage = () => {
                   </label>
                   <div style={{ position: "relative" }}>
                     <input
-                      type="datetime-local"
+                      type="date"
                       id="start-time"
-                      value={bookingData.start}
-                      onChange={(e) =>
-                        handleBookingInputChange("start", e.target.value)
+                      value={
+                        bookingData.start ? bookingData.start.split("T")[0] : ""
                       }
-                      min={new Date().toISOString().slice(0, 16)}
+                      onChange={(e) => {
+                        const date = e.target.value;
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0); // Set time to midnight for date comparison
+                        const selectedDate = new Date(date);
+                        selectedDate.setHours(0, 0, 0, 0);
+
+                        // Nếu chọn ngày trong quá khứ, set về ngày hiện tại
+                        if (selectedDate < today) {
+                          const currentDate = new Date()
+                            .toISOString()
+                            .split("T")[0];
+                          handleBookingInputChange(
+                            "start",
+                            `${currentDate}T08:00`
+                          );
+                          alert("Không thể chọn ngày trong quá khứ!");
+                          return;
+                        }
+
+                        const fullDateTime = `${date}T08:00`; // Default to 8:00 AM
+                        handleBookingInputChange("start", fullDateTime);
+                      }}
+                      min={new Date().toISOString().split("T")[0]}
                       required
                       style={{
                         width: "100%",
@@ -1912,57 +1934,6 @@ const TutorProfilePage = () => {
                     Các thứ trong tuần muốn học *
                   </label>
                   {/* Hiển thị thông tin học phí */}
-                  <div
-                    style={{
-                      backgroundColor: "#f0fdf4",
-                      border: "2px solid #22c55e",
-                      borderRadius: "12px",
-                      padding: "16px",
-                      marginBottom: "20px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, color: "#166534" }}>
-                        Học phí mỗi buổi:
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "bold",
-                          color: "#22c55e",
-                        }}
-                      >
-                        {bookingData.pricePerSession.toLocaleString()}đ
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, color: "#166534" }}>
-                        Tổng học phí ({bookingData.numberOfSessions} buổi):
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "20px",
-                          fontWeight: "bold",
-                          color: "#22c55e",
-                        }}
-                      >
-                        {bookingData.totalPrice.toLocaleString()}đ
-                      </span>
-                    </div>
-                  </div>
 
                   <div
                     style={{
@@ -2190,39 +2161,108 @@ const TutorProfilePage = () => {
                                 flex: 1,
                               }}
                             >
-                              <input
-                                type="text"
-                                placeholder="08:00-09:30"
-                                value={
-                                  bookingData.daySchedules?.[dayOfWeek]
-                                    ? `${bookingData.daySchedules[dayOfWeek].start}-${bookingData.daySchedules[dayOfWeek].end}`
-                                    : ""
-                                }
-                                onChange={(e) =>
-                                  handleBookingInputChange(
-                                    `daySchedule_${dayOfWeek}`,
-                                    e.target.value
-                                  )
-                                }
+                              <div
                                 style={{
-                                  padding: "12px 16px",
-                                  border: "2px solid #d1d5db",
-                                  borderRadius: "8px",
-                                  fontSize: "15px",
-                                  width: "140px",
-                                  fontFamily: "monospace",
-                                  transition: "all 0.3s ease",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
                                 }}
-                              />
+                              >
+                                <input
+                                  type="time"
+                                  value={
+                                    bookingData.daySchedules?.[dayOfWeek]
+                                      ?.start || ""
+                                  }
+                                  onChange={(e) => {
+                                    const startTime = e.target.value;
+                                    const endTime =
+                                      bookingData.daySchedules?.[dayOfWeek]
+                                        ?.end || "";
+                                    // Khi thay đổi giờ bắt đầu
+                                    const newStartTime = startTime;
+                                    const currentEndTime =
+                                      bookingData.daySchedules?.[dayOfWeek]
+                                        ?.end;
+
+                                    // Tự động tính giờ kết thúc là 2h30 sau giờ bắt đầu
+                                    if (newStartTime) {
+                                      const [hours, minutes] =
+                                        newStartTime.split(":");
+                                      const startDate = new Date();
+                                      startDate.setHours(
+                                        parseInt(hours),
+                                        parseInt(minutes),
+                                        0
+                                      );
+
+                                      const endDate = new Date(
+                                        startDate.getTime() +
+                                          2.5 * 60 * 60 * 1000
+                                      );
+                                      const endHours = String(
+                                        endDate.getHours()
+                                      ).padStart(2, "0");
+                                      const endMinutes = String(
+                                        endDate.getMinutes()
+                                      ).padStart(2, "0");
+                                      const newEndTime = `${endHours}:${endMinutes}`;
+
+                                      handleBookingInputChange(
+                                        `daySchedule_${dayOfWeek}`,
+                                        `${newStartTime}-${newEndTime}`
+                                      );
+                                    } else {
+                                      handleBookingInputChange(
+                                        `daySchedule_${dayOfWeek}`,
+                                        `${startTime}-${endTime}`
+                                      );
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "12px 16px",
+                                    border: "2px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "15px",
+                                    width: "120px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                />
+                                <span>-</span>
+                                <input
+                                  type="time"
+                                  value={
+                                    bookingData.daySchedules?.[dayOfWeek]
+                                      ?.end || ""
+                                  }
+                                  readOnly
+                                  onChange={(e) => {
+                                    const startTime =
+                                      bookingData.daySchedules?.[dayOfWeek]
+                                        ?.start || "";
+                                    const endTime = e.target.value;
+                                    handleBookingInputChange(
+                                      `daySchedule_${dayOfWeek}`,
+                                      `${startTime}-${endTime}`
+                                    );
+                                  }}
+                                  style={{
+                                    padding: "12px 16px",
+                                    border: "2px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "15px",
+                                    width: "120px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                />
+                              </div>
                               <small
                                 style={{
                                   color: "#6b7280",
                                   fontSize: "12px",
                                   fontStyle: "italic",
                                 }}
-                              >
-                                Format: HH:MM-HH:MM
-                              </small>
+                              ></small>
                             </div>
                           </div>
                         ))}
@@ -2327,17 +2367,21 @@ const TutorProfilePage = () => {
 
                 <div className="form-group">
                   <label htmlFor="end-time">
-                    Thời gian kết thúc buổi học đầu tiên
+                    Thời gian dự kiến kết thúc khóa học
                   </label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     id="end-time"
-                    value={bookingData.end}
-                    onChange={(e) =>
-                      handleBookingInputChange("end", e.target.value)
-                    }
+                    value={bookingData.end ? bookingData.end.split("T")[0] : ""}
+                    onChange={(e) => {
+                      const date = e.target.value;
+                      const fullDateTime = `${date}T08:00`; // Default to 8:00 AM
+                      handleBookingInputChange("end", fullDateTime);
+                    }}
                     min={
-                      bookingData.start || new Date().toISOString().slice(0, 16)
+                      bookingData.start
+                        ? bookingData.start.split("T")[0]
+                        : new Date().toISOString().split("T")[0]
                     }
                     required
                     readOnly
@@ -2349,9 +2393,7 @@ const TutorProfilePage = () => {
                       display: "block",
                       marginTop: "4px",
                     }}
-                  >
-                    Tự động tính: thời gian bắt đầu + 2h30
-                  </small>
+                  ></small>
                 </div>
 
                 <div className="form-group">
@@ -2566,7 +2608,7 @@ const TutorProfilePage = () => {
                       }}
                     >
                       <span style={{ fontSize: "15px", color: "#6b7280" }}>
-                        ⏰ Buổi học đầu tiên:
+                        ⏰ Thời gian khóa học :
                       </span>
                       <span
                         style={{
@@ -2577,11 +2619,15 @@ const TutorProfilePage = () => {
                         }}
                       >
                         {bookingData.start
-                          ? new Date(bookingData.start).toLocaleString("vi-VN")
+                          ? new Date(bookingData.start).toLocaleDateString(
+                              "vi-VN"
+                            )
                           : "Chưa chọn"}
                         <br />
                         {bookingData.end
-                          ? new Date(bookingData.end).toLocaleString("vi-VN")
+                          ? new Date(bookingData.end).toLocaleDateString(
+                              "vi-VN"
+                            )
                           : "Chưa tính"}
                       </span>
                     </div>
@@ -2787,17 +2833,5 @@ const TutorProfilePage = () => {
 };
 
 // Helper function to get day name
-const getDayName = (dayOfWeek) => {
-  const days = {
-    0: "Chủ nhật",
-    1: "Thứ hai",
-    2: "Thứ ba",
-    3: "Thứ tư",
-    4: "Thứ năm",
-    5: "Thứ sáu",
-    6: "Thứ bảy",
-  };
-  return days[dayOfWeek] || dayOfWeek;
-};
 
 export default TutorProfilePage;

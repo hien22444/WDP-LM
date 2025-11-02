@@ -157,7 +157,7 @@ const OrderSummary = () => {
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="text-secondary small d-block">
-                      Ngày kết thúc
+                      Ngày kết thúc dự kiến
                     </label>
                     <div className="fw-semibold">
                       {slot.end
