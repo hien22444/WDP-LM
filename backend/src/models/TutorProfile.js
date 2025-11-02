@@ -4,6 +4,8 @@ const SubjectSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     level: { type: String, default: null, trim: true }, // e.g., Cap 2, IELTS, Beginner
+    price: { type: Number, default: 0, min: 0 }, // Giá cho môn học này
+    description: { type: String, default: null }, // Mô tả thêm về việc dạy môn này
   },
   { _id: false }
 );

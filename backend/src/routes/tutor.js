@@ -120,11 +120,14 @@ router.get("/search", async (req, res) => {
     }
 
     const finalFilter = { ...filter, ...searchQuery };
-    
+
     // DEBUG: Log filter để kiểm tra
-    console.log('🔍 /tutors/search - finalFilter:', JSON.stringify(finalFilter, null, 2));
-    console.log('🔍 /tutors/search - includePending:', includePending);
-    console.log('🔍 /tutors/search - page:', page, 'limit:', limit);
+    console.log(
+      "🔍 /tutors/search - finalFilter:",
+      JSON.stringify(finalFilter, null, 2)
+    );
+    console.log("🔍 /tutors/search - includePending:", includePending);
+    console.log("🔍 /tutors/search - page:", page, "limit:", limit);
 
     // Smart suggestion logic
     if (smartSuggest === "true" && req.user) {
@@ -219,11 +222,11 @@ router.get("/search", async (req, res) => {
     }
 
     const skip = (Number(page) - 1) * Number(limit);
-    
+
     // DEBUG: Count trước khi query
     const totalBeforeQuery = await TutorProfile.countDocuments(finalFilter);
-    console.log('🔍 /tutors/search - Total matching filter:', totalBeforeQuery);
-    
+    console.log("🔍 /tutors/search - Total matching filter:", totalBeforeQuery);
+
     const tutors = await TutorProfile.find(finalFilter)
       .populate("user", "full_name image phone_number email")
       .sort(sort)
@@ -231,8 +234,11 @@ router.get("/search", async (req, res) => {
       .limit(Number(limit))
       .lean();
 
-    console.log('🔍 /tutors/search - Tutors found after query:', tutors.length);
-    console.log('🔍 /tutors/search - Tutor IDs:', tutors.map(t => t._id));
+    console.log("🔍 /tutors/search - Tutors found after query:", tutors.length);
+    console.log(
+      "🔍 /tutors/search - Tutor IDs:",
+      tutors.map((t) => t._id)
+    );
 
     const total = await TutorProfile.countDocuments(finalFilter);
 
@@ -395,15 +401,35 @@ router.get("/:id", async (req, res) => {
       ? verification.otherDocuments.map(toAbsoluteUrl)
       : [];
 
-    // Normalize subjects to preserve name + level for the UI
+    // Normalize subjects to preserve name + level + price for the UI
     const normalizedSubjects = Array.isArray(tutor.subjects)
       ? tutor.subjects
           .map((s) => {
             if (!s) return null;
-            if (typeof s === "string") return s;
-            return s.name || s.subject || s.level || "";
+            // Nếu subject là string, convert thành object
+            if (typeof s === "string") {
+              return {
+                name: s,
+                price:
+                  tutor.sessionRate || tutor.hourlyRate || tutor.price || 0,
+                level: "Tất cả",
+                description: "",
+              };
+            }
+            // Nếu subject là object, giữ nguyên cấu trúc
+            return {
+              name: s.name || s.subject || "",
+              price:
+                s.price ||
+                tutor.sessionRate ||
+                tutor.hourlyRate ||
+                tutor.price ||
+                0,
+              level: s.level || "Tất cả",
+              description: s.description || "",
+            };
           })
-          .filter(Boolean)
+          .filter((s) => s && s.name) // Filter out null và subject không có tên
       : [];
 
     // Format response with richer registration info
@@ -966,12 +992,10 @@ router.post("/me/submit", auth(), async (req, res) => {
     });
   } catch (e) {
     console.error("/tutors/me/submit error:", e?.message);
-    return res
-      .status(200)
-      .json({
-        message: "Đã tiếp nhận yêu cầu gửi duyệt",
-        warnings: ["Gặp lỗi không nghiêm trọng khi ghi log"],
-      });
+    return res.status(200).json({
+      message: "Đã tiếp nhận yêu cầu gửi duyệt",
+      warnings: ["Gặp lỗi không nghiêm trọng khi ghi log"],
+    });
   }
 });
 

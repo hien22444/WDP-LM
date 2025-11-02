@@ -65,6 +65,19 @@ const userSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+    updateProfile: (state, action) => {
+      state.user = {
+        ...state.user,
+        ...action.payload.user,
+      };
+    },
+    restoreUser: (state) => {
+      const user = localStorage.getItem("user");
+      if (user) {
+        state.user = JSON.parse(user);
+        state.isAuthenticated = true;
+      }
+    },
   },
 });
 
@@ -77,6 +90,8 @@ export const {
   registerSuccess,
   registerFailure,
   setPendingUser,
+  updateProfile,
+  restoreUser,
 } = userSlice.actions;
 
 export default userSlice.reducer;

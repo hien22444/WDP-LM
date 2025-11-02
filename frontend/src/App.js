@@ -299,6 +299,7 @@ import AdminReports from "./pages/Admin/AdminReports";
 import About from "./pages/About/About";
 import GoogleMeetStyle from "./components/VideoCall/GoogleMeetStyle";
 import ProfileCompletionModal from "./components/ProfileCompletion/ProfileCompletionModal";
+import PaymentCancel from "./pages/Payment/PaymentCancel";
 import { useState, useEffect } from "react";
 import authService from "./services/AuthService";
 
@@ -468,7 +469,8 @@ function App() {
             }
           />
           <Route path="/payment/order-summary" element={<OrderSummary />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/cancel" element={<PaymentCancel />} />
           <Route
             path="/change-password"
             element={isAuthenticated ? <ChangePassword /> : <Navigate to="/" />}

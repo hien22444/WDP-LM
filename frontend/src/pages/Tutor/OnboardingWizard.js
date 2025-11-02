@@ -5,6 +5,8 @@ import {
   submitTutorProfile,
   uploadIdDocuments,
   uploadDegreeDocuments,
+  updateTutorExpertise,
+  updateTutorBasic,
 } from "../../services/TutorService";
 import UniversalHeader from "../../components/Layout/UniversalHeader";
 import "./OnboardingWizard.scss";
@@ -22,7 +24,7 @@ const OnboardingWizard = () => {
     // Teaching info
     subjects: [],
     experience: "",
-    hourlyRate: "",
+    sessionRate: "", // Common price for all subjects
 
     // Documents
     identityFront: null,
@@ -123,15 +125,36 @@ const OnboardingWizard = () => {
         toast.success("✅ Đã tải lên tài liệu học vấn");
       }
 
-      // 3. Submit tutor profile to backend
+      // 3. Save subjects and experience info
+      if (formData.subjects.length > 0) {
+        await updateTutorExpertise({
+          subjects: formData.subjects.map((s) => ({
+            ...s,
+            price: parseInt(formData.sessionRate) || 0,
+          })),
+          experienceYears: parseInt(formData.experience) || 0,
+          experiencePlaces: formData.university || null,
+          sessionRate: parseInt(formData.sessionRate) || 0,
+        });
+        toast.success("✅ Đã lưu thông tin môn học và kinh nghiệm");
+      }
+
+      // 4. Update basic info
+      await updateTutorBasic({
+        bio: formData.introduction,
+        city: formData.city || null,
+        district: formData.district || null,
+      });
+
+      // 5. Submit tutor profile to backend
       const result = await submitTutorProfile();
 
-      // 4. Show success message
+      // 6. Show success message
       toast.success(
         "🎉 Đăng ký gia sư thành công! Hồ sơ của bạn đang được xem xét."
       );
 
-      // 5. Redirect to profile page
+      // 7. Redirect to profile page
       navigate("/profile");
     } catch (error) {
       console.error("Error submitting tutor profile:", error);
@@ -455,8 +478,8 @@ const OnboardingWizard = () => {
             <p>Thông tin về môn dạy và phương pháp giảng dạy của bạn.</p>
 
             <div className="form-group">
-              <label>Môn dạy</label>
-              <div className="checkbox-group">
+              <label>Môn dạy và học phí</label>
+              <div className="subjects-list">
                 {[
                   "Toán",
                   "Lý",
@@ -468,58 +491,73 @@ const OnboardingWizard = () => {
                   "Địa lý",
                   "Tin học",
                 ].map((subject) => (
-                  <label key={subject} className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={formData.subjects.includes(subject)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData((prev) => ({
-                            ...prev,
-                            subjects: [...prev.subjects, subject],
-                          }));
-                        } else {
-                          setFormData((prev) => ({
-                            ...prev,
-                            subjects: prev.subjects.filter(
-                              (s) => s !== subject
-                            ),
-                          }));
-                        }
-                      }}
-                    />
-                    <span className="checkmark"></span>
-                    {subject}
-                  </label>
+                  <div key={subject} className="subject-item">
+                    <div className="subject-header">
+                      <label className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={formData.subjects.some(
+                            (s) => s.name === subject
+                          )}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              // Chỉ thêm tên môn học
+                              setFormData((prev) => ({
+                                ...prev,
+                                subjects: [
+                                  ...prev.subjects,
+                                  {
+                                    name: subject,
+                                  },
+                                ],
+                              }));
+                            } else {
+                              // Xóa môn học
+                              setFormData((prev) => ({
+                                ...prev,
+                                subjects: prev.subjects.filter(
+                                  (s) => s.name !== subject
+                                ),
+                              }));
+                            }
+                          }}
+                        />
+                        <span className="checkmark"></span>
+                        {subject}
+                      </label>
+                    </div>
+
+                    {/* Removed all description and level fields */}
+                  </div>
                 ))}
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Kinh nghiệm (năm)</label>
-                <input
-                  type="number"
-                  value={formData.experience}
-                  onChange={(e) =>
-                    handleInputChange("experience", e.target.value)
-                  }
-                  placeholder="2"
-                  min="0"
-                />
-              </div>
-              <div className="form-group">
-                <label>Mức phí (VNĐ/giờ)</label>
-                <input
-                  type="number"
-                  value={formData.hourlyRate}
-                  onChange={(e) =>
-                    handleInputChange("hourlyRate", e.target.value)
-                  }
-                  placeholder="200000"
-                  min="50000"
-                />
-              </div>
+            <div className="form-group">
+              <label>Kinh nghiệm (năm)</label>
+              <input
+                type="number"
+                value={formData.experience}
+                onChange={(e) =>
+                  handleInputChange("experience", e.target.value)
+                }
+                placeholder="2"
+                min="0"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Học phí chung cho tất cả các môn (VNĐ/buổi)</label>
+              <input
+                type="number"
+                value={formData.sessionRate}
+                onChange={(e) =>
+                  handleInputChange("sessionRate", e.target.value)
+                }
+                placeholder="VD: 200000"
+                min="0"
+                className="price-input"
+              />
             </div>
           </div>
         );

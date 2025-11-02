@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../../redux/slices/userSlice";
+import { logout, updateProfile } from "../../redux/slices/userSlice";
 import {
   getCurrentUserApi,
   updateUserProfileApi,
@@ -178,6 +178,8 @@ const Profile = () => {
       setUpdating(true);
       const response = await updateUserProfileApi(editForm);
       setUserProfile(response.user);
+      // Dispatch action to update Redux store
+      dispatch(updateProfile(response));
       setIsEditing(false);
       setEditForm({});
       toast.success("Cập nhật thông tin thành công!");

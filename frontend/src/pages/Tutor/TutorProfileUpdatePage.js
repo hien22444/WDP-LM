@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
-import { updateTutorProfile, updateTutorBasic } from '../../services/TutorService';
-import UniversalHeader from '../../components/Layout/UniversalHeader';
-import './TutorProfileUpdatePage.scss';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import {
+  updateTutorProfile,
+  updateTutorBasic,
+} from "../../services/TutorService";
+import UniversalHeader from "../../components/Layout/UniversalHeader";
+import "./TutorProfileUpdatePage.scss";
 
 const TutorProfileUpdatePage = () => {
   const navigate = useNavigate();
@@ -12,57 +15,80 @@ const TutorProfileUpdatePage = () => {
   const currentUser = useSelector((state) => state.user.user);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    introduction: '',
-    subjects: [],
-    experience: '',
-    hourlyRate: '',
-    location: '',
-    education: '',
-    university: '',
-    teachingMethod: '',
-    achievements: '',
-    availability: []
+    introduction: "",
+    subjects: [], // Mỗi subject giờ là một object {name, price, level, description}
+    experience: "",
+    location: "",
+    education: "",
+    university: "",
+    teachingMethod: "",
+    achievements: "",
+    availability: [],
   });
 
   const subjects = [
-    'Toán', 'Lý', 'Hóa', 'Sinh', 'Văn', 'Anh', 'Sử', 'Địa',
-    'Tin học', 'Lập trình', 'Vật lý', 'Hóa học', 'Sinh học',
-    'Ngữ văn', 'Tiếng Anh', 'Lịch sử', 'Địa lý'
+    "Toán",
+    "Lý",
+    "Hóa",
+    "Sinh",
+    "Văn",
+    "Anh",
+    "Sử",
+    "Địa",
+    "Tin học",
+    "Lập trình",
+    "Vật lý",
+    "Hóa học",
+    "Sinh học",
+    "Ngữ văn",
+    "Tiếng Anh",
+    "Lịch sử",
+    "Địa lý",
   ];
 
   useEffect(() => {
     // Check authentication
-    console.log('🔍 TutorProfileUpdatePage: Authentication check:', {
+    console.log("🔍 TutorProfileUpdatePage: Authentication check:", {
       isAuthenticated,
       currentUser,
-      localStorageUser: localStorage.getItem("user")
+      localStorageUser: localStorage.getItem("user"),
     });
-    
+
     if (!isAuthenticated) {
-      console.log('❌ TutorProfileUpdatePage: User not authenticated, redirecting to login');
-      toast.error('Vui lòng đăng nhập để cập nhật hồ sơ');
-      navigate('/signin');
+      console.log(
+        "❌ TutorProfileUpdatePage: User not authenticated, redirecting to login"
+      );
+      toast.error("Vui lòng đăng nhập để cập nhật hồ sơ");
+      navigate("/signin");
       return;
     }
-    
+
     // Load existing tutor profile data if available
     // This could be fetched from an API
   }, [isAuthenticated, currentUser, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubjectChange = (subject) => {
-    setFormData(prev => ({
+  const handleSubjectChange = (subject, price, level, description) => {
+    setFormData((prev) => ({
       ...prev,
-      subjects: prev.subjects.includes(subject)
-        ? prev.subjects.filter(s => s !== subject)
-        : [...prev.subjects, subject]
+      subjects: prev.subjects.some((s) => s.name === subject.name)
+        ? prev.subjects.filter((s) => s.name !== subject.name)
+        : [
+            ...prev.subjects,
+            {
+              name: subject.name,
+              price: price || 0,
+              level: level || "Tất cả",
+              description: description || "",
+            },
+          ],
     }));
   };
 
@@ -71,29 +97,36 @@ const TutorProfileUpdatePage = () => {
     setLoading(true);
 
     try {
-      console.log('🔍 TutorProfileUpdatePage: Submitting form data:', formData);
-      
+      console.log("🔍 TutorProfileUpdatePage: Submitting form data:", formData);
+
       // Use updateTutorProfile to update all fields
       const result = await updateTutorProfile(formData);
-      
-      console.log('✅ TutorProfileUpdatePage: Update successful:', result);
-      toast.success('Cập nhật hồ sơ gia sư thành công!');
-      navigate('/profile');
+
+      console.log("✅ TutorProfileUpdatePage: Update successful:", result);
+      toast.success("Cập nhật hồ sơ gia sư thành công!");
+      navigate("/profile");
     } catch (error) {
-      console.error('❌ TutorProfileUpdatePage: Error updating tutor profile:', error);
-      console.error('❌ Error details:', {
+      console.error(
+        "❌ TutorProfileUpdatePage: Error updating tutor profile:",
+        error
+      );
+      console.error("❌ Error details:", {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
-        statusText: error.response?.statusText
+        statusText: error.response?.statusText,
       });
-      
+
       // Show more helpful error message
       if (error.response?.status === 401) {
-        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        navigate('/signin');
+        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        navigate("/signin");
       } else {
-        toast.error(`Có lỗi xảy ra khi cập nhật hồ sơ: ${error.response?.data?.message || error.message}`);
+        toast.error(
+          `Có lỗi xảy ra khi cập nhật hồ sơ: ${
+            error.response?.data?.message || error.message
+          }`
+        );
       }
     } finally {
       setLoading(false);
@@ -101,13 +134,13 @@ const TutorProfileUpdatePage = () => {
   };
 
   const handleCancel = () => {
-    navigate('/profile');
+    navigate("/profile");
   };
 
   return (
     <div className="tutor-profile-update-page">
       <UniversalHeader />
-      
+
       <div className="page-container">
         <div className="page-header">
           <h1>Cập nhật hồ sơ gia sư</h1>
@@ -129,19 +162,117 @@ const TutorProfileUpdatePage = () => {
               />
             </div>
 
-            {/* Môn dạy */}
+            {/* Môn dạy và giá */}
             <div className="form-section">
-              <h3>Môn dạy</h3>
-              <div className="subjects-grid">
-                {subjects.map(subject => (
-                  <label key={subject} className="subject-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={formData.subjects.includes(subject)}
-                      onChange={() => handleSubjectChange(subject)}
-                    />
-                    <span className="subject-label">{subject}</span>
-                  </label>
+              <h3>Môn dạy và học phí</h3>
+              <div className="subjects-list">
+                {subjects.map((subject) => (
+                  <div key={subject} className="subject-item">
+                    <div className="subject-header">
+                      <label className="subject-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={formData.subjects.some(
+                            (s) => s.name === subject
+                          )}
+                          onChange={() => {
+                            const isSelected = formData.subjects.some(
+                              (s) => s.name === subject
+                            );
+                            if (isSelected) {
+                              // Remove subject
+                              setFormData((prev) => ({
+                                ...prev,
+                                subjects: prev.subjects.filter(
+                                  (s) => s.name !== subject
+                                ),
+                              }));
+                            } else {
+                              // Add new subject with price
+                              setFormData((prev) => ({
+                                ...prev,
+                                subjects: [
+                                  ...prev.subjects,
+                                  {
+                                    name: subject,
+                                    price: 0,
+                                    level: "Tất cả",
+                                    description: "",
+                                  },
+                                ],
+                              }));
+                            }
+                          }}
+                        />
+                        <span className="subject-label">{subject}</span>
+                      </label>
+                    </div>
+
+                    {formData.subjects.some((s) => s.name === subject) && (
+                      <div className="subject-details">
+                        <div className="detail-row">
+                          <input
+                            type="number"
+                            placeholder="Học phí/buổi"
+                            value={
+                              formData.subjects.find((s) => s.name === subject)
+                                ?.price || ""
+                            }
+                            onChange={(e) => {
+                              const price = parseInt(e.target.value) || 0;
+                              setFormData((prev) => ({
+                                ...prev,
+                                subjects: prev.subjects.map((s) =>
+                                  s.name === subject ? { ...s, price } : s
+                                ),
+                              }));
+                            }}
+                            className="price-input"
+                            min="0"
+                          />
+                          <select
+                            value={
+                              formData.subjects.find((s) => s.name === subject)
+                                ?.level || "Tất cả"
+                            }
+                            onChange={(e) => {
+                              const level = e.target.value;
+                              setFormData((prev) => ({
+                                ...prev,
+                                subjects: prev.subjects.map((s) =>
+                                  s.name === subject ? { ...s, level } : s
+                                ),
+                              }));
+                            }}
+                            className="level-select"
+                          >
+                            <option value="Tất cả">Tất cả trình độ</option>
+                            <option value="Sơ cấp">Sơ cấp</option>
+                            <option value="Trung cấp">Trung cấp</option>
+                            <option value="Cao cấp">Cao cấp</option>
+                          </select>
+                        </div>
+                        <textarea
+                          placeholder="Mô tả thêm về việc dạy môn này..."
+                          value={
+                            formData.subjects.find((s) => s.name === subject)
+                              ?.description || ""
+                          }
+                          onChange={(e) => {
+                            const description = e.target.value;
+                            setFormData((prev) => ({
+                              ...prev,
+                              subjects: prev.subjects.map((s) =>
+                                s.name === subject ? { ...s, description } : s
+                              ),
+                            }));
+                          }}
+                          className="description-input"
+                          rows="2"
+                        />
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -242,19 +373,29 @@ const TutorProfileUpdatePage = () => {
             {/* Lịch rảnh */}
             <div className="form-section">
               <h3>Thời gian rảnh (để học viên có thể đặt lịch)</h3>
-              <p className="form-hint">Chọn các khung giờ bạn có thể dạy trong tuần</p>
-              
+              <p className="form-hint">
+                Chọn các khung giờ bạn có thể dạy trong tuần
+              </p>
+
               <div className="availability-grid">
-                {['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'].map((day, dayIndex) => (
+                {[
+                  "Chủ nhật",
+                  "Thứ 2",
+                  "Thứ 3",
+                  "Thứ 4",
+                  "Thứ 5",
+                  "Thứ 6",
+                  "Thứ 7",
+                ].map((day, dayIndex) => (
                   <div key={dayIndex} className="day-slot">
                     <h4>{day}</h4>
                     <div className="time-slots">
-                      {['18:00', '19:00', '20:00', '21:00'].map((time) => {
+                      {["18:00", "19:00", "20:00", "21:00"].map((time) => {
                         const slotKey = `${dayIndex}_${time}`;
                         const isChecked = formData.availability.some(
-                          s => s.dayOfWeek === dayIndex && s.start === time
+                          (s) => s.dayOfWeek === dayIndex && s.start === time
                         );
-                        
+
                         return (
                           <label key={slotKey} className="time-slot-checkbox">
                             <input
@@ -263,24 +404,37 @@ const TutorProfileUpdatePage = () => {
                               onChange={() => {
                                 if (isChecked) {
                                   // Remove slot
-                                  setFormData(prev => ({
+                                  setFormData((prev) => ({
                                     ...prev,
                                     availability: prev.availability.filter(
-                                      s => !(s.dayOfWeek === dayIndex && s.start === time)
-                                    )
+                                      (s) =>
+                                        !(
+                                          s.dayOfWeek === dayIndex &&
+                                          s.start === time
+                                        )
+                                    ),
                                   }));
                                 } else {
                                   // Add slot (2 hours duration)
-                                  const [hour, min] = time.split(':').map(Number);
-                                  const endHour = String(hour + 2).padStart(2, '0');
+                                  const [hour, min] = time
+                                    .split(":")
+                                    .map(Number);
+                                  const endHour = String(hour + 2).padStart(
+                                    2,
+                                    "0"
+                                  );
                                   const endTime = `${endHour}:${min}`;
-                                  
-                                  setFormData(prev => ({
+
+                                  setFormData((prev) => ({
                                     ...prev,
                                     availability: [
                                       ...prev.availability,
-                                      { dayOfWeek: dayIndex, start: time, end: endTime }
-                                    ]
+                                      {
+                                        dayOfWeek: dayIndex,
+                                        start: time,
+                                        end: endTime,
+                                      },
+                                    ],
                                   }));
                                 }
                               }}
@@ -293,7 +447,7 @@ const TutorProfileUpdatePage = () => {
                   </div>
                 ))}
               </div>
-              
+
               {formData.availability.length > 0 && (
                 <div className="selected-slots">
                   <p>Đã chọn {formData.availability.length} khung giờ rảnh</p>
@@ -311,12 +465,8 @@ const TutorProfileUpdatePage = () => {
               >
                 Hủy
               </button>
-              <button
-                type="submit"
-                className="btn-submit"
-                disabled={loading}
-              >
-                {loading ? 'Đang cập nhật...' : 'Cập nhật hồ sơ'}
+              <button type="submit" className="btn-submit" disabled={loading}>
+                {loading ? "Đang cập nhật..." : "Cập nhật hồ sơ"}
               </button>
             </div>
           </form>

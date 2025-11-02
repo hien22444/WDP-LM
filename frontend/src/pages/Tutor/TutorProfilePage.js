@@ -29,6 +29,7 @@ const TutorProfilePage = () => {
   const [activeTab, setActiveTab] = useState("about");
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingData, setBookingData] = useState({
+    subject: null, // Object môn học được chọn {name, price, level, description}
     start: "",
     end: "",
     mode: "online",
@@ -38,6 +39,8 @@ const TutorProfilePage = () => {
     numberOfWeeks: 1, // Số tuần học
     flexibleSchedule: false, // Có muốn lịch linh hoạt không
     daySchedules: {}, // Lịch riêng cho từng thứ: {1: {start: '08:00', end: '09:30'}, 3: {start: '18:00', end: '19:30'}}
+    pricePerSession: 0, // Học phí mỗi buổi
+    totalPrice: 0, // Tổng học phí
   });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
@@ -138,21 +141,59 @@ const TutorProfilePage = () => {
 
       console.log("📊 Raw tutor data:", t);
 
-      // Normalize subject list to strings for safe rendering
-      const normalizedSubjects = Array.isArray(t.subjects)
-        ? t.subjects
-            .map((s) => {
-              if (!s) return null;
-              if (typeof s === "string") return s;
-              if (typeof s === "object") {
-                return (
-                  s.name || s.subject?.name || s.subject || s.level || null
-                );
-              }
-              return null;
-            })
-            .filter(Boolean)
-        : [];
+      // Normalize subjects with their prices
+      let normalizedSubjects = [];
+
+      // Xử lý subjects từ môn học đã đăng ký
+      if (Array.isArray(t.subjects)) {
+        normalizedSubjects = t.subjects
+          .map((s) => {
+            if (!s) return null;
+            if (typeof s === "string") {
+              return {
+                name: s,
+                price: t.sessionRate || 0,
+                level: "Tất cả",
+              };
+            }
+            return {
+              name: s.name,
+              price: t.sessionRate || s.price || 0,
+              level: s.level || "Tất cả",
+              description: s.description,
+            };
+          })
+          .filter(Boolean);
+      }
+      // Nếu không có registeredSubjects, thử lấy từ subjects
+      else if (Array.isArray(t.subjects)) {
+        normalizedSubjects = t.subjects
+          .map((s) => {
+            if (!s) return null;
+            // Nếu subject là string
+            if (typeof s === "string") {
+              return {
+                name: s,
+                price: t.price || 0,
+                level: "Tất cả",
+                description: "",
+              };
+            }
+            // Nếu subject là object
+            if (typeof s === "object") {
+              return {
+                name: s.name || s.subject?.name || s.subject || null,
+                price: s.price || s.hourlyRate || t.price || 0,
+                level: s.level || "Tất cả",
+                description: s.description || "",
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      console.log("📚 Normalized subjects:", normalizedSubjects);
 
       // Helper function to convert relative URLs to absolute
       const toUrl = (url) => {
@@ -302,12 +343,20 @@ const TutorProfilePage = () => {
   const handleBookSession = () => {
     setShowBookingForm(true);
     setBookingError("");
-    // Reset form with default values
+    // Reset form with default values and set tutor's price
     setBookingData({
       start: "",
       end: "",
       mode: tutor?.teachModes?.includes("online") ? "online" : "offline",
       notes: "",
+      subject: "",
+      pricePerSession: tutor.price || 0, // Lấy giá từ thông tin gia sư
+      totalPrice: tutor.price || 0, // Ban đầu là giá 1 buổi
+      numberOfSessions: 1,
+      weeklySchedule: [],
+      numberOfWeeks: 1,
+      flexibleSchedule: false,
+      daySchedules: {},
     });
   };
 
@@ -330,12 +379,26 @@ const TutorProfilePage = () => {
   const handleBookingSubmit = async (e) => {
     console.log("🚀 handleBookingSubmit called!", e);
     e.preventDefault();
+
+    // Debug logs for form validation
+    console.log("📝 Current booking data:", bookingData);
+    console.log("📝 Form validity check:");
+    console.log("- Subject selected:", bookingData.subject?.name);
+    console.log("- Start time:", bookingData.start);
+    console.log("- Weekly schedule:", bookingData.weeklySchedule);
+    console.log("- Number of weeks:", bookingData.numberOfWeeks);
+
     setBookingLoading(true);
     setBookingError("");
 
     try {
       // Validate booking data
       console.log("🔍 Validating booking data:", bookingData);
+
+      if (!bookingData.subject || !bookingData.subject.name) {
+        console.log("❌ Validation failed: No subject selected");
+        throw new Error("Vui lòng chọn môn học");
+      }
 
       if (!bookingData.start || !bookingData.end) {
         console.log("❌ Validation failed: No start/end time");
@@ -386,17 +449,32 @@ const TutorProfilePage = () => {
         throw new Error("Thời gian đặt lịch phải trong tương lai");
       }
 
-      // Kiểm tra thời gian kết thúc có đúng với buổi học đầu tiên không
-      const expectedEndTime = new Date(
-        startTime.getTime() + 2.5 * 60 * 60 * 1000
-      ); // +2h30
-      const timeDiff = Math.abs(endTime.getTime() - expectedEndTime.getTime());
-      if (timeDiff > 5 * 60 * 1000) {
-        // Cho phép sai lệch 5 phút
-        throw new Error(
-          "Thời gian kết thúc phải cách thời gian bắt đầu đúng 2 giờ 30 phút"
-        );
-      }
+      // Kiểm tra thời gian kết thúc của buổi học đầu tiên
+      // const expectedEndTime = new Date(
+      //   startTime.getTime() + 2.5 * 60 * 60 * 1000
+      // ); // +2h30
+
+      // Kiểm tra xem thời gian kết thúc có đúng bằng 2h30 không
+      // if (Math.abs(endTime.getTime() - expectedEndTime.getTime()) > 1000) {
+      //   // Allow 1 second difference for rounding
+      //   throw new Error("Thời gian mỗi buổi học phải là 2 tiếng 30 phút");
+      // }
+
+      // Tính ngày của buổi học cuối cùng
+      const sortedDays = [...bookingData.weeklySchedule].sort((a, b) => a - b);
+      const lastDayOfWeek = sortedDays[sortedDays.length - 1];
+      const startDayOfWeek = startTime.getDay();
+      const daysToAdd =
+        ((lastDayOfWeek - startDayOfWeek + 7) % 7) + 7 * (numberOfWeeks - 1);
+
+      // Log cho debug
+      console.log("⏰ Schedule calculation:", {
+        startDate: startTime,
+        startDayOfWeek,
+        lastDayOfWeek,
+        daysToAdd,
+        numberOfWeeks,
+      });
 
       // Cảnh báo khi đặt nhiều buổi
       if (numberOfSessions > 10) {
@@ -437,26 +515,33 @@ const TutorProfilePage = () => {
         flexibleSchedule: bookingData.flexibleSchedule,
         daySchedules: bookingData.daySchedules,
         sessionDetails: weeklySchedule, // Chi tiết từng buổi học
+        subject: bookingData.subject.name, // Thêm môn học vào payload
       };
 
       // Chuyển đến trang hợp đồng thay vì tạo booking trực tiếp
       setShowBookingForm(false);
 
       // Debug log
-      console.log("🔄 Navigating to contract page:", `/contract/${id}`);
-      console.log("📦 Booking data:", bookingPayload);
-      console.log("👨‍🏫 Tutor data:", tutor);
+      console.log("🔄 Preparing navigation...");
+      console.log("📦 Full booking payload:", bookingPayload);
+      console.log("👨‍🏫 Full tutor data:", tutor);
+      console.log("🎯 Target contract page:", `/contract/${id}`);
+
+      // Log state data
+      const navigationState = {
+        bookingData: bookingPayload,
+        tutor: tutor,
+      };
+      console.log("� Navigation state:", navigationState);
 
       // Thử nhiều cách navigation
       try {
+        console.log("🔄 Attempting React Router navigation...");
         // Cách 1: React Router navigate
         navigate(`/contract/${id}`, {
-          state: {
-            bookingData: bookingPayload,
-            tutor: tutor,
-          },
+          state: navigationState,
         });
-        console.log("✅ Navigation successful");
+        console.log("✅ Navigation appears successful");
       } catch (error) {
         console.error("❌ Navigation error:", error);
 
@@ -499,6 +584,12 @@ const TutorProfilePage = () => {
     setBookingData((prev) => {
       const newData = { ...prev, [field]: value };
 
+      // Cập nhật giá khi chọn môn học
+      if (field === "subject") {
+        newData.pricePerSession = tutor.price || 0;
+        newData.totalPrice = (tutor.price || 0) * prev.numberOfSessions;
+      }
+
       // Nếu thay đổi thời gian bắt đầu, tự động cập nhật thời gian kết thúc cho buổi đầu tiên
       if (field === "start") {
         console.log("⏰ Input start time:", value);
@@ -523,18 +614,52 @@ const TutorProfilePage = () => {
         }
       }
 
-      // Nếu thay đổi lịch tuần hoặc số tuần, tự động tính số buổi học
-      if (field === "weeklySchedule" || field === "numberOfWeeks") {
+      // Nếu thay đổi lịch tuần hoặc số tuần, tự động tính số buổi học và ngày kết thúc
+      if (
+        field === "weeklySchedule" ||
+        field === "numberOfWeeks" ||
+        field === "start"
+      ) {
         const weeklySchedule =
           field === "weeklySchedule" ? value : newData.weeklySchedule;
         const numberOfWeeks =
           field === "numberOfWeeks"
             ? parseInt(value) || 1
             : newData.numberOfWeeks;
+        const startDate =
+          field === "start" ? new Date(value) : new Date(newData.start);
 
-        // Tính số buổi học = số thứ trong tuần × số tuần
-        const totalSessions = weeklySchedule.length * numberOfWeeks;
-        newData.numberOfSessions = totalSessions;
+        if (
+          weeklySchedule?.length > 0 &&
+          startDate &&
+          !isNaN(startDate.getTime())
+        ) {
+          // Tính số buổi học = số thứ trong tuần × số tuần
+          const totalSessions = weeklySchedule.length * numberOfWeeks;
+          newData.numberOfSessions = totalSessions;
+
+          // Sắp xếp các thứ trong tuần để tìm buổi học cuối
+          const sortedDays = [...weeklySchedule].sort((a, b) => a - b);
+          const lastDayOfWeek = sortedDays[sortedDays.length - 1];
+
+          // Tính ngày của buổi học cuối cùng
+          const startDayOfWeek = startDate.getDay(); // 0 = CN, 1 = T2, ...
+          const daysToAdd =
+            ((lastDayOfWeek - startDayOfWeek + 7) % 7) +
+            7 * (numberOfWeeks - 1);
+          const endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + daysToAdd);
+
+          // Format end date để set vào form
+          const year = endDate.getFullYear();
+          const month = String(endDate.getMonth() + 1).padStart(2, "0");
+          const day = String(endDate.getDate()).padStart(2, "0");
+          const hours = String(endDate.getHours()).padStart(2, "0");
+          const minutes = String(endDate.getMinutes()).padStart(2, "0");
+
+          newData.end = `${year}-${month}-${day}T${hours}:${minutes}`;
+          console.log("📅 Calculated end date:", newData.end);
+        }
       }
 
       // Nếu bật/tắt lịch linh hoạt, reset daySchedules
@@ -703,10 +828,10 @@ const TutorProfilePage = () => {
               </div>
 
               <div className="tutor-subjects">
-                {tutor.subjects.length > 0 ? (
-                  tutor.subjects.map((subject) => (
-                    <span key={subject} className="subject-tag">
-                      {subject}
+                {Array.isArray(tutor.subjects) && tutor.subjects.length > 0 ? (
+                  tutor.subjects.map((subject, index) => (
+                    <span key={index} className="subject-tag">
+                      {typeof subject === "string" ? subject : subject.name}
                     </span>
                   ))
                 ) : (
@@ -973,13 +1098,27 @@ const TutorProfilePage = () => {
                         const subjectCourses = courses.filter((course) =>
                           course.courseName
                             ?.toLowerCase()
-                            .includes(subject.toLowerCase())
+                            .includes(subject.name.toLowerCase())
                         );
 
                         return (
-                          <div key={subject} className="subject-card">
-                            <h4>{subject}</h4>
-                            <p>Chuyên sâu, kinh nghiệm giảng dạy</p>
+                          <div key={subject.name} className="subject-card">
+                            <div className="subject-header">
+                              <h4>{subject.name}</h4>
+                              <span className="subject-price">
+                                {subject.price.toLocaleString()}đ/buổi
+                              </span>
+                            </div>
+                            <div className="subject-details">
+                              <p>
+                                <strong>Trình độ:</strong> {subject.level}
+                              </p>
+                              {subject.description && (
+                                <p>
+                                  <strong>Mô tả:</strong> {subject.description}
+                                </p>
+                              )}
+                            </div>
                             {subjectCourses.length > 0 && (
                               <div className="subject-courses-count">
                                 <i className="fas fa-book"></i>
@@ -1672,6 +1811,47 @@ const TutorProfilePage = () => {
                 className="booking-form"
               >
                 <div className="form-group">
+                  <label htmlFor="subject">Chọn môn học *</label>
+                  <select
+                    id="subject"
+                    value={bookingData.subject?.name || ""}
+                    onChange={(e) => {
+                      const selectedSubject = tutor.subjects.find(
+                        (s) => s.name === e.target.value
+                      );
+                      // Lưu toàn bộ object subject
+                      handleBookingInputChange("subject", selectedSubject);
+                      // Cập nhật giá khi chọn môn học
+                      if (selectedSubject) {
+                        handleBookingInputChange(
+                          "pricePerSession",
+                          selectedSubject.price
+                        );
+                        handleBookingInputChange(
+                          "totalPrice",
+                          selectedSubject.price * bookingData.numberOfSessions
+                        );
+                      }
+                    }}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "10px",
+                      fontSize: "15px",
+                      marginBottom: "16px",
+                      backgroundColor: "#fafafa",
+                    }}
+                  >
+                    <option value="">-- Chọn môn học --</option>
+                    {tutor.subjects?.map((subject, index) => (
+                      <option key={index} value={subject.name}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+
                   <label htmlFor="start-time">
                     Thời gian bắt đầu buổi học đầu tiên *
                   </label>
@@ -1731,6 +1911,59 @@ const TutorProfilePage = () => {
                   >
                     Các thứ trong tuần muốn học *
                   </label>
+                  {/* Hiển thị thông tin học phí */}
+                  <div
+                    style={{
+                      backgroundColor: "#f0fdf4",
+                      border: "2px solid #22c55e",
+                      borderRadius: "12px",
+                      padding: "16px",
+                      marginBottom: "20px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: "#166534" }}>
+                        Học phí mỗi buổi:
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "18px",
+                          fontWeight: "bold",
+                          color: "#22c55e",
+                        }}
+                      >
+                        {bookingData.pricePerSession.toLocaleString()}đ
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: "#166534" }}>
+                        Tổng học phí ({bookingData.numberOfSessions} buổi):
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "20px",
+                          fontWeight: "bold",
+                          color: "#22c55e",
+                        }}
+                      >
+                        {bookingData.totalPrice.toLocaleString()}đ
+                      </span>
+                    </div>
+                  </div>
+
                   <div
                     style={{
                       display: "grid",
@@ -2495,13 +2728,32 @@ const TutorProfilePage = () => {
                     type="submit"
                     className="submit-btn"
                     disabled={bookingLoading}
-                    onClick={(e) => {
-                      console.log("🖱️ BUTTON CLICKED!");
-                      console.log("🖱️ Event:", e);
-                      console.log("🖱️ Target:", e.target);
-                      console.log("🖱️ Disabled:", e.target.disabled);
-                      console.log("🖱️ Form:", e.target.form);
-                      console.log("🖱️ Current target:", e.currentTarget);
+                    style={{
+                      backgroundColor: "#0ea5e9",
+                      color: "white",
+                      padding: "12px 24px",
+                      borderRadius: "8px",
+                      fontWeight: "600",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      width: "100%",
+                      cursor: "pointer",
+                      border: "none",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseDown={(e) => {
+                      console.log("🖱️ Button MouseDown!");
+                      const form = e.target.closest("form");
+                      if (form) {
+                        console.log("� Form found:", form);
+                        console.log("� Form valid:", form.checkValidity());
+                        console.log(
+                          "� Form elements:",
+                          Array.from(form.elements)
+                        );
+                      }
                     }}
                   >
                     {bookingLoading ? (
