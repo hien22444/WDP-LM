@@ -1,35 +1,36 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../../redux/slices/userSlice';
-import './Header.scss';
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../../redux/slices/userSlice";
+import "./Header.scss";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const { isAuthenticated, user } = useSelector(state => state.user);
-  
+  const { isAuthenticated, user } = useSelector((state) => state.user);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // Normalize common user fields coming from different auth flows
-  const displayName = (
+  const displayName =
     user?.fullName ||
     user?.full_name ||
     user?.name ||
     user?.account?.fullName ||
     user?.profile?.fullName ||
-    (user?.email ? user.email.split('@')[0] : null) ||
-    'User'
-  );
-  const avatarUrl = user?.avatar || user?.profile?.avatar || user?.account?.avatar || null;
+    (user?.email ? user.email.split("@")[0] : null) ||
+    "User";
+  const avatarUrl =
+    user?.avatar || user?.profile?.avatar || user?.account?.avatar || null;
   const role = user?.account?.role || user?.role || null;
-  const roleLabel = role === 'tutor' ? 'Gia sư' : role === 'admin' ? 'Quản trị' : 'Học viên';
+  const roleLabel =
+    role === "tutor" ? "Gia sư" : role === "admin" ? "Quản trị" : "Học viên";
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate('/');
+    navigate("/");
     setIsUserMenuOpen(false);
   };
 
@@ -62,41 +63,45 @@ const Header = () => {
         <nav className="header-nav desktop-nav">
           <ul className="nav-list">
             <li className="nav-item">
-              <Link 
-                to="/" 
-                className={`nav-link ${isActivePath('/') ? 'active' : ''}`}
+              <Link
+                to="/"
+                className={`nav-link ${isActivePath("/") ? "active" : ""}`}
               >
                 Trang chủ
               </Link>
             </li>
             <li className="nav-item">
-              <Link 
-                to="/tutor" 
-                className={`nav-link ${isActivePath('/tutor') ? 'active' : ''}`}
+              <Link
+                to="/tutor"
+                className={`nav-link ${isActivePath("/tutor") ? "active" : ""}`}
               >
                 Tìm gia sư
               </Link>
             </li>
             <li className="nav-item">
-              <Link 
-                to="/courses" 
-                className={`nav-link ${isActivePath('/courses') ? 'active' : ''}`}
+              <Link
+                to="/courses"
+                className={`nav-link ${
+                  isActivePath("/courses") ? "active" : ""
+                }`}
               >
                 Khóa học
               </Link>
             </li>
             <li className="nav-item">
-              <Link 
-                to="/about" 
-                className={`nav-link ${isActivePath('/about') ? 'active' : ''}`}
+              <Link
+                to="/about"
+                className={`nav-link ${isActivePath("/about") ? "active" : ""}`}
               >
                 Giới thiệu
               </Link>
             </li>
             <li className="nav-item">
-              <Link 
-                to="/contact" 
-                className={`nav-link ${isActivePath('/contact') ? 'active' : ''}`}
+              <Link
+                to="/contact"
+                className={`nav-link ${
+                  isActivePath("/contact") ? "active" : ""
+                }`}
               >
                 Liên hệ
               </Link>
@@ -108,10 +113,7 @@ const Header = () => {
         <div className="header-actions">
           {isAuthenticated ? (
             <div className="user-menu">
-              <button 
-                className="user-menu-trigger"
-                onClick={toggleUserMenu}
-              >
+              <button className="user-menu-trigger" onClick={toggleUserMenu}>
                 <div className="user-avatar">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" />
@@ -120,7 +122,11 @@ const Header = () => {
                   )}
                 </div>
                 <span className="user-name">{displayName}</span>
-                <i className={`fas fa-chevron-down ${isUserMenuOpen ? 'rotated' : ''}`}></i>
+                <i
+                  className={`fas fa-chevron-down ${
+                    isUserMenuOpen ? "rotated" : ""
+                  }`}
+                ></i>
               </button>
 
               {isUserMenuOpen && (
@@ -141,19 +147,19 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="dropdown-menu">
-                    <Link 
-                      to="/dashboard" 
+                    <Link
+                      to="/dashboard"
                       className="dropdown-item"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <i className="fas fa-tachometer-alt"></i>
                       Dashboard
                     </Link>
-                    
-                    <Link 
-                      to="/profile" 
+
+                    <Link
+                      to="/profile"
                       className="dropdown-item"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
@@ -161,30 +167,38 @@ const Header = () => {
                       Hồ sơ cá nhân
                     </Link>
 
-                    {role === 'tutor' && (
+                    {role === "tutor" && (
                       <>
-                        <Link 
-                          to="/tutor/profile" 
+                        <Link
+                          to="/tutor/profile"
                           className="dropdown-item"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <i className="fas fa-chalkboard-teacher"></i>
                           Hồ sơ gia sư
                         </Link>
-                        <Link 
-                          to="/tutor/schedule" 
+                        <Link
+                          to="/tutor/schedule"
                           className="dropdown-item"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <i className="fas fa-calendar-alt"></i>
                           Lịch dạy
                         </Link>
+                        <Link
+                          to="/messages"
+                          className="dropdown-item"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <i className="fas fa-comments"></i>
+                          Quản lý trò chuyện
+                        </Link>
                       </>
                     )}
 
                     <div className="dropdown-divider"></div>
-                    
-                    <button 
+
+                    <button
                       className="dropdown-item logout-item"
                       onClick={handleLogout}
                     >
@@ -207,11 +221,10 @@ const Header = () => {
           )}
 
           {/* Mobile Menu Toggle */}
-          <button 
-            className="mobile-menu-toggle"
-            onClick={toggleMobileMenu}
-          >
-            <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
+          <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
+            <i
+              className={`fas ${isMobileMenuOpen ? "fa-times" : "fa-bars"}`}
+            ></i>
           </button>
         </div>
       </div>
@@ -222,9 +235,11 @@ const Header = () => {
           <nav className="mobile-nav-content">
             <ul className="mobile-nav-list">
               <li className="mobile-nav-item">
-                <Link 
-                  to="/" 
-                  className={`mobile-nav-link ${isActivePath('/') ? 'active' : ''}`}
+                <Link
+                  to="/"
+                  className={`mobile-nav-link ${
+                    isActivePath("/") ? "active" : ""
+                  }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <i className="fas fa-home"></i>
@@ -232,9 +247,11 @@ const Header = () => {
                 </Link>
               </li>
               <li className="mobile-nav-item">
-                <Link 
-                  to="/tutor" 
-                  className={`mobile-nav-link ${isActivePath('/tutor') ? 'active' : ''}`}
+                <Link
+                  to="/tutor"
+                  className={`mobile-nav-link ${
+                    isActivePath("/tutor") ? "active" : ""
+                  }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <i className="fas fa-search"></i>
@@ -242,9 +259,11 @@ const Header = () => {
                 </Link>
               </li>
               <li className="mobile-nav-item">
-                <Link 
-                  to="/about" 
-                  className={`mobile-nav-link ${isActivePath('/about') ? 'active' : ''}`}
+                <Link
+                  to="/about"
+                  className={`mobile-nav-link ${
+                    isActivePath("/about") ? "active" : ""
+                  }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <i className="fas fa-info-circle"></i>
@@ -252,9 +271,11 @@ const Header = () => {
                 </Link>
               </li>
               <li className="mobile-nav-item">
-                <Link 
-                  to="/contact" 
-                  className={`mobile-nav-link ${isActivePath('/contact') ? 'active' : ''}`}
+                <Link
+                  to="/contact"
+                  className={`mobile-nav-link ${
+                    isActivePath("/contact") ? "active" : ""
+                  }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <i className="fas fa-envelope"></i>
@@ -265,15 +286,15 @@ const Header = () => {
 
             {!isAuthenticated && (
               <div className="mobile-auth-buttons">
-                <Link 
-                  to="/login" 
+                <Link
+                  to="/login"
                   className="btn btn-outline"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Đăng nhập
                 </Link>
-                <Link 
-                  to="/register" 
+                <Link
+                  to="/register"
                   className="btn btn-primary"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -287,7 +308,7 @@ const Header = () => {
 
       {/* Overlay for mobile menu */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="mobile-nav-overlay"
           onClick={() => setIsMobileMenuOpen(false)}
         ></div>
@@ -295,7 +316,7 @@ const Header = () => {
 
       {/* Overlay for user menu */}
       {isUserMenuOpen && (
-        <div 
+        <div
           className="user-menu-overlay"
           onClick={() => setIsUserMenuOpen(false)}
         ></div>

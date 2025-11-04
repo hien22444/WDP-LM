@@ -24,6 +24,14 @@ const validateVnPhoneNumber = (phone) => {
   return null; // Hợp lệ
 };
 
+// THÊM HÀM NÀY VÀO
+const validateRequired = (value) => {
+  if (!value || value.trim() === "") {
+    return "Trường này là bắt buộc.";
+  }
+  return null; // Hợp lệ
+};
+
 const ContractPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,6 +40,10 @@ const ContractPage = () => {
   const currentUser = useSelector((state) => state.user.user);
   const [tutor, setTutor] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
+  const [agreed, setAgreed] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [signature, setSignature] = useState("");
   const [contractData, setContractData] = useState({
     studentName: "",
     studentPhone: "",
@@ -48,9 +60,33 @@ const ContractPage = () => {
     endDate: "",
     notes: "",
   });
-  const [agreed, setAgreed] = useState(false);
-  const [signing, setSigning] = useState(false);
-  const [errors, setErrors] = useState({});
+
+  // Tự động tạo 1 thông báo lỗi duy nhất cho nút bấm
+  const actionError = React.useMemo(() => {
+    // 1. Ưu tiên lỗi từ các ô input trước
+    if (errors.studentName) return `Họ tên: ${errors.studentName}`;
+    if (errors.studentPhone) return `SĐT: ${errors.studentPhone}`;
+    if (errors.studentAddress) return `Địa chỉ: ${errors.studentAddress}`; // 2. Kiểm tra các ô bắt buộc (nếu chưa blur)
+
+    if (!contractData.studentName) return "Vui lòng nhập Họ tên.";
+    if (!contractData.studentPhone) return "Vui lòng nhập Số điện thoại.";
+    if (!contractData.studentAddress) return "Vui lòng nhập Địa chỉ."; // 3. Kiểm tra chữ ký và đồng ý
+    if (!signature || signature.trim() === "") {
+      return "Vui lòng ký tên của bạn vào mục 'Chữ ký'.";
+    }
+    if (!agreed) {
+      return "Bạn cần đánh dấu vào ô 'Tôi đã đọc và đồng ý...'.";
+    } // 4. Nếu không có lỗi
+
+    return null;
+  }, [
+    errors,
+    contractData.studentName,
+    contractData.studentPhone,
+    contractData.studentAddress,
+    signature,
+    agreed,
+  ]);
 
   // Fetch user data from API when component mounts
   useEffect(() => {
@@ -189,99 +225,8 @@ const ContractPage = () => {
     }
   };
 
-  // const handleInputChange = async (field, value) => {
-  //   setContractData((prev) => {
-  //     const newData = { ...prev, [field]: value };
-  //     if (field === "totalSessions") {
-  //       newData.totalPrice = newData.pricePerSession * parseInt(value);
-  //     }
-
-  //     // Lưu lại vào sessionStorage mỗi khi có thay đổi
-  //     sessionStorage.setItem(
-  //       "contractData",
-  //       JSON.stringify({
-  //         contractData: newData,
-  //         tutor: tutor,
-  //       })
-  //     );
-
-  //     return newData;
-  //   });
-
-  //   // Nếu cập nhật các trường thông tin cá nhân, lưu vào profile
-  //   if (
-  //     [
-  //       "studentName",
-  //       "studentPhone",
-  //       "studentEmail",
-  //       "studentAddress",
-  //     ].includes(field)
-  //   ) {
-  //     try {
-  //       const profileData = {
-  //         full_name:
-  //           field === "studentName" ? value : currentUser?.profile?.full_name,
-  //         phone_number:
-  //           field === "studentPhone"
-  //             ? value
-  //             : currentUser?.profile?.phone_number,
-  //         email: field === "studentEmail" ? value : currentUser?.account?.email,
-  //         address:
-  //           field === "studentAddress" ? value : currentUser?.profile?.address,
-  //       };
-
-  //       const response = await updateUserProfileApi(profileData);
-  //       dispatch(updateProfile(response));
-  //       // toast.success("Đã cập nhật thông tin cá nhân");
-  //     } catch (error) {
-  //       console.error("Failed to update profile:", error);
-  //       //toast.error("Không thể cập nhật thông tin cá nhân");
-  //     }
-  //   }
-  // };
-
-  // const handleInputChange = (field, value) => {
-  //   setContractData((prev) => {
-  //     const newData = { ...prev, [field]: value };
-  //     if (field === "totalSessions") {
-  //       newData.totalPrice = newData.pricePerSession * parseInt(value);
-  //     }
-  //     // 1. Xử lý giá trị (value) TRƯỚC KHI cập nhật state
-  //     let processedValue = value; // Bắt đầu với giá trị gốc
-
-  //     if (field === "studentPhone") {
-
-  //       // Xóa tất cả ký tự KHÔNG PHẢI LÀ SỐ
-  //       const sanitizedValue = value.replace(/[^0-9]/g, ""); // Giới hạn độ dài là 10 (SĐT Việt Nam)
-  //       processedValue = sanitizedValue.slice(0, 10);
-  //     } else if (field === "totalSessions") {
-  //       // Tương tự, chỉ cho phép nhập số cho "Số buổi"
-  //       processedValue = value.replace(/[^0-9]/g, "");
-  //     }
-  //     // (Các trường khác như "studentName" sẽ giữ nguyên giá trị 'value' gốc)
-
-  //     // Kiểm tra số điện thoại ngay khi người dùng nhập
-  //     if (field === "studentPhone") {
-  //       const errorMessage = validateVnPhoneNumber(value);
-  //       if (errorMessage) {
-  //         setErrors((prev) => ({ ...prev, studentPhone: errorMessage }));
-  //       } else {
-  //         setErrors((prev) => ({ ...prev, studentPhone: null }));
-  //       }
-  //     }
-
-  //     // Lưu vào sessionStorage
-  //     sessionStorage.setItem(
-  //       "contractData",
-  //       JSON.stringify({
-  //         contractData: newData,
-  //         tutor: tutor,
-  //       })
-  //     );
-
-  //     return newData;
-  //   });
-  // };
+  // HÀM MỚI ĐỂ GỌI API KHI RỜI Ô INPUT (BLUR)
+  // === THAY THẾ BẰNG HÀM NÀY (từ dòng 246) ===
   const handleInputChange = (field, value) => {
     // --- BƯỚC 1: XỬ LÝ GIÁ TRỊ TRƯỚC ---
     let processedValue = value; // Bắt đầu với giá trị gốc
@@ -293,7 +238,8 @@ const ContractPage = () => {
     } else if (field === "totalSessions") {
       // Tương tự, chỉ cho phép nhập số cho "Số buổi"
       processedValue = value.replace(/[^0-9]/g, "");
-    } // (Các trường khác như "studentName" sẽ giữ nguyên 'processedValue' là 'value' gốc) // --- BƯỚC 2: CẬP NHẬT STATE BẰNG GIÁ TRỊ ĐÃ XỬ LÝ ---
+    } // --- BƯỚC 2: CẬP NHẬT STATE BẰNG GIÁ TRỊ ĐÃ XỬ LÝ ---
+
     setContractData((prev) => {
       // Dùng processedValue ở đây
       const newData = { ...prev, [field]: processedValue };
@@ -313,11 +259,13 @@ const ContractPage = () => {
       );
 
       return newData; // Trả về data đã sạch
-    }); // --- BƯỚC 3: VALIDATE GIÁ TRỊ ĐÃ XỬ LÝ --- // (Chạy sau khi state đã được lên lịch cập nhật)
+    }); // --- BƯỚC 3: VALIDATE GIÁ TRỊ ĐÃ XỬ LÝ --- // Xóa lỗi của trường này khi người dùng bắt đầu gõ
 
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
+    } // Validate SĐT ngay khi gõ (để người dùng biết sớm)
     if (field === "studentPhone") {
-      // Dùng processedValue ở đây
-      const errorMessage = validateVnPhoneNumber(processedValue); // Chỉ hiện lỗi khi gõ nếu nó không hợp lệ (nhưng không phải lỗi "bắt buộc")
+      const errorMessage = validateVnPhoneNumber(processedValue);
       if (
         errorMessage &&
         processedValue.length > 0 &&
@@ -325,49 +273,99 @@ const ContractPage = () => {
       ) {
         setErrors((prev) => ({ ...prev, studentPhone: errorMessage }));
       } else {
-        // Xóa lỗi nếu SĐT hợp lệ, HOẶC nếu người dùng xóa hết (rỗng)
         setErrors((prev) => ({ ...prev, studentPhone: null }));
       }
-    } // Xóa lỗi cho các trường khác khi gõ (ví dụ: Họ tên)
-
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
-  // HÀM MỚI ĐỂ GỌI API KHI RỜI Ô INPUT (BLUR)
+
+  // const handleInputBlur = async (field, value) => {
+  //   // --- PHẦN VALIDATION MỚI ---
+  //   if (field === "studentPhone") {
+  //     const errorMessage = validateVnPhoneNumber(value);
+  //     if (errorMessage) {
+  //       setErrors((prev) => ({ ...prev, studentPhone: errorMessage }));
+  //       return; // Dừng lại, không gọi API nếu lỗi
+  //     }
+  //   } // --- KẾT THÚC PHẦN MỚI ---
+  //   // 1. Chỉ chạy nếu là 4 trường profile
+  //   if (
+  //     ![
+  //       "studentName",
+  //       "studentPhone",
+  //       "studentEmail",
+  //       "studentAddress",
+  //     ].includes(field)
+  //   ) {
+  //     return; // Không phải 4 trường này, không làm gì cả
+  //   } // 2. (Tối ưu) Chỉ gọi API nếu giá trị thật sự thay đổi
+
+  //   const oldProfile = currentUser?.profile;
+  //   const oldAccount = currentUser?.account;
+  //   if (
+  //     (field === "studentName" && value === oldProfile?.full_name) ||
+  //     (field === "studentPhone" && value === oldProfile?.phone_number) ||
+  //     (field === "studentEmail" && value === oldAccount?.email) ||
+  //     (field === "studentAddress" && value === oldProfile?.address)
+  //   ) {
+  //     return; // Giá trị không đổi, không cần gọi API
+  //   }
+
+  //   console.log(`Đang lưu ${field}...`); // 3. Dán logic gọi API (từ hàm cũ) vào đây
+
+  //   try {
+  //     const profileData = {
+  //       full_name:
+  //         field === "studentName" ? value : currentUser?.profile?.full_name,
+  //       phone_number:
+  //         field === "studentPhone" ? value : currentUser?.profile?.phone_number,
+  //       email: field === "studentEmail" ? value : currentUser?.account?.email,
+  //       address:
+  //         field === "studentAddress" ? value : currentUser?.profile?.address,
+  //     };
+
+  //     const response = await updateUserProfileApi(profileData);
+  //     dispatch(updateProfile(response));
+  //     //toast.success("Đã cập nhật thông tin cá nhân"); // Bật lại toast ở đây
+  //   } catch (error) {
+  //     console.error("Failed to update profile:", error);
+  //     // toast.error("Không thể cập nhật thông tin cá nhân"); // Bật lại toast ở đây
+  //   }
+  // };
+
+  // === THAY THẾ BẰNG HÀM NÀY (từ dòng 293) ===
   const handleInputBlur = async (field, value) => {
-    // --- PHẦN VALIDATION MỚI ---
-    if (field === "studentPhone") {
-      const errorMessage = validateVnPhoneNumber(value);
-      if (errorMessage) {
-        setErrors((prev) => ({ ...prev, studentPhone: errorMessage }));
-        return; // Dừng lại, không gọi API nếu lỗi
-      }
-    } // --- KẾT THÚC PHẦN MỚI ---
-    // 1. Chỉ chạy nếu là 4 trường profile
-    if (
-      ![
-        "studentName",
-        "studentPhone",
-        "studentEmail",
-        "studentAddress",
-      ].includes(field)
-    ) {
-      return; // Không phải 4 trường này, không làm gì cả
-    } // 2. (Tối ưu) Chỉ gọi API nếu giá trị thật sự thay đổi
+    // --- 1. VALIDATION ---
+    let errorMessage = null;
+    value = value.trim(); // Tự động xóa dấu cách thừa ở đầu/cuối
+    handleInputChange(field, value); // Cập nhật lại state với giá trị đã trim
+
+    if (field === "studentName") {
+      errorMessage = validateRequired(value);
+    } else if (field === "studentPhone") {
+      errorMessage = validateVnPhoneNumber(value);
+    } else if (field === "studentAddress") {
+      errorMessage = validateRequired(value);
+    } // Nếu có lỗi, hiển thị lỗi và dừng lại
+
+    if (errorMessage) {
+      setErrors((prev) => ({ ...prev, [field]: errorMessage }));
+      return; // Dừng, không gọi API
+    } // --- 2. KIỂM TRA TRƯỜNG HỢP LỆ --- // Chỉ chạy nếu là các trường profile (đã bỏ email)
+
+    if (!["studentName", "studentPhone", "studentAddress"].includes(field)) {
+      return; // Không phải trường cần lưu API, thoát
+    } // --- 3. KIỂM TRA THAY ĐỔI ---
 
     const oldProfile = currentUser?.profile;
-    const oldAccount = currentUser?.account;
     if (
       (field === "studentName" && value === oldProfile?.full_name) ||
       (field === "studentPhone" && value === oldProfile?.phone_number) ||
-      (field === "studentEmail" && value === oldAccount?.email) ||
       (field === "studentAddress" && value === oldProfile?.address)
     ) {
       return; // Giá trị không đổi, không cần gọi API
     }
 
-    console.log(`Đang lưu ${field}...`); // 3. Dán logic gọi API (từ hàm cũ) vào đây
+    console.log(`Đang lưu ${field}...`); // --- 4. GỌI API ---
 
     try {
       const profileData = {
@@ -375,17 +373,14 @@ const ContractPage = () => {
           field === "studentName" ? value : currentUser?.profile?.full_name,
         phone_number:
           field === "studentPhone" ? value : currentUser?.profile?.phone_number,
-        email: field === "studentEmail" ? value : currentUser?.account?.email,
         address:
           field === "studentAddress" ? value : currentUser?.profile?.address,
       };
 
       const response = await updateUserProfileApi(profileData);
       dispatch(updateProfile(response));
-      //toast.success("Đã cập nhật thông tin cá nhân"); // Bật lại toast ở đây
     } catch (error) {
       console.error("Failed to update profile:", error);
-      // toast.error("Không thể cập nhật thông tin cá nhân"); // Bật lại toast ở đây
     }
   };
 
@@ -393,6 +388,32 @@ const ContractPage = () => {
     console.log("📝 [TEST] Chuyển hướng đến trang OrderSummary...");
     console.log("Debug tutor object:", tutor); // Thêm log để xem cấu trúc của tutor
     setSigning(true); // Kích hoạt trạng thái "Đang ký..."
+
+    // --- 1. VALIDATION LẦN CUỐI TRƯỚC KHI SUBMIT ---
+    const nameError = validateRequired(contractData.studentName);
+    const phoneError = validateVnPhoneNumber(contractData.studentPhone);
+    const addressError = validateRequired(contractData.studentAddress);
+    const signatureError = validateRequired(signature); // Dùng lại hàm validateRequired // Kiểm tra tất cả lỗi
+
+    if (nameError || phoneError || addressError || signatureError || !agreed) {
+      // Cập nhật state lỗi để hiển thị cho người dùng
+      setErrors({
+        studentName: nameError,
+        studentPhone: phoneError,
+        studentAddress: addressError,
+      }); // Hiển thị thông báo lỗi cụ thể
+
+      if (nameError || phoneError || addressError) {
+        toast.error("Vui lòng điền đầy đủ thông tin học viên.");
+      } else if (signatureError) {
+        toast.error("Vui lòng ký tên của bạn vào hợp đồng.");
+      } else if (!agreed) {
+        toast.error("Bạn cần đồng ý với các điều khoản.");
+      }
+
+      setSigning(false);
+      return; // Dừng lại nếu có lỗi
+    }
 
     // Truyền thông tin cần thiết cho thanh toán và thông tin giảng viên
     const slot = {
@@ -456,7 +477,7 @@ const ContractPage = () => {
       <div className="contract-container">
         {/* Header */}
         <div className="contract-header">
-          <h1>📋 HỢP ĐỒNG THUÊ GIA SƯss</h1>
+          <h1>📋 HỢP ĐỒNG THUÊ GIA SƯ</h1>
           <div className="contract-info">
             <span className="contract-number">
               Số hợp đồng: HD-{Date.now()}
@@ -472,23 +493,28 @@ const ContractPage = () => {
           {/* Student Information */}
           <div className="form-section">
             <h3>👨‍🎓 Thông tin học viên</h3>
+
             <div className="form-grid">
               <div className="form-group">
-                <label>Họ tên *</label>
+                              <label>Họ tên *</label>             
                 <input
                   type="text"
                   value={contractData.studentName}
                   onChange={(e) =>
                     handleInputChange("studentName", e.target.value)
                   }
-                  // THÊM DÒNG NÀY
                   onBlur={(e) => handleInputBlur("studentName", e.target.value)}
                   placeholder="Nhập họ tên đầy đủ"
                   required
+                  className={errors.studentName ? "is-invalid" : ""}
                 />
+                {errors.studentName && (
+                  <span className="error-text">{errors.studentName}</span>
+                )}
               </div>
+
               <div className="form-group">
-                <label>Số điện thoại *</label>
+                              <label>Số điện thoại *</label>             
                 <input
                   type="tel"
                   value={contractData.studentPhone}
@@ -500,40 +526,40 @@ const ContractPage = () => {
                   }
                   placeholder="Nhập số điện thoại"
                   required
-                  // THÊM VÀO: thêm class 'is-invalid' nếu có lỗi
                   className={errors.studentPhone ? "is-invalid" : ""}
                 />
-                               {" "}
                 {errors.studentPhone && (
-                  // THÊM VÀO: Hiển thị thông báo lỗi
                   <span className="error-text">{errors.studentPhone}</span>
                 )}
-                             {" "}
               </div>
               <div className="form-group">
-                <label>Email *</label>
+                              <label>Email *</label>
                 <input
                   type="email"
                   value={contractData.studentEmail}
                   readOnly
                   required
+                  className="readonly-input"
                 />
               </div>
-
               <div className="form-group">
-                <label>Địa chỉ</label>
+                              <label>Địa chỉ *</label>
                 <input
                   type="text"
                   value={contractData.studentAddress}
                   onChange={(e) =>
                     handleInputChange("studentAddress", e.target.value)
                   }
-                  onBlur={(e) =>
-                    handleInputBlur("studentEmail", e.target.value)
+                  onBlur={
+                    (e) => handleInputBlur("studentAddress", e.target.value) // <-- Đã sửa
                   }
                   placeholder="Nhập địa chỉ"
                   required
+                  className={errors.studentAddress ? "is-invalid" : ""}
                 />
+                {errors.studentAddress && (
+                  <span className="error-text">{errors.studentAddress}</span>
+                )}
               </div>
             </div>
           </div>
@@ -545,8 +571,8 @@ const ContractPage = () => {
             contractData={contractData}
             tutor={tutor}
             onSign={(signatureData) => {
-              console.log("✍️ Signature updated:", signatureData);
-              // Lưu chữ ký vào state nếu cần
+              // LƯU CHỮ KÝ VÀO STATE CỦA CHA
+              setSignature(signatureData.studentSignature);
             }}
           />
         </div>
@@ -567,6 +593,13 @@ const ContractPage = () => {
           </label>
         </div>
 
+        {actionError && !signing && (
+          <div className="form-error-summary">
+                        <i className="fas fa-exclamation-triangle"></i>         
+              {actionError}         {" "}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="contract-actions">
           <button
@@ -579,17 +612,10 @@ const ContractPage = () => {
           </button>
           <button
             type="button"
-            onClick={handleSignContract}
-            disabled={
-              !agreed ||
-              signing ||
-              errors.studentPhone ||
-              !contractData.studentPhone
-            }
-            className="btn-primary"
-            title={
-              errors.studentPhone ? "Vui lòng nhập số điện thoại hợp lệ" : ""
-            }
+            onClick={handleSignContract} // Logic 'disabled' giờ đã sạch sẽ
+            disabled={signing || actionError !== null}
+            className="btn-primary" // 'title' giờ cũng dùng chung logic
+            title={actionError ? actionError : "Ký hợp đồng và tiếp tục"}
           >
             {signing ? (
               <>

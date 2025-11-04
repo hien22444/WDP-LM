@@ -15,6 +15,13 @@ const connectDB = async () => {
     // Connect to 'test' database explicitly
     await mongoose.connect(uri, {
       dbName: "test", // CRITICAL: Use test database where your data lives
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      retryWrites: true,
+      w: "majority",
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
     });
     console.log("✅ Kết nối DB thành công - Database: test");
     console.log(

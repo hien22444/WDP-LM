@@ -4,164 +4,167 @@ const Payment = require("../models/Payment");
 const Booking = require("../models/Booking");
 const TeachingSession = require("../models/TeachingSession");
 const { generateRoomId } = require("../services/WebRTCService");
-const { notifyStudentPaymentSuccess, notifyTutorPaymentSuccess } = require("../services/NotificationService");
+const {
+  notifyStudentPaymentSuccess,
+  notifyTutorPaymentSuccess,
+} = require("../services/NotificationService");
 
 // Tạo link thanh toán
 const createPaymentLink = async (req, res) => {
-  try {
-    // Validate input
-    const { product } = req.body;
-    if (!product || !product.unitPrice || product.unitPrice <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Giá tiền không hợp lệ"
-      });
-    }
-
-    // Create simple order code
-    const orderCode = Date.now();
-    
-    // Create payment with minimum required fields
-    const order = {
-      orderCode,
-      amount: product.unitPrice,
-      description: product.name || "Thanh toán khóa học",
-      cancelUrl: `${process.env.FRONTEND_URL}/payment/cancel`,
-      returnUrl: `${process.env.FRONTEND_URL}/payment/success`
-    };
-
-  try {
-    const payload = req.body || {};
-    const product = payload.product || {};
-    const metadata = payload.metadata || {};
-
-    // Try to resolve slotId from metadata.slotId or product.id
-    slotId = metadata.slotId || product.id;
-    if (slotId) {
-      try {
-        const slot = await TeachingSlot.findById(slotId).lean();
-        if (slot && typeof slot.price === "number" && slot.price > 0) {
-          amount = slot.price;
-          productName = slot.courseName || product.name || productName;
-        }
-      } catch (e) {
-        // ignore DB lookup failures for now and fallback to client-provided price
-        console.warn(
-          "Warning: unable to load TeachingSlot for payment amount:",
-          e.message
-        );
-      }
-    }
-
-    // fallback to client-provided unitPrice (in VND integer)
-    if (amount === null && product && typeof product.unitPrice === "number") {
-      amount = product.unitPrice;
-      productName = product.name || productName;
-    }
-
-    // If still no valid amount, return 400
-    if (!amount || typeof amount !== "number" || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Không xác định được số tiền thanh toán cho sản phẩm.",
-      });
-    }
-  } catch (err) {
-    console.error("Error while resolving payment amount:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Lỗi máy chủ khi xử lý thanh toán." });
-  }
-
-  const order = {
-    orderCode: orderCode, // Mã đơn hàng duy nhất, là số nguyên
-    amount: amount,
-    description: productName,
-    returnUrl: `${process.env.FRONTEND_URL}/payment-success`,
-    cancelUrl: `${process.env.FRONTEND_URL}/payment-cancel`,
-  };
-
   let paymentRecord = null;
   try {
-    if (!payOS || typeof payOS.paymentRequests.create !== "function") {
-      throw new Error("PayOS SDK chưa được khởi tạo đúng cách.");
+    // Create simple order code
+    const orderCode = Date.now();
+
+    // Initialize variables
+    let slotId = null;
+    let amount = null;
+    let productName = "Thanh toán khóa học";
+
+    try {
+      const payload = req.body || {};
+      const product = payload.product || {};
+      const metadata = payload.metadata || {};
+
+      // Try to resolve slotId from metadata.slotId or product.id
+      slotId = metadata.slotId || product.id;
+      if (slotId) {
+        try {
+          const slot = await TeachingSlot.findById(slotId).lean();
+          if (slot && typeof slot.price === "number" && slot.price > 0) {
+            amount = slot.price;
+            productName = slot.courseName || product.name || productName;
+          }
+        } catch (e) {
+          // ignore DB lookup failures for now and fallback to client-provided price
+          console.warn(
+            "Warning: unable to load TeachingSlot for payment amount:",
+            e.message
+          );
+        }
+      }
+
+      // fallback to client-provided unitPrice (in VND integer)
+      if (amount === null && product && typeof product.unitPrice === "number") {
+        amount = product.unitPrice;
+        productName = product.name || productName;
+      }
+
+      // If still no valid amount, return 400
+      if (!amount || typeof amount !== "number" || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Không xác định được số tiền thanh toán cho sản phẩm.",
+        });
+      }
+    } catch (err) {
+      console.error("Error while resolving payment amount:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Lỗi máy chủ khi xử lý thanh toán." });
     }
 
-    // Persist a Payment record before calling PayOS
-    paymentRecord = await Payment.create({
-      orderCode: String(orderCode),
-      vnp_txnref: String(orderCode),
-      slotId: slotId || null,
-      amount,
-      productName,
-      status: "PENDING",
-      metadata: {
-        metadata: req.body.metadata || {},
-        product: req.body.product || {},
-      },
-    });
-
-    console.log("Creating payment link with order:", order);
-    const paymentLink = await payOS.paymentRequests.create(order);
-
-    console.log(
-      `Resolved payment amount for orderCode ${orderCode}:`,
-      amount,
-      "description:",
-      productName
-    );
-
-    // Update the payment record with checkout/qr info
-    paymentRecord.checkoutUrl = paymentLink.checkoutUrl;
-    paymentRecord.qrUrl = paymentLink.qrUrl || null;
-    await paymentRecord.save();
-
-    const payload = {
-      success: true,
-      paymentId: paymentRecord._id,
-      checkoutUrl: paymentLink.checkoutUrl,
-      qrUrl: paymentLink.qrUrl || null,
-      qrBase64: paymentLink.qrBase64 || null,
+    // Create order object for PayOS
+    const order = {
+      orderCode: orderCode, // Mã đơn hàng duy nhất, là số nguyên
       amount: amount,
-      productName: productName,
+      description: productName,
+      returnUrl: `${
+        process.env.FRONTEND_URL || "http://localhost:3000"
+      }/payment-success`,
+      cancelUrl: `${
+        process.env.FRONTEND_URL || "http://localhost:3000"
+      }/payment-cancel`,
     };
 
-    console.log(
-      "✅ Payment link created successfully for orderCode:",
-      orderCode
-    );
-    return res.json(payload);
-  } catch (error) {
-    // Enhanced logging to help debug 500 errors
-    console.error("Error creating payment link", {
-      orderCode,
-      slotId,
-      amount,
-      productName,
-      message: error.message,
-      stack: error.stack,
-    });
-
-    // If a payment record was already created, mark it cancelled to avoid dangling PENDING
     try {
-      if (paymentRecord) {
-        paymentRecord.status = "CANCELLED";
-        paymentRecord.metadata = paymentRecord.metadata || {};
-        paymentRecord.metadata.error = (error && error.message) || "unknown";
-        await paymentRecord.save();
+      if (!payOS || typeof payOS.paymentRequests.create !== "function") {
+        throw new Error("PayOS SDK chưa được khởi tạo đúng cách.");
       }
-    } catch (e2) {
-      console.error("Error updating paymentRecord after failure:", e2);
-    }
 
-    // Return a clearer message for the frontend while avoiding sensitive details
-    const safeMessage =
-      error && error.message
-        ? error.message
-        : "Lỗi máy chủ khi tạo link thanh toán";
+      // Persist a Payment record before calling PayOS
+      paymentRecord = await Payment.create({
+        orderCode: String(orderCode),
+        vnp_txnref: String(orderCode),
+        slotId: slotId || null,
+        amount,
+        productName,
+        status: "PENDING",
+        metadata: {
+          metadata: req.body.metadata || {},
+          product: req.body.product || {},
+        },
+      });
+
+      console.log("Creating payment link with order:", order);
+      const paymentLink = await payOS.paymentRequests.create(order);
+
+      console.log(
+        `Resolved payment amount for orderCode ${orderCode}:`,
+        amount,
+        "description:",
+        productName
+      );
+
+      // Update the payment record with checkout/qr info
+      paymentRecord.checkoutUrl = paymentLink.checkoutUrl;
+      paymentRecord.qrUrl = paymentLink.qrUrl || null;
+      await paymentRecord.save();
+
+      const payload = {
+        success: true,
+        paymentId: paymentRecord._id,
+        checkoutUrl: paymentLink.checkoutUrl,
+        qrUrl: paymentLink.qrUrl || null,
+        qrBase64: paymentLink.qrBase64 || null,
+        amount: amount,
+        productName: productName,
+      };
+
+      console.log(
+        "✅ Payment link created successfully for orderCode:",
+        orderCode
+      );
+      return res.json(payload);
+    } catch (error) {
+      // Enhanced logging to help debug 500 errors
+      console.error("Error creating payment link", {
+        orderCode,
+        slotId,
+        amount,
+        productName,
+        message: error.message,
+        stack: error.stack,
+      });
+
+      // If a payment record was already created, mark it cancelled to avoid dangling PENDING
+      try {
+        if (paymentRecord) {
+          paymentRecord.status = "CANCELLED";
+          paymentRecord.metadata = paymentRecord.metadata || {};
+          paymentRecord.metadata.error = (error && error.message) || "unknown";
+          await paymentRecord.save();
+        }
+      } catch (e2) {
+        console.error("Error updating paymentRecord after failure:", e2);
+      }
+
+      // Return a clearer message for the frontend while avoiding sensitive details
+      const safeMessage =
+        error && error.message
+          ? error.message
+          : "Lỗi máy chủ khi tạo link thanh toán";
+      return res.status(500).json({
+        success: false,
+        message: `Không thể tạo link thanh toán: ${safeMessage}`,
+      });
+    }
+  } catch (error) {
+    // Outer catch for any unexpected errors
+    console.error("Unexpected error in createPaymentLink:", error);
     return res.status(500).json({
       success: false,
-      message: `Không thể tạo link thanh toán: ${safeMessage}`,
+      message: "Lỗi máy chủ không xác định khi tạo link thanh toán",
     });
   }
 };
@@ -194,27 +197,8 @@ const receiveWebhook = async (req, res) => {
         message: webhookData.message,
       });
 
-    try {
-      console.log("Creating payment with PayOS:", order);
-      const paymentLink = await payOS.paymentRequests.create(order);
-      console.log("Payment link created:", paymentLink);
-
-      // Save payment to database
-      const payment = await Payment.create({
-        orderCode: String(orderCode),
-        amount: order.amount,
-        description: order.description,
-        status: "PENDING",
-        metadata: req.body
-      });
-
-      return res.json({
-        success: true,
-        checkoutUrl: paymentLink.checkoutUrl,
-        qrUrl: paymentLink.qrUrl,
-        amount: order.amount,
-        orderCode
-      });        // PayOS can send either "PAID" or "COMPLETED" for successful payments
+      try {
+        // PayOS can send either "PAID" or "COMPLETED" for successful payments
         // Check both the status and the response code
         if (
           webhookData.code === "00" &&
@@ -275,7 +259,7 @@ const receiveWebhook = async (req, res) => {
                   notes: `Đặt từ slot: ${slot.courseName}`,
                   slotId: slot._id,
                   roomId: roomId,
-                  status: "accepted" // Auto-accept since payment is completed
+                  status: "accepted", // Auto-accept since payment is completed
                 });
 
                 // Create teaching session
@@ -300,18 +284,33 @@ const receiveWebhook = async (req, res) => {
 
                 // Send payment success notifications
                 try {
-                  const studentNotification = await notifyStudentPaymentSuccess(booking);
-                  console.log("📧 Student payment success notification sent:", studentNotification);
+                  const studentNotification = await notifyStudentPaymentSuccess(
+                    booking
+                  );
+                  console.log(
+                    "📧 Student payment success notification sent:",
+                    studentNotification
+                  );
 
-                  const tutorNotification = await notifyTutorPaymentSuccess(booking);
-                  console.log("📧 Tutor payment success notification sent:", tutorNotification);
+                  const tutorNotification = await notifyTutorPaymentSuccess(
+                    booking
+                  );
+                  console.log(
+                    "📧 Tutor payment success notification sent:",
+                    tutorNotification
+                  );
                 } catch (notificationError) {
-                  console.error("❌ Failed to send payment notifications:", notificationError);
+                  console.error(
+                    "❌ Failed to send payment notifications:",
+                    notificationError
+                  );
                   // Don't fail the payment processing if notification fails
                 }
-
               } catch (bookingError) {
-                console.error("❌ Error creating booking from slot:", bookingError);
+                console.error(
+                  "❌ Error creating booking from slot:",
+                  bookingError
+                );
                 // Don't fail the payment processing if booking creation fails
               }
             }
@@ -360,7 +359,6 @@ const listPayments = async (req, res) => {
     if (req.user && req.user._id) {
       filter.userId = req.user._id;
     }
-
     // Basic pagination
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = Math.max(1, parseInt(req.query.limit || "20", 10));
@@ -510,7 +508,7 @@ const verifyPayment = async (req, res) => {
                   notes: `Đặt từ slot: ${slot.courseName}`,
                   slotId: slot._id,
                   roomId: roomId,
-                  status: "accepted"
+                  status: "accepted",
                 });
 
                 const session = await TeachingSession.create({
@@ -534,10 +532,16 @@ const verifyPayment = async (req, res) => {
                   await notifyStudentPaymentSuccess(booking);
                   await notifyTutorPaymentSuccess(booking);
                 } catch (notificationError) {
-                  console.error("❌ Failed to send payment notifications:", notificationError);
+                  console.error(
+                    "❌ Failed to send payment notifications:",
+                    notificationError
+                  );
                 }
               } catch (bookingError) {
-                console.error("❌ Error creating booking from slot:", bookingError);
+                console.error(
+                  "❌ Error creating booking from slot:",
+                  bookingError
+                );
               }
             }
           }

@@ -281,7 +281,7 @@ const ContractDisplay = ({ contractData, tutor, onSign }) => {
                 </div>
               </div>
               <div className="signature-date">
-                <span>Ngày: [Chờ gia sư chấp nhận]</span>
+                {/* <span>Ngày: [Chờ gia sư chấp nhận]</span> */}
               </div>
             </div>
           </div>

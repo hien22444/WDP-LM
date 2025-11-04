@@ -1,15 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
-import { useChat } from '../../contexts/ChatContext';
-import io from 'socket.io-client';
-import './ChatWidget.scss';
+import React, { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import { useChat } from "../../contexts/ChatContext";
+import io from "socket.io-client";
+import "./ChatWidget.scss";
 
-const ChatWidget = ({ tutor, isOpen, onClose }) => {
-  const currentUser = useSelector(state => state.user.user);
+const ChatWidget = ({
+  tutor,
+  student,
+  isOpen,
+  onClose,
+  style = {},
+  embedded = false,
+}) => {
+  // Get chat partner info based on role
+  const chatPartner = tutor || student;
+  const currentUser = useSelector((state) => state.user.user);
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -20,55 +29,73 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
 
   // Helper function to get user ID with fallbacks
   const getUserId = () => {
-    console.log('🔍 getUserId: Checking currentUser:', currentUser);
-    
-    let userId = currentUser?._id || currentUser?.id || currentUser?.account?._id || currentUser?.account?.id || currentUser?.user?._id || currentUser?.user?.id;
-    
-    console.log('🔍 getUserId: After checking currentUser, userId =', userId);
-    
+    console.log("🔍 getUserId: Checking currentUser:", currentUser);
+
+    let userId =
+      currentUser?._id ||
+      currentUser?.id ||
+      currentUser?.account?._id ||
+      currentUser?.account?.id ||
+      currentUser?.user?._id ||
+      currentUser?.user?.id;
+
+    console.log("🔍 getUserId: After checking currentUser, userId =", userId);
+
     // Fallback to localStorage if still not found
     if (!userId) {
-      console.log('🔍 getUserId: Not found in currentUser, checking localStorage...');
+      console.log(
+        "🔍 getUserId: Not found in currentUser, checking localStorage..."
+      );
       try {
-        const localStorageUserStr = localStorage.getItem('user');
-        console.log('🔍 getUserId: localStorage user string:', localStorageUserStr);
-        
+        const localStorageUserStr = localStorage.getItem("user");
+        console.log(
+          "🔍 getUserId: localStorage user string:",
+          localStorageUserStr
+        );
+
         if (localStorageUserStr) {
           const localStorageUser = JSON.parse(localStorageUserStr);
-          console.log('🔍 getUserId: Parsed localStorage user:', localStorageUser);
-          
-          userId = localStorageUser?._id || localStorageUser?.id || localStorageUser?.account?._id || localStorageUser?.account?.userId;
-          console.log('🔍 getUserId: Found userId from localStorage:', userId);
+          console.log(
+            "🔍 getUserId: Parsed localStorage user:",
+            localStorageUser
+          );
+
+          userId =
+            localStorageUser?._id ||
+            localStorageUser?.id ||
+            localStorageUser?.account?._id ||
+            localStorageUser?.account?.userId;
+          console.log("🔍 getUserId: Found userId from localStorage:", userId);
         } else {
-          console.warn('🔍 getUserId: No user in localStorage');
+          console.warn("🔍 getUserId: No user in localStorage");
         }
       } catch (e) {
-        console.error('❌ getUserId: Failed to parse localStorage user:', e);
+        console.error("❌ getUserId: Failed to parse localStorage user:", e);
       }
     }
-    
-    console.log('🔍 getUserId: Final userId =', userId);
+
+    console.log("🔍 getUserId: Final userId =", userId);
     return userId;
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   // Clear chat state when user changes
   useEffect(() => {
     const userId = getUserId();
     if (previousUserId && previousUserId !== userId) {
-      console.log('ChatWidget: User changed, clearing chat state');
+      console.log("ChatWidget: User changed, clearing chat state");
       setMessages([]);
-      setNewMessage('');
+      setNewMessage("");
       setIsTyping(false);
       setOtherUserTyping(false);
       setUnreadCount(0);
-      
+
       // Disconnect existing socket
       if (socket) {
-        console.log('ChatWidget: Disconnecting socket for user change');
+        console.log("ChatWidget: Disconnecting socket for user change");
         socket.disconnect();
         setSocket(null);
         setIsConnected(false);
@@ -80,92 +107,130 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
   useEffect(() => {
     // Prevent re-running if socket already exists and is connected
     if (socket && isConnected) {
-      console.log('ChatWidget: Socket already connected, skipping reconnection');
+      console.log(
+        "ChatWidget: Socket already connected, skipping reconnection"
+      );
       return;
     }
 
     if (isOpen && tutor) {
       let chatSocket = null;
       let cachedUserId = null; // Cache userId for this socket session
-      
+
       // Fetch user data directly from API if not available
       const fetchUserAndConnect = async () => {
         // Create new socket connection to chat namespace
-        chatSocket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000/chat', {
-          transports: ['websocket', 'polling'],
-          reconnection: false // Disable auto-reconnection to prevent loops
-        });
-        
+        chatSocket = io(
+          process.env.REACT_APP_API_URL || "http://localhost:5000/chat",
+          {
+            transports: ["websocket", "polling"],
+            reconnection: false, // Disable auto-reconnection to prevent loops
+          }
+        );
+
         setSocket(chatSocket);
-        
-        chatSocket.on('connect', async () => {
-          console.log('ChatWidget: Connected to chat server');
+
+        chatSocket.on("connect", async () => {
+          console.log("ChatWidget: Connected to chat server");
           setIsConnected(true);
-          
+
           // Get user ID using helper function
           let userId = getUserId();
-          
-          console.log('ChatWidget: Current user object:', currentUser);
-          console.log('ChatWidget: Extracted userId:', userId);
-          
+
+          console.log("ChatWidget: Current user object:", currentUser);
+          console.log("ChatWidget: Extracted userId:", userId);
+
           // If still no userId, try to fetch from API
           if (!userId) {
-            console.log('🔍 ChatWidget: No userId found, fetching from API...');
+            console.log("🔍 ChatWidget: No userId found, fetching from API...");
             try {
-              const { getCurrentUserApi } = await import('../../services/ApiService');
+              const { getCurrentUserApi } = await import(
+                "../../services/ApiService"
+              );
               const response = await getCurrentUserApi();
-              console.log('🔍 ChatWidget: API response:', response);
-              
+              console.log("🔍 ChatWidget: API response:", response);
+
               if (response?.user) {
-                userId = response.user._id || response.user.id || response.user.account?._id;
-                console.log('🔍 ChatWidget: Got userId from API:', userId);
+                userId =
+                  response.user._id ||
+                  response.user.id ||
+                  response.user.account?._id;
+                console.log("🔍 ChatWidget: Got userId from API:", userId);
               }
             } catch (error) {
-              console.error('❌ ChatWidget: Failed to fetch user from API:', error);
+              console.error(
+                "❌ ChatWidget: Failed to fetch user from API:",
+                error
+              );
             }
           }
-          
+
           if (!userId) {
-            console.error('ChatWidget: No user ID found in currentUser or localStorage or API');
-            console.error('ChatWidget: Full currentUser object:', JSON.stringify(currentUser, null, 2));
-            alert('Lỗi: Không thể xác định người dùng. Vui lòng đăng nhập lại.');
+            console.error(
+              "ChatWidget: No user ID found in currentUser or localStorage or API"
+            );
+            console.error(
+              "ChatWidget: Full currentUser object:",
+              JSON.stringify(currentUser, null, 2)
+            );
+            alert(
+              "Lỗi: Không thể xác định người dùng. Vui lòng đăng nhập lại."
+            );
             chatSocket.disconnect();
             return;
           }
-          
+
           // Cache userId for this session
           cachedUserId = userId;
           chatSocket.userId = userId; // Store on socket
-          
+
           // Authenticate first
-          const userName = currentUser?.profile?.full_name || currentUser?.name || currentUser?.full_name || currentUser?.account?.email || 'User';
-          const userRole = currentUser?.account?.role || currentUser?.role || 'student';
-          
-          console.log('ChatWidget: Authenticating with:', { userId, userName, userRole });
-          console.log('ChatWidget: currentUser for userName extraction:', {
-            'profile.full_name': currentUser?.profile?.full_name,
-            'name': currentUser?.name,
-            'full_name': currentUser?.full_name,
-            'account.email': currentUser?.account?.email
+          const userName =
+            currentUser?.profile?.full_name ||
+            currentUser?.name ||
+            currentUser?.full_name ||
+            currentUser?.account?.email ||
+            "User";
+          const userRole =
+            currentUser?.account?.role || currentUser?.role || "student";
+
+          console.log("ChatWidget: Authenticating with:", {
+            userId,
+            userName,
+            userRole,
           });
-          
-          chatSocket.emit('authenticate', {
+          console.log("ChatWidget: currentUser for userName extraction:", {
+            "profile.full_name": currentUser?.profile?.full_name,
+            name: currentUser?.name,
+            full_name: currentUser?.full_name,
+            "account.email": currentUser?.account?.email,
+          });
+
+          chatSocket.emit("authenticate", {
             userId: userId,
             userName: userName,
-            userRole: userRole
+            userRole: userRole,
           });
         });
-        
-          chatSocket.on('authenticated', () => {
-          console.log('ChatWidget: Authentication successful');
-          
+
+        chatSocket.on("authenticated", () => {
+          console.log("ChatWidget: Authentication successful");
+
           // Get user ID using helper function
           const userId = getUserId();
-          
-          // Join chat room with tutor
-          const roomId = `chat_${Math.min(userId, tutor.userId)}_${Math.max(userId, tutor.userId)}`;
-          console.log('ChatWidget: Joining room:', roomId, 'with tutor:', tutor.userId);
-          chatSocket.emit('join_chat_room', { roomId, tutorId: tutor.userId });
+
+          // Join chat room with chat partner
+          const roomId = `chat_${Math.min(
+            userId,
+            chatPartner.userId
+          )}_${Math.max(userId, chatPartner.userId)}`;
+          console.log(
+            "ChatWidget: Joining room:",
+            roomId,
+            "with partner:",
+            chatPartner.userId
+          );
+          chatSocket.emit("join_chat_room", { roomId, tutorId: tutor.userId });
         });
 
         // Listen for chat-specific events
@@ -174,57 +239,63 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
           const userId = chatSocket?.userId || cachedUserId || getUserId();
           // Convert to string and compare strictly
           const isOwnMessage = String(data.senderId) === String(userId);
-          
-          console.log('📨 ChatWidget: Received chat_message:', {
+
+          console.log("📨 ChatWidget: Received chat_message:", {
             senderId: data.senderId,
             senderIdType: typeof data.senderId,
             currentUserId: userId,
             currentUserIdType: typeof userId,
             isOwnMessage,
             message: data.message,
-            comparison: `"${String(data.senderId)}" === "${String(userId)}"`
+            comparison: `"${String(data.senderId)}" === "${String(userId)}"`,
           });
-          
+
           // CRITICAL FIX: If this is own message, SKIP adding to messages
           // because optimistic update already added it
           if (isOwnMessage) {
-            console.log('✅ ChatWidget: This is my own message, skipping (already have optimistic update)');
+            console.log(
+              "✅ ChatWidget: This is my own message, skipping (already have optimistic update)"
+            );
             return; // DON'T add to messages
           }
-          
+
           const newMsg = {
             id: Date.now() + Math.random(),
             text: data.message,
             senderId: data.senderId,
             senderName: data.senderName,
             timestamp: data.timestamp,
-            isOwn: false // Always false since we're here
+            isOwn: false, // Always false since we're here
           };
-          
-          setMessages(prev => {
+
+          setMessages((prev) => {
             // Check if message already exists (avoid duplicates)
-            const exists = prev.some(msg => {
+            const exists = prev.some((msg) => {
               // Match by text and sender
               const textMatch = msg.text === data.message;
               const senderMatch = msg.senderId === data.senderId;
               // Check timestamp is within 2 seconds (for optimistic updates)
-              const timestampMatch = Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 2000;
-              
+              const timestampMatch =
+                Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) <
+                2000;
+
               return textMatch && senderMatch && timestampMatch;
             });
-            
+
             if (exists) {
-              console.log('⚠️ ChatWidget: Duplicate message detected, skipping');
+              console.log(
+                "⚠️ ChatWidget: Duplicate message detected, skipping"
+              );
               return prev;
             }
-            
-            console.log('✅ ChatWidget: Adding new message from other user');
+
+            console.log("✅ ChatWidget: Adding new message from other user");
             return [...prev, newMsg];
           });
-          
+
           // Increase unread count if widget is minimized
           if (isMinimized) {
-            setUnreadCount(prev => prev + 1);
+            setUnreadCount((prev) => prev + 1);
           }
         };
 
@@ -236,49 +307,70 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
         };
 
         const handleChatHistory = (history) => {
+          if (!Array.isArray(history)) {
+            console.error("Invalid chat history format:", history);
+            return;
+          }
+
           const userId = chatSocket?.userId || cachedUserId || getUserId();
-          setMessages(history.map(msg => ({
+
+          // Sort messages by timestamp to ensure correct order
+          const sortedHistory = [...history].sort(
+            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+          );
+
+          const formattedMessages = sortedHistory.map((msg) => ({
             id: msg._id,
             text: msg.message,
             senderId: msg.senderId,
             senderName: msg.senderName,
             timestamp: msg.timestamp,
-            isOwn: String(msg.senderId) === String(userId)
-          })));
+            isRead: msg.isRead,
+            isOwn: String(msg.senderId) === String(userId),
+          }));
+
+          setMessages(formattedMessages);
+
+          // Mark messages as read
+          const roomId = `chat_${Math.min(userId, tutor.userId)}_${Math.max(
+            userId,
+            tutor.userId
+          )}`;
+          socket.emit("mark_messages_read", { roomId });
         };
 
         const handleDisconnect = () => {
-          console.log('ChatWidget: Socket disconnected');
+          console.log("ChatWidget: Socket disconnected");
           setIsConnected(false);
         };
 
         const handleError = (error) => {
-          console.error('ChatWidget: Socket error:', error);
+          console.error("ChatWidget: Socket error:", error);
         };
 
         // Add event listeners
-        chatSocket.on('chat_message', handleChatMessage);
-        chatSocket.on('user_typing', handleUserTyping);
-        chatSocket.on('chat_history', handleChatHistory);
-        chatSocket.on('disconnect', handleDisconnect);
-        chatSocket.on('error', handleError);
+        chatSocket.on("chat_message", handleChatMessage);
+        chatSocket.on("user_typing", handleUserTyping);
+        chatSocket.on("chat_history", handleChatHistory);
+        chatSocket.on("disconnect", handleDisconnect);
+        chatSocket.on("error", handleError);
 
         // Return cleanup function
         return () => {
           // Remove event listeners and close socket
           if (chatSocket) {
-            chatSocket.off('chat_message', handleChatMessage);
-            chatSocket.off('user_typing', handleUserTyping);
-            chatSocket.off('chat_history', handleChatHistory);
-            chatSocket.off('disconnect', handleDisconnect);
-            chatSocket.off('error', handleError);
+            chatSocket.off("chat_message", handleChatMessage);
+            chatSocket.off("user_typing", handleUserTyping);
+            chatSocket.off("chat_history", handleChatHistory);
+            chatSocket.off("disconnect", handleDisconnect);
+            chatSocket.off("error", handleError);
             chatSocket.close();
           }
         };
       };
-      
+
       fetchUserAndConnect();
-      
+
       // Cleanup on unmount
       return () => {
         if (chatSocket) {
@@ -299,57 +391,70 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
     e.preventDefault();
     if (newMessage.trim()) {
       const userId = getUserId();
+      const roomId = `chat_${Math.min(userId, tutor.userId)}_${Math.max(
+        userId,
+        tutor.userId
+      )}`;
+
       const messageData = {
         message: newMessage.trim(),
-        receiverId: tutor.userId,
-        roomId: `chat_${Math.min(userId, tutor.userId)}_${Math.max(userId, tutor.userId)}`
+        receiverId: chatPartner.userId,
+        roomId: roomId,
       };
 
-      console.log('📤 ChatWidget: Sending message:', messageData);
-      
+      console.log("📤 ChatWidget: Sending message:", messageData);
+
       // Clear input immediately
       const messageText = newMessage.trim();
-      setNewMessage('');
-      
+      setNewMessage("");
+
       // Try to send via socket if connected
       if (socket && isConnected) {
-        socket.emit('send_message', messageData);
-        
+        socket.emit("send_message", messageData, (ack) => {
+          if (ack && ack.status === "error") {
+            console.error("Failed to send message:", ack.error);
+            return;
+          }
+        });
+
         // Add message to local state immediately for optimistic update
         const optimisticMsg = {
           id: Date.now() + Math.random(),
           text: messageText,
           senderId: userId,
-          senderName: currentUser?.name || currentUser?.full_name || 'You',
+          senderName: currentUser?.name || currentUser?.full_name || "You",
           timestamp: new Date().toISOString(),
           isOwn: true,
-          isOptimistic: true // Mark as optimistic
+          isOptimistic: true, // Mark as optimistic
         };
-        
-        setMessages(prev => [...prev, optimisticMsg]);
-        
+
+        setMessages((prev) => [...prev, optimisticMsg]);
+
         // Stop typing indicator
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-        socket.emit('typing', { 
-          roomId: messageData.roomId, 
-          isTyping: false 
+        socket.emit("typing", {
+          roomId: messageData.roomId,
+          isTyping: false,
         });
         setIsTyping(false);
       } else {
-        console.log('Socket not connected, message saved locally');
+        console.log("Socket not connected, message saved locally");
       }
     }
   };
 
   const handleTyping = (e) => {
     setNewMessage(e.target.value);
-    
+
     if (!isTyping && socket && isConnected) {
       const userId = getUserId();
-      const roomId = `chat_${Math.min(userId, tutor.userId)}_${Math.max(userId, tutor.userId)}`;
-      socket.emit('typing', { roomId, isTyping: true });
+      const roomId = `chat_${Math.min(userId, tutor.userId)}_${Math.max(
+        userId,
+        tutor.userId
+      )}`;
+      socket.emit("typing", { roomId, isTyping: true });
       setIsTyping(true);
     }
 
@@ -362,47 +467,58 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
     typingTimeoutRef.current = setTimeout(() => {
       if (socket && isConnected) {
         const userId = getUserId();
-        const roomId = `chat_${Math.min(userId, tutor.userId)}_${Math.max(userId, tutor.userId)}`;
-        socket.emit('typing', { roomId, isTyping: false });
+        const roomId = `chat_${Math.min(userId, tutor.userId)}_${Math.max(
+          userId,
+          tutor.userId
+        )}`;
+        socket.emit("typing", { roomId, isTyping: false });
         setIsTyping(false);
       }
     }, 1000);
   };
 
   const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(timestamp).toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className={`chat-widget ${isMinimized ? 'minimized' : ''}`}>
+    <div
+      className={`chat-widget ${isMinimized ? "minimized" : ""} ${
+        embedded ? "embedded" : ""
+      }`}
+      style={style}
+    >
       <div className="chat-header">
         <div className="chat-user-info">
-          <img 
-            src={tutor.avatar || 'https://via.placeholder.com/40'} 
-            alt={tutor.name}
+          <img
+            src={chatPartner.avatar || "https://via.placeholder.com/40"}
+            alt={chatPartner.name}
             className="user-avatar"
           />
           <div className="user-details">
-            <h4>{tutor.name}</h4>
-            <span className={`status ${isConnected ? 'online' : 'offline'}`}>
-              {isConnected ? 'Online' : 'Offline'}
+            <h4>{chatPartner.name}</h4>
+            <span className={`status ${isConnected ? "online" : "offline"}`}>
+              {isConnected ? "Online" : "Offline"}
+            </span>
+            <span className="role-badge">
+              {chatPartner === tutor ? "Gia sư" : "Học sinh"}
             </span>
           </div>
         </div>
         <div className="chat-controls">
-          <button 
+          <button
             className="minimize-btn"
             onClick={() => setIsMinimized(!isMinimized)}
-            aria-label={isMinimized ? 'Mở rộng' : 'Thu nhỏ'}
+            aria-label={isMinimized ? "Mở rộng" : "Thu nhỏ"}
           >
-            <i className={`fas fa-${isMinimized ? 'expand' : 'minus'}`}></i>
+            <i className={`fas fa-${isMinimized ? "expand" : "minus"}`}></i>
           </button>
-          <button 
+          <button
             className="close-btn"
             onClick={onClose}
             aria-label="Đóng chat"
@@ -416,9 +532,9 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
         <>
           <div className="chat-messages">
             {messages.map((message) => (
-              <div 
-                key={message.id} 
-                className={`message ${message.isOwn ? 'own' : 'other'}`}
+              <div
+                key={message.id}
+                className={`message ${message.isOwn ? "own" : "other"}`}
               >
                 <div className="message-content">
                   <p>{message.text}</p>
@@ -428,7 +544,7 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
                 </div>
               </div>
             ))}
-            
+
             {otherUserTyping && (
               <div className="typing-indicator">
                 <div className="typing-dots">
@@ -439,7 +555,7 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
                 <span>Đang gõ...</span>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
 
@@ -453,8 +569,8 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
                 className="message-input"
                 disabled={false}
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="send-btn"
                 disabled={!newMessage.trim()}
               >
@@ -467,7 +583,7 @@ const ChatWidget = ({ tutor, isOpen, onClose }) => {
 
       {unreadCount > 0 && (
         <div className="unread-badge">
-          {unreadCount > 99 ? '99+' : unreadCount}
+          {unreadCount > 99 ? "99+" : unreadCount}
         </div>
       )}
     </div>

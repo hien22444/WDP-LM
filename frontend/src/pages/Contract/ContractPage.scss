@@ -271,57 +271,76 @@
     }
   }
 
+  
+
   .contract-actions {
-    padding: 30px 40px;
-    background: white;
-    border-top: 2px solid #e5e7eb;
+  padding: 30px 40px;
+  background: white;
+  border-top: 2px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+
+  /* 1. KHỐI CHUNG (ĐÃ XÓA PADDING, FONT-SIZE, FONT-WEIGHT) */
+  .btn-secondary,
+  .btn-primary {
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 20px;
+    gap: 8px;
+    text-decoration: none;
+    white-space: nowrap;
 
-    .btn-secondary, .btn-primary {
-      padding: 14px 28px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      text-decoration: none;
-
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-    }
-
-    .btn-secondary {
-      background: #f3f4f6;
-      color: #374151;
-      border: 2px solid #d1d5db;
-
-      &:hover:not(:disabled) {
-        background: #e5e7eb;
-        border-color: #9ca3af;
-      }
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-
-      &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-      }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 
+  /* 2. SỬA NÚT QUAY LẠI (NHỎ HƠN) */
+  .btn-secondary {
+    /* --- Các thuộc tính size mới (đã sửa) --- */
+    padding: 14px 40px; /* <-- Nhỏ hơn (trước đây là 14px 28px) */
+    font-size: 0.85rem; /* <-- Nhỏ hơn (trước đây là 1rem) */
+    font-weight: 600;
+    width: auto; // 
+flex-grow: 0;
+ 
+    
+
+    /* --- Style gốc của bạn --- */
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #d1d5db;
+
+    &:hover:not(:disabled) {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+    }
+  }
+
+  /* 3. GIỮ NGUYÊN NÚT CHÍNH (KÝ HỢP ĐỒNG) */
+  .btn-primary {
+    /* --- Các thuộc tính size gốc (đã chuyển vào đây) --- */
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+
+    /* --- Style gốc của bạn --- */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+  }
+}
   .loading-container, .error-container {
     display: flex;
     flex-direction: column;
@@ -404,7 +423,7 @@
       flex-direction: column;
 
       .btn-secondary, .btn-primary {
-        width: 100%;
+        width: 50%;
         justify-content: center;
       }
     }
@@ -433,5 +452,25 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+// Thêm vào cuối file ContractPage.scss
+
+.form-error-summary {
+  color: #dc3545; // Màu đỏ
+  background-color: #fef2f2; // Nền đỏ nhạt
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0; // Đặt nó giữa ô 'đồng ý' và nút 'ký'
+  font-weight: 500;
+  font-size: 0.95em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  i {
+    font-size: 1.1em;
+    color: #ef4444;
   }
 }

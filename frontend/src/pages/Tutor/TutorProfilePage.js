@@ -137,6 +137,9 @@ const TutorProfilePage = () => {
       setLoading(true);
       setError("");
       const response = await getTutorProfile(id);
+
+      // Cập nhật title của trang
+      document.title = `Tin nhắn | EduMatch`;
       const t = response?.tutor || response?.profile || {};
 
       console.log("📊 Raw tutor data:", t);

@@ -287,7 +287,7 @@ import TutorOpenCourses from "./pages/Tutor/TutorOpenCourses";
 import TutorList from "./pages/Tutor/TutorList";
 import CourseDetail from "./pages/Tutor/CourseDetail";
 import Wallet from "./pages/Tutor/Wallet";
-import MainLayout from "./components/Layout/MainLayout";
+import ChatLayout from "./components/Layout/ChatLayout";
 import AdminLayout from "./components/Admin/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminUsers from "./pages/Admin/AdminUsers";
@@ -306,6 +306,7 @@ import authService from "./services/AuthService";
 // ✅ Import Chat Context đúng cách
 import { ChatProvider } from "./contexts/ChatContext";
 import ChatManager from "./components/Chat/ChatManager";
+import MessagesPage from "./pages/Messages";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -405,7 +406,7 @@ function App() {
         </Route>
 
         {/* Protected routes */}
-        <Route element={<MainLayout />}>
+        <Route element={<ChatLayout />}>
           <Route
             path="/home"
             element={isAuthenticated ? <LandingPage /> : <Navigate to="/" />}
@@ -423,16 +424,7 @@ function App() {
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/tutors" element={<TutorList />} />
 
-          {/* ✅ Chỉ route này có ChatProvider */}
-          <Route
-            path="/tutor/:id"
-            element={
-              <ChatProvider>
-                <TutorProfilePage />
-                <ChatManager />
-              </ChatProvider>
-            }
-          />
+          <Route path="/tutor/:id" element={<TutorProfilePage />} />
 
           <Route
             path="/bookings/tutor"
@@ -474,6 +466,24 @@ function App() {
           <Route
             path="/change-password"
             element={isAuthenticated ? <ChangePassword /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/messages"
+            element={
+              isAuthenticated ? (
+                userRole === "tutor" ? (
+                  <MessagesPage />
+                ) : (
+                  <Navigate
+                    to="/dashboard"
+                    replace
+                    state={{ from: "messages" }}
+                  />
+                )
+              ) : (
+                <Navigate to="/signin" replace state={{ from: "messages" }} />
+              )
+            }
           />
           <Route path="/about" element={<About />} />
           <Route path="/room/:roomId" element={<GoogleMeetStyle />} />
