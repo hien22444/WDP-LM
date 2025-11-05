@@ -250,6 +250,29 @@ const PaymentsHistory = () => {
                   >
                     Mở link thanh toán
                   </a>
+                {selected.status === "PENDING" && (
+                  <button
+                    style={{ marginLeft: 8 }}
+                    className="btn btn-success"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      try {
+                        await PaymentService.verifyPayment(
+                          selected.orderCode || selected.vnp_txnref
+                        );
+                        await refresh();
+                      } catch (err) {
+                        console.error(err);
+                        alert(
+                          err?.response?.data?.message ||
+                            "Không thể xác minh trạng thái thanh toán"
+                        );
+                      }
+                    }}
+                  >
+                    Xác minh (verify)
+                  </button>
+                )}
                   {selected.status === "PENDING" && (
                     <button
                       style={{ marginLeft: 8 }}

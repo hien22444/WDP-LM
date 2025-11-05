@@ -324,6 +324,12 @@ const receiveWebhook = async (req, res) => {
                   const payouts = EscrowService.calculatePayouts(slot.price);
                   console.log("💰 [Payment] Calculated payouts:", payouts);
 
+                  // Extract contract metadata if provided during payment creation
+                  const rawMeta = payment?.metadata || {};
+                  const meta = rawMeta?.metadata || rawMeta; // support nested shape { metadata: { ... } }
+                  const incomingContract = meta?.contractData || null;
+                  const incomingStudentSignature = meta?.studentSignature || null;
+
                   const booking = await Booking.create({
                     tutorProfile: slot.tutorProfile,
                     student: payment.userId,
@@ -333,7 +339,12 @@ const receiveWebhook = async (req, res) => {
                     price: slot.price,
                     notes: `Đặt từ slot: ${slot.courseName}`,
                     slotId: slot._id,
-                    status: "pending"
+                    status: "pending",
+                    // Attach contract data if present from payment metadata
+                    contractData: incomingContract || undefined,
+                    studentSignature: incomingStudentSignature || undefined,
+                    studentSignedAt: incomingStudentSignature ? new Date() : undefined,
+                    contractNumber: incomingContract ? `HD-${Date.now()}` : undefined,
                   });
                   console.log("📝 Booking created (pending):", booking._id);
 
@@ -496,7 +507,8 @@ const cancelPayment = async (req, res) => {
 // Verify payment status
 const verifyPayment = async (req, res) => {
   try {
-    const { orderCode } = req.params;
+    let { orderCode } = req.params;
+    if (orderCode) orderCode = String(orderCode).trim();
     if (!orderCode) {
       return res.status(400).json({
         success: false,
@@ -515,12 +527,22 @@ const verifyPayment = async (req, res) => {
 
     // Check with PayOS for current status
     try {
-      const paymentStatus = await payOS.paymentRequests.getStatus(orderCode);
+      const numericOrder = Number(orderCode);
+      const paymentStatus = await payOS.paymentRequests.getStatus(
+        Number.isFinite(numericOrder) ? numericOrder : orderCode
+      );
       console.log("PayOS status check result:", paymentStatus);
 
       if (
+        paymentStatus &&
         paymentStatus.code === "00" &&
-        paymentStatus.data?.status === "PAID"
+        (
+          String(paymentStatus.data?.status || "").toUpperCase() === "PAID" ||
+          String(paymentStatus.data?.status || "").toUpperCase() === "COMPLETED" ||
+          String(paymentStatus.data?.status || "").toUpperCase() === "SUCCESS" ||
+          String(paymentStatus.data?.status || "").toUpperCase() === "PROCESSED" ||
+          String(paymentStatus.data?.status || "") === "00"
+        )
       ) {
         // Update payment record
         payment.status = "PAID";
@@ -595,7 +617,16 @@ const verifyPayment = async (req, res) => {
         });
       }
 
-      // Return current status
+      // Return current status (and attempt offline reconciliation)
+      // Fallback: if we previously received a successful webhook for this order, trust local record
+      const localCode = String(payment.paymentData?.code || '').toUpperCase();
+      const localStatus = String(payment.paymentData?.data?.status || payment.paymentData?.status || '').toUpperCase();
+      const localSuccess = localCode === '00' || ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localStatus);
+      if (localSuccess && payment.status !== 'PAID') {
+        payment.status = 'PAID';
+        payment.paidAt = payment.paidAt || new Date();
+        await payment.save();
+      }
       return res.json({
         success: true,
         status: payment.status,
@@ -603,11 +634,16 @@ const verifyPayment = async (req, res) => {
       });
     } catch (verifyError) {
       console.error("Error verifying with PayOS:", verifyError);
-      return res.json({
-        success: true,
-        status: payment.status,
-        message: "Không thể kiểm tra trạng thái với PayOS",
-      });
+      // As a last resort, try to reconcile using local webhook data
+      const localCode = String(payment.paymentData?.code || '').toUpperCase();
+      const localStatus = String(payment.paymentData?.data?.status || payment.paymentData?.status || '').toUpperCase();
+      const localSuccess = localCode === '00' || ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localStatus);
+      if (localSuccess && payment.status !== 'PAID') {
+        payment.status = 'PAID';
+        payment.paidAt = payment.paidAt || new Date();
+        await payment.save();
+      }
+      return res.json({ success: true, status: payment.status, message: "Không thể kiểm tra trạng thái với PayOS" });
     }
   } catch (error) {
     console.error("Error in verifyPayment:", error);

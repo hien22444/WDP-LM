@@ -48,6 +48,15 @@ const getPaymentDetail = async (id) => {
   }
 };
 
+const verifyPayment = async (orderCode) => {
+  try {
+    const response = await client.get(`/payment/verify/${encodeURIComponent(orderCode)}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const cancelPayment = async (id) => {
   try {
     const response = await client.post(`/payment/${id}/cancel`);
@@ -61,6 +70,7 @@ const PaymentService = {
   createPaymentLink,
   listPayments,
   getPaymentDetail,
+  verifyPayment,
   cancelPayment,
 };
 

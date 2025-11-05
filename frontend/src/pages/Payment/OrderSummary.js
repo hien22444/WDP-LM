@@ -36,7 +36,20 @@ const OrderSummary = () => {
     try {
       setPayLoading(true);
 
-      // Payload với slotId trong metadata để webhook có thể tạo booking
+      // Lấy contractData từ sessionStorage nếu có (được lưu khi học viên điền hợp đồng)
+      let contractData = null;
+      let studentSignature = null;
+      try {
+        const stored = sessionStorage.getItem("contractData");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          contractData = parsed?.contractData || null;
+          // Tạm dùng tên học viên làm chữ ký nếu không có trường riêng
+          studentSignature = contractData?.studentName || null;
+        }
+      } catch (_) {}
+
+      // Payload với slotId và hợp đồng trong metadata để webhook có thể tạo booking kèm hợp đồng
       const payload = {
         product: {
           name: `Khóa học: ${slot.courseName}`,
@@ -45,6 +58,8 @@ const OrderSummary = () => {
         },
         metadata: {
           slotId: slot._id, // Đảm bảo slotId được lưu
+          contractData: contractData || undefined,
+          studentSignature: studentSignature || undefined,
         },
       };
 
