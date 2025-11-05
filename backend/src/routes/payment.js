@@ -7,25 +7,26 @@ const {
   getPaymentById,
   cancelPayment,
 } = require("../controllers/paymentController");
+const { auth } = require("../middlewares/auth");
 
 const router = express.Router();
 
-// Endpoint để frontend gọi để tạo link thanh toán
-router.post("/create-payment-link", createPaymentLink);
+// Endpoint để frontend gọi để tạo link thanh toán (cần auth)
+router.post("/create-payment-link", auth(), createPaymentLink);
 
-// Endpoint để PayOS gọi về (webhook)
+// Endpoint để PayOS gọi về (webhook) - không cần auth
 // Lưu ý: URL này bạn cần phải cấu hình trong Dashboard của PayOS
 router.post("/payos-webhook", receiveWebhook);
 
-// Frontend: list payments for the current user (requires auth middleware upstream)
-router.get("/", listPayments);
-// Verify payment status with PayOS
+// Frontend: list payments for the current user (cần auth)
+router.get("/", auth(), listPayments);
+// Verify payment status with PayOS (có thể public hoặc cần auth)
 router.get("/verify/:orderCode", verifyPayment);
 
-// Get single payment detail
-router.get("/:id", getPaymentById);
+// Get single payment detail (cần auth)
+router.get("/:id", auth(), getPaymentById);
 
-// Cancel a payment
-router.post("/:id/cancel", cancelPayment);
+// Cancel a payment (cần auth)
+router.post("/:id/cancel", auth(), cancelPayment);
 
 module.exports = router;

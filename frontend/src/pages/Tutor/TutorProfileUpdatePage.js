@@ -5,7 +5,9 @@ import { toast } from "react-toastify";
 import {
   updateTutorProfile,
   updateTutorBasic,
+  saveAvailability,
 } from "../../services/TutorService";
+import { createTeachingSlot } from "../../services/BookingService";
 import UniversalHeader from "../../components/Layout/UniversalHeader";
 import "./TutorProfileUpdatePage.scss";
 
@@ -25,6 +27,90 @@ const TutorProfileUpdatePage = () => {
     achievements: "",
     availability: [],
   });
+
+  // Config tạo slot nhanh từ lịch rảnh
+  const [slotConfig, setSlotConfig] = useState({
+    weeks: 4, // số tuần tạo slot kể từ hôm nay
+    startFrom: new Date().toISOString().slice(0, 10), // yyyy-mm-dd
+    mode: "online",
+    price: 0,
+    capacity: 1,
+    courseName: "Buổi học 1-1",
+  });
+
+  // Tùy chọn công khai thời khóa biểu (tự tạo slot tự động)
+  const [timetableConfig, setTimetableConfig] = useState({
+    publish: true,
+    horizonWeeks: 4,
+    startFrom: new Date().toISOString().slice(0, 10),
+  });
+
+  // Ranges đơn giản: sáng/chiều/tối cho từng ngày
+  const defaultRanges = Array.from({ length: 7 }).map(() => ({
+    morning: { enabled: false, start: "08:00", end: "11:00" },
+    afternoon: { enabled: false, start: "13:00", end: "17:00" },
+    evening: { enabled: false, start: "18:00", end: "22:00" },
+  }));
+  const [dayRanges, setDayRanges] = useState(defaultRanges);
+
+  // Rebuild availability from dayRanges
+  const rebuildAvailability = (ranges) => {
+    const av = [];
+    ranges.forEach((r, day) => {
+      ["morning", "afternoon", "evening"].forEach((p) => {
+        const seg = r[p];
+        if (seg.enabled && seg.start && seg.end) {
+          // push as an interval; keep as [start,end]
+          av.push({ dayOfWeek: day, start: seg.start, end: seg.end });
+        }
+      });
+    });
+    setFormData((prev) => ({ ...prev, availability: av }));
+  };
+
+  // -------- Validation helpers --------
+  const timeRe = /^\d{2}:\d{2}$/;
+
+  const isOverlap = (a, b) => {
+    // times are strings HH:MM
+    return a.start < b.end && b.start < a.end;
+  };
+
+  const validateAvailability = (list) => {
+    if (!Array.isArray(list) || list.length === 0) {
+      return { ok: false, message: "Bạn chưa chọn khung giờ nào" };
+    }
+    for (const it of list) {
+      if (
+        typeof it.dayOfWeek !== "number" ||
+        it.dayOfWeek < 0 ||
+        it.dayOfWeek > 6
+      )
+        return { ok: false, message: "dayOfWeek không hợp lệ" };
+      if (!timeRe.test(it.start) || !timeRe.test(it.end))
+        return { ok: false, message: "Giờ phải ở dạng HH:mm" };
+      if (it.end <= it.start)
+        return { ok: false, message: "Giờ kết thúc phải sau giờ bắt đầu" };
+    }
+
+    // Kiểm tra chồng chéo trong cùng 1 ngày
+    const byDay = list.reduce((acc, it) => {
+      acc[it.dayOfWeek] ||= [];
+      acc[it.dayOfWeek].push(it);
+      return acc;
+    }, {});
+    for (const day in byDay) {
+      const arr = byDay[day].sort((x, y) => (x.start < y.start ? -1 : 1));
+      for (let i = 1; i < arr.length; i++) {
+        if (isOverlap(arr[i - 1], arr[i]))
+          return {
+            ok: false,
+            message: `Khung giờ trong ngày ${parseInt(day, 10)} bị chồng chéo`,
+          };
+      }
+    }
+    return { ok: true };
+  };
 
   const subjects = [
     "Toán",
@@ -131,6 +217,162 @@ const TutorProfileUpdatePage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Lưu lịch rảnh (availability)
+  const handleSaveAvailability = async () => {
+    try {
+      // Validate before send
+      const payload = formData.availability || [];
+      const v = validateAvailability(payload);
+      if (!v.ok) {
+        toast.error(v.message);
+        return;
+      }
+      setLoading(true);
+      await saveAvailability(payload);
+      toast.success("Đã lưu lịch rảnh theo tuần");
+
+      // Tùy chọn: công khai ngay và tự tạo slot  cho N tuần tới
+      if (timetableConfig.publish) {
+        const count = await handleGenerateSlotsWithConfig({
+          startFrom: timetableConfig.startFrom,
+          weeks: timetableConfig.horizonWeeks,
+        });
+        if (count > 0) toast.success(`Đã tạo ${count} slot từ thời khóa biểu`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message || "Lưu lịch rảnh thất bại. Vui lòng thử lại."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sinh slot từ lịch rảnh theo số tuần
+  const handleGenerateSlots = async () => {
+    if (!Array.isArray(formData.availability) || formData.availability.length === 0) {
+      toast.error("Bạn chưa chọn lịch rảnh nào");
+      return;
+    }
+    const v = validateAvailability(formData.availability);
+    if (!v.ok) {
+      toast.error(v.message);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const created = [];
+      const startDate = new Date(`${slotConfig.startFrom}T00:00:00`);
+      const totalDays = Math.max(1, parseInt(slotConfig.weeks || 0)) * 7;
+
+      for (let i = 0; i < totalDays; i++) {
+        const current = new Date(startDate);
+        current.setDate(startDate.getDate() + i);
+        const dayOfWeek = current.getDay(); // 0-6
+
+        const dayAvailabilities = (formData.availability || []).filter(
+          (a) => a.dayOfWeek === dayOfWeek
+        );
+
+        for (const a of dayAvailabilities) {
+          // Tạo start/end theo giờ phút từ availability
+          const [sh, sm] = (a.start || "00:00").split(":").map((n) => parseInt(n, 10));
+          const [eh, em] = (a.end || "00:00").split(":").map((n) => parseInt(n, 10));
+
+          const start = new Date(current);
+          start.setHours(sh || 0, sm || 0, 0, 0);
+          const end = new Date(current);
+          end.setHours(eh || 0, em || 0, 0, 0);
+
+          if (end <= start) continue; // bỏ khung giờ không hợp lệ
+
+          const payload = {
+            courseName: slotConfig.courseName || "Buổi học 1-1",
+            start: start.toISOString(),
+            end: end.toISOString(),
+            mode: slotConfig.mode || "online",
+            price: Math.max(0, parseInt(slotConfig.price || 0)),
+            capacity: Math.max(1, parseInt(slotConfig.capacity || 1)),
+          };
+
+          try {
+            const slot = await createTeachingSlot(payload);
+            created.push(slot);
+          } catch (e) {
+            console.error("Create slot error", e);
+          }
+        }
+      }
+
+      if (created.length > 0) {
+        toast.success(`Đã tạo ${created.length} slot mở từ lịch rảnh`);
+      } else {
+        toast.info("Không có slot nào được tạo (kiểm tra lại lịch rảnh/ cấu hình)");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message || "Tạo slot từ lịch rảnh thất bại"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper để sinh slot với cấu hình truyền vào (dùng khi auto publish)
+  const handleGenerateSlotsWithConfig = async ({ startFrom, weeks }) => {
+    if (!Array.isArray(formData.availability) || formData.availability.length === 0) return;
+
+    const localCfg = {
+      ...slotConfig,
+      startFrom: startFrom || slotConfig.startFrom,
+      weeks: weeks || slotConfig.weeks,
+    };
+
+    const created = [];
+    const startDate = new Date(`${localCfg.startFrom}T00:00:00`);
+    const totalDays = Math.max(1, parseInt(localCfg.weeks || 0)) * 7;
+
+    for (let i = 0; i < totalDays; i++) {
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + i);
+      const dayOfWeek = current.getDay();
+
+      const dayAvailabilities = (formData.availability || []).filter(
+        (a) => a.dayOfWeek === dayOfWeek
+      );
+
+      for (const a of dayAvailabilities) {
+        const [sh, sm] = (a.start || "00:00").split(":").map((n) => parseInt(n, 10));
+        const [eh, em] = (a.end || "00:00").split(":").map((n) => parseInt(n, 10));
+        const start = new Date(current);
+        start.setHours(sh || 0, sm || 0, 0, 0);
+        const end = new Date(current);
+        end.setHours(eh || 0, em || 0, 0, 0);
+        if (end <= start) continue;
+
+        const payload = {
+          courseName: localCfg.courseName || "Buổi học 1-1",
+          start: start.toISOString(),
+          end: end.toISOString(),
+          mode: localCfg.mode || "online",
+          price: Math.max(0, parseInt(localCfg.price || 0)),
+          capacity: Math.max(1, parseInt(localCfg.capacity || 1)),
+        };
+        try {
+          const slot = await createTeachingSlot(payload);
+          created.push(slot);
+        } catch (e) {
+          console.error("Create slot error", e);
+        }
+      }
+    }
+    return created.length;
   };
 
   const handleCancel = () => {
@@ -372,12 +614,13 @@ const TutorProfileUpdatePage = () => {
 
             {/* Lịch rảnh */}
             <div className="form-section">
-              <h3>Thời gian rảnh (để học viên có thể đặt lịch)</h3>
+              <h3>Thời khóa biểu dạy cố định (hiển thị cho học viên)</h3>
               <p className="form-hint">
-                Chọn các khung giờ bạn có thể dạy trong tuần
+                Tick các mốc giờ bạn dạy cố định mỗi tuần. Hệ thống có thể tự công khai
+                thời khóa biểu này thành các slot cho {timetableConfig.horizonWeeks} tuần tới.
               </p>
 
-              <div className="availability-grid">
+              <div className="availability-grid simple">
                 {[
                   "Chủ nhật",
                   "Thứ 2",
@@ -386,64 +629,68 @@ const TutorProfileUpdatePage = () => {
                   "Thứ 5",
                   "Thứ 6",
                   "Thứ 7",
-                ].map((day, dayIndex) => (
-                  <div key={dayIndex} className="day-slot">
-                    <h4>{day}</h4>
-                    <div className="time-slots">
-                      {["18:00", "19:00", "20:00", "21:00"].map((time) => {
-                        const slotKey = `${dayIndex}_${time}`;
-                        const isChecked = formData.availability.some(
-                          (s) => s.dayOfWeek === dayIndex && s.start === time
-                        );
-
-                        return (
-                          <label key={slotKey} className="time-slot-checkbox">
+                ].map((dayLabel, dayIndex) => (
+                  <div key={dayIndex} className="day-row">
+                    <h4>{dayLabel}</h4>
+                    {["morning", "afternoon", "evening"].map((period) => {
+                      const title =
+                        period === "morning"
+                          ? "Sáng"
+                          : period === "afternoon"
+                          ? "Chiều"
+                          : "Tối";
+                      const seg = dayRanges[dayIndex][period];
+                      return (
+                        <div key={period} className="period">
+                          <label className="toggle">
                             <input
                               type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {
-                                if (isChecked) {
-                                  // Remove slot
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    availability: prev.availability.filter(
-                                      (s) =>
-                                        !(
-                                          s.dayOfWeek === dayIndex &&
-                                          s.start === time
-                                        )
-                                    ),
-                                  }));
-                                } else {
-                                  // Add slot (2 hours duration)
-                                  const [hour, min] = time
-                                    .split(":")
-                                    .map(Number);
-                                  const endHour = String(hour + 2).padStart(
-                                    2,
-                                    "0"
-                                  );
-                                  const endTime = `${endHour}:${min}`;
-
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    availability: [
-                                      ...prev.availability,
-                                      {
-                                        dayOfWeek: dayIndex,
-                                        start: time,
-                                        end: endTime,
-                                      },
-                                    ],
-                                  }));
-                                }
+                              checked={seg.enabled}
+                              onChange={(e) => {
+                                const enabled = e.target.checked;
+                                const next = [...dayRanges];
+                                next[dayIndex] = {
+                                  ...next[dayIndex],
+                                  [period]: { ...seg, enabled },
+                                };
+                                setDayRanges(next);
+                                rebuildAvailability(next);
                               }}
                             />
-                            <span>{time}</span>
+                            <span>{title}</span>
                           </label>
-                        );
-                      })}
-                    </div>
+                          <div className="time-range">
+                            <input
+                              type="time"
+                              value={seg.start}
+                              onChange={(e) => {
+                                const next = [...dayRanges];
+                                next[dayIndex] = {
+                                  ...next[dayIndex],
+                                  [period]: { ...seg, start: e.target.value },
+                                };
+                                setDayRanges(next);
+                                rebuildAvailability(next);
+                              }}
+                            />
+                            <span>đến</span>
+                            <input
+                              type="time"
+                              value={seg.end}
+                              onChange={(e) => {
+                                const next = [...dayRanges];
+                                next[dayIndex] = {
+                                  ...next[dayIndex],
+                                  [period]: { ...seg, end: e.target.value },
+                                };
+                                setDayRanges(next);
+                                rebuildAvailability(next);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -453,6 +700,109 @@ const TutorProfileUpdatePage = () => {
                   <p>Đã chọn {formData.availability.length} khung giờ rảnh</p>
                 </div>
               )}
+
+              {/* Actions: lưu availability và tạo slot */}
+              <div className="availability-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleSaveAvailability}
+                  disabled={loading}
+                >
+                  Lưu thời khóa biểu theo tuần
+                </button>
+
+                <div className="generate-slots">
+                  <div className="row" style={{ marginBottom: 8 }}>
+                    <label className="toggle">
+                      <input
+                        type="checkbox"
+                        checked={timetableConfig.publish}
+                        onChange={(e) =>
+                          setTimetableConfig((s) => ({ ...s, publish: e.target.checked }))
+                        }
+                      />
+                      <span>Công khai thời khóa biểu thành slot tự động</span>
+                    </label>
+                  </div>
+                  <div className="row">
+                    <label>
+                      Bắt đầu từ ngày
+                      <input
+                        type="date"
+                        value={slotConfig.startFrom}
+                        onChange={(e) =>
+                          setSlotConfig((s) => ({ ...s, startFrom: e.target.value }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      Số tuần
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={slotConfig.weeks}
+                        onChange={(e) =>
+                          setSlotConfig((s) => ({ ...s, weeks: parseInt(e.target.value || 1) }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      Hình thức
+                      <select
+                        value={slotConfig.mode}
+                        onChange={(e) => setSlotConfig((s) => ({ ...s, mode: e.target.value }))}
+                      >
+                        <option value="online">Online</option>
+                        <option value="offline">Tại nhà</option>
+                      </select>
+                    </label>
+                    <label>
+                      Học phí/buổi (VNĐ)
+                      <input
+                        type="number"
+                        min="0"
+                        value={slotConfig.price}
+                        onChange={(e) =>
+                          setSlotConfig((s) => ({ ...s, price: parseInt(e.target.value || 0) }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      Số HV
+                      <input
+                        type="number"
+                        min="1"
+                        value={slotConfig.capacity}
+                        onChange={(e) =>
+                          setSlotConfig((s) => ({ ...s, capacity: parseInt(e.target.value || 1) }))
+                        }
+                      />
+                    </label>
+                  </div>
+                  <div className="row">
+                    <label style={{ flex: 1 }}>
+                      Tên buổi học (courseName)
+                      <input
+                        type="text"
+                        value={slotConfig.courseName}
+                        onChange={(e) =>
+                          setSlotConfig((s) => ({ ...s, courseName: e.target.value }))
+                        }
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleGenerateSlots}
+                      disabled={loading}
+                    >
+                      Tạo slot từ lịch rảnh
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Action buttons */}

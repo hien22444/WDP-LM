@@ -1,16 +1,16 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { FaGoogle, FaFacebook } from "react-icons/fa";
 import { doLogin, doFacebookLogin } from "../../../redux/actions/authActions";
+import axios from "axios";
 import "./SignIn.scss";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
+  const [googleOAuthEnabled, setGoogleOAuthEnabled] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -24,6 +24,23 @@ const SignIn = () => {
       navigate("/");
     }
   }, [isAuthenticated, navigate]);
+
+  // Check if Google OAuth is configured
+  useEffect(() => {
+    const checkGoogleOAuth = async () => {
+      try {
+        const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
+        const response = await axios.get(`${apiUrl}/auth/google-config`);
+        if (response.data && response.data.clientId) {
+          setGoogleOAuthEnabled(true);
+        }
+      } catch (error) {
+        console.log("Google OAuth not configured:", error.message);
+        setGoogleOAuthEnabled(false);
+      }
+    };
+    checkGoogleOAuth();
+  }, []);
 
   // Validate form
   useEffect(() => {
@@ -47,6 +64,11 @@ const SignIn = () => {
   };
 
   const handleGoogleLogin = () => {
+    if (!googleOAuthEnabled) {
+      alert("Google OAuth chưa được cấu hình. Vui lòng sử dụng đăng nhập bằng email/mật khẩu.");
+      return;
+    }
+
     const backendOrigin = (
       process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1"
     ).replace(/\/api\/v1$/, "");
@@ -149,15 +171,17 @@ const SignIn = () => {
               </div>
 
               <div className="oauth-buttons">
-                <button
-                  type="button"
-                  className="oauth-btn google-btn"
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                >
-                  <FaGoogle className="oauth-icon" />
-                  Đăng nhập với Google
-                </button>
+                {googleOAuthEnabled && (
+                  <button
+                    type="button"
+                    className="oauth-btn google-btn"
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                  >
+                    <FaGoogle className="oauth-icon" />
+                    Đăng nhập với Google
+                  </button>
+                )}
 
                 <button
                   type="button"

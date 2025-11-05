@@ -388,7 +388,67 @@ exports.googleConfig = async (req, res) => {
 exports.googleStart = async (req, res) => {
   try {
     const client = getGoogleCodeClient();
-    if (!client) return res.status(500).send("Google OAuth not configured");
+    if (!client) {
+      // Return a user-friendly HTML page instead of plain text
+      return res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Google OAuth Chưa Được Cấu Hình</title>
+          <meta charset="utf-8">
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            .container {
+              text-align: center;
+              padding: 40px;
+              background: rgba(255, 255, 255, 0.1);
+              border-radius: 20px;
+              backdrop-filter: blur(10px);
+              max-width: 500px;
+            }
+            h1 { margin-top: 0; }
+            button {
+              margin-top: 20px;
+              padding: 12px 24px;
+              background: white;
+              color: #667eea;
+              border: none;
+              border-radius: 8px;
+              font-size: 16px;
+              cursor: pointer;
+              font-weight: bold;
+            }
+            button:hover { opacity: 0.9; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>⚠️ Google OAuth Chưa Được Cấu Hình</h1>
+            <p>Chức năng đăng nhập bằng Google chưa được kích hoạt.</p>
+            <p>Vui lòng sử dụng đăng nhập bằng email/mật khẩu hoặc Facebook.</p>
+            <button onclick="window.close()">Đóng cửa sổ này</button>
+          </div>
+          <script>
+            // Auto close after 5 seconds
+            setTimeout(() => {
+              if (window.opener) {
+                window.close();
+              }
+            }, 5000);
+          </script>
+        </body>
+        </html>
+      `);
+    }
     const state = crypto.randomBytes(16).toString("hex");
     res.cookie("g_state", state, { maxAge: 5 * 60 * 1000, sameSite: "lax" });
     const url = client.generateAuthUrl({
@@ -400,7 +460,53 @@ exports.googleStart = async (req, res) => {
     return res.redirect(302, url);
   } catch (e) {
     console.error("[googleStart]", e.message);
-    res.status(500).send("Failed to start Google login");
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Lỗi Google OAuth</title>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+          }
+          .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+          }
+          button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: white;
+            color: #f5576c;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>❌ Lỗi Google OAuth</h1>
+          <p>Không thể kết nối với Google. Vui lòng thử lại sau.</p>
+          <button onclick="window.close()">Đóng</button>
+        </div>
+      </body>
+      </html>
+    `);
   }
 };
 

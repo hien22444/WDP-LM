@@ -7,6 +7,8 @@ const TutorBookings = () => {
   const [loading, setLoading] = useState(false);
   const [signingBookingId, setSigningBookingId] = useState(null);
   const [tutorSignature, setTutorSignature] = useState("");
+  const [viewing, setViewing] = useState(null);
+  const [showContract, setShowContract] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -44,7 +46,7 @@ const TutorBookings = () => {
     setSigningBookingId(null);
 
     try {
-      await BookingService.tutorDecision(id, decision);
+      await BookingService.tutorDecision(id, decision, tutorSignature.trim());
       await load();
       alert("🎉 Đã ký hợp đồng và chấp nhận booking thành công!");
     } catch (error) {
@@ -77,11 +79,20 @@ const TutorBookings = () => {
 
   console.log("🎨 TutorBookings render - items:", items, "loading:", loading);
 
+  const pendingCount = items.filter((b) => b.status === "pending").length;
+
   return (
     <div style={{ padding: 24 }}>
-      <h2>Yêu cầu đặt lịch</h2>
-      <div style={{ marginBottom: "16px", fontSize: "14px", color: "#666" }}>
-        Debug: {items.length} bookings found, loading: {loading.toString()}
+      <h2>Đơn yêu cầu</h2>
+      <div style={{
+        marginBottom: "16px",
+        fontSize: "14px",
+        color: "#374151",
+        background: "#F3F4F6",
+        padding: "12px 16px",
+        borderRadius: 8,
+      }}>
+        Có {pendingCount} yêu cầu đang chờ duyệt · Tổng {items.length}
       </div>
       {loading && items.length === 0 ? (
         <div>Đang tải...</div>
@@ -100,19 +111,42 @@ const TutorBookings = () => {
           <tbody>
             {items.map((b) => (
               <tr key={b._id}>
-                <td>{b.student}</td>
+                <td title={b.student}>{String(b.student).slice(0,8)}...</td>
                 <td>
                   {new Date(b.start).toLocaleString()} –{" "}
                   {new Date(b.end).toLocaleString()}
                 </td>
                 <td>{b.mode}</td>
                 <td>{(b.price || 0).toLocaleString()} đ</td>
-                <td>{b.status}</td>
+                <td>
+                  <span
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: 12,
+                      background:
+                        b.status === "pending"
+                          ? "#FEF3C7"
+                          : b.status === "accepted"
+                          ? "#DCFCE7"
+                          : "#E5E7EB",
+                      color:
+                        b.status === "pending"
+                          ? "#92400E"
+                          : b.status === "accepted"
+                          ? "#065F46"
+                          : "#374151",
+                      fontWeight: 600,
+                      fontSize: 12,
+                    }}
+                  >
+                    {b.status}
+                  </span>
+                </td>
                 <td>
                   {b.status === "pending" ? (
                     <>
-                      <button onClick={() => decide(b._id, "accept")}>
-                        Chấp nhận
+                      <button onClick={() => { setViewing(b); setShowContract(true); }}>
+                        Xem hợp đồng
                       </button>
                       <button
                         onClick={() => decide(b._id, "reject")}
@@ -122,7 +156,9 @@ const TutorBookings = () => {
                       </button>
                     </>
                   ) : (
-                    "—"
+                    <button onClick={() => { setViewing(b); setShowContract(true); }}>
+                      Xem hợp đồng
+                    </button>
                   )}
                 </td>
               </tr>
@@ -234,6 +270,83 @@ const TutorBookings = () => {
               >
                 ✍️ Ký và chấp nhận
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contract View Modal */}
+      {showContract && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: 24,
+              borderRadius: 12,
+              width: "95%",
+              maxWidth: 800,
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Hợp đồng thuê gia sư</h3>
+            {!viewing?.contractData ? (
+              <div style={{ color: "#6b7280", marginBottom: 16 }}>
+                Chưa có dữ liệu hợp đồng do học viên gửi. Vui lòng liên hệ học viên nếu cần bổ sung.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><strong>Học viên</strong><div>{viewing.contractData.studentName || "—"}</div></div>
+                <div><strong>Điện thoại</strong><div>{viewing.contractData.studentPhone || "—"}</div></div>
+                <div><strong>Email</strong><div>{viewing.contractData.studentEmail || "—"}</div></div>
+                <div><strong>Địa chỉ</strong><div>{viewing.contractData.studentAddress || "—"}</div></div>
+                <div><strong>Môn học</strong><div>{viewing.contractData.subject || "—"}</div></div>
+                <div><strong>Số buổi</strong><div>{viewing.contractData.totalSessions || 1}</div></div>
+                <div><strong>Thời lượng/buổi</strong><div>{viewing.contractData.sessionDuration || 60} phút</div></div>
+                <div><strong>Ngày bắt đầu</strong><div>{viewing.contractData.startDate ? new Date(viewing.contractData.startDate).toLocaleDateString() : new Date(viewing.start).toLocaleDateString()}</div></div>
+                <div><strong>Ngày kết thúc</strong><div>{viewing.contractData.endDate ? new Date(viewing.contractData.endDate).toLocaleDateString() : new Date(viewing.end).toLocaleDateString()}</div></div>
+                <div><strong>Ghi chú</strong><div>{viewing.notes || viewing.contractData.notes || "—"}</div></div>
+              </div>
+            )}
+
+            {viewing?.status === "pending" && (
+              <div style={{ marginTop: 16 }}>
+                <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>Chữ ký xác nhận (tên của bạn)</label>
+                <input
+                  type="text"
+                  value={tutorSignature}
+                  onChange={(e) => setTutorSignature(e.target.value)}
+                  placeholder="Nhập tên đầy đủ"
+                  style={{ width: "100%", padding: 12, border: "1px solid #e5e7eb", borderRadius: 8 }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 16 }}>
+              <button onClick={() => { setShowContract(false); setViewing(null); setTutorSignature(""); }}
+                style={{ padding: "10px 16px", border: "1px solid #e5e7eb", background: "white", borderRadius: 8 }}>
+                Đóng
+              </button>
+              {viewing?.status === "pending" && (
+                <button
+                  onClick={() => handleSignatureSubmit(viewing._id, "accept")}
+                  disabled={!tutorSignature.trim()}
+                  style={{ padding: "10px 16px", border: "none", background: tutorSignature.trim() ? "#4f46e5" : "#a5b4fc", color: "white", borderRadius: 8 }}
+                >
+                  ✍️ Ký và chấp nhận
+                </button>
+              )}
             </div>
           </div>
         </div>

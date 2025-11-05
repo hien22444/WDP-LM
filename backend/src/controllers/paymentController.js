@@ -1,167 +1,223 @@
 const payOS = require("../config/payos");
+const mongoose = require("mongoose");
 const TeachingSlot = require("../models/TeachingSlot");
 const Payment = require("../models/Payment");
 const Booking = require("../models/Booking");
 const TeachingSession = require("../models/TeachingSession");
+const TutorProfile = require("../models/TutorProfile");
+const Notification = require("../models/Notification");
 const { generateRoomId } = require("../services/WebRTCService");
-const { notifyStudentPaymentSuccess, notifyTutorPaymentSuccess } = require("../services/NotificationService");
+const { notifyStudentPaymentSuccess, notifyTutorPaymentSuccess, notifyTutorBookingCreated } = require("../services/NotificationService");
+const EscrowService = require("../services/EscrowService");
 
 // Tạo link thanh toán
 const createPaymentLink = async (req, res) => {
+  let paymentRecord = null;
   try {
-    // Validate input
-    const { product } = req.body;
-    if (!product || !product.unitPrice || product.unitPrice <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Giá tiền không hợp lệ"
-      });
-    }
+    console.log("📝 [Payment] Creating payment link - Request body:", JSON.stringify(req.body, null, 2));
+    console.log("📝 [Payment] User ID:", req.user?.id || "No user");
 
     // Create simple order code
     const orderCode = Date.now();
     
-    // Create payment with minimum required fields
-    const order = {
-      orderCode,
-      amount: product.unitPrice,
-      description: product.name || "Thanh toán khóa học",
-      cancelUrl: `${process.env.FRONTEND_URL}/payment/cancel`,
-      returnUrl: `${process.env.FRONTEND_URL}/payment/success`
-    };
+    // Initialize variables
+    let slotId = null;
+    let amount = null;
+    let productName = "Thanh toán khóa học";
 
-  try {
-    const payload = req.body || {};
-    const product = payload.product || {};
-    const metadata = payload.metadata || {};
+    try {
+      const payload = req.body || {};
+      const product = payload.product || {};
+      const metadata = payload.metadata || {};
 
-    // Try to resolve slotId from metadata.slotId or product.id
-    slotId = metadata.slotId || product.id;
-    if (slotId) {
-      try {
-        const slot = await TeachingSlot.findById(slotId).lean();
-        if (slot && typeof slot.price === "number" && slot.price > 0) {
-          amount = slot.price;
-          productName = slot.courseName || product.name || productName;
+      console.log("📝 [Payment] Parsed - product:", product, "metadata:", metadata);
+
+      // Try to resolve slotId from metadata.slotId or product.id
+      slotId = metadata.slotId || product.id;
+      console.log("📝 [Payment] Resolved slotId:", slotId);
+
+      // Validate slotId - must be valid ObjectId
+      if (slotId) {
+        // Kiểm tra xem slotId có phải ObjectId hợp lệ không
+        if (!mongoose.Types.ObjectId.isValid(slotId)) {
+          console.warn("⚠️ [Payment] Invalid ObjectId format for slotId:", slotId);
+          console.warn("⚠️ [Payment] Setting slotId to null (will use client-provided price)");
+          slotId = null; // Set null nếu không phải ObjectId hợp lệ
+        } else {
+          try {
+            const slot = await TeachingSlot.findById(slotId).lean();
+            console.log("📝 [Payment] Found slot:", slot ? "yes" : "no");
+            if (slot && typeof slot.price === "number" && slot.price > 0) {
+              amount = slot.price;
+              productName = slot.courseName || product.name || productName;
+              console.log("📝 [Payment] Using slot price:", amount);
+            } else {
+              console.warn("⚠️ [Payment] Slot found but price invalid:", slot?.price);
+            }
+          } catch (e) {
+            console.warn("⚠️ [Payment] Unable to load TeachingSlot:", e.message);
+            slotId = null; // Set null nếu không tìm thấy slot
+          }
         }
-      } catch (e) {
-        // ignore DB lookup failures for now and fallback to client-provided price
-        console.warn(
-          "Warning: unable to load TeachingSlot for payment amount:",
-          e.message
-        );
       }
-    }
 
-    // fallback to client-provided unitPrice (in VND integer)
-    if (amount === null && product && typeof product.unitPrice === "number") {
-      amount = product.unitPrice;
-      productName = product.name || productName;
-    }
+      // fallback to client-provided unitPrice (in VND integer)
+      if (amount === null && product && typeof product.unitPrice === "number") {
+        amount = product.unitPrice;
+        productName = product.name || productName;
+        console.log("📝 [Payment] Using client-provided price:", amount);
+      }
 
-    // If still no valid amount, return 400
-    if (!amount || typeof amount !== "number" || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Không xác định được số tiền thanh toán cho sản phẩm.",
+      // If still no valid amount, return 400
+      if (!amount || typeof amount !== "number" || amount <= 0) {
+        console.error("❌ [Payment] Invalid amount:", amount);
+        return res.status(400).json({
+          success: false,
+          message: "Không xác định được số tiền thanh toán cho sản phẩm.",
+        });
+      }
+    } catch (err) {
+      console.error("❌ [Payment] Error resolving payment amount:", err);
+      console.error("❌ [Payment] Error stack:", err.stack);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Lỗi máy chủ khi xử lý thanh toán.",
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
       });
     }
-  } catch (err) {
-    console.error("Error while resolving payment amount:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Lỗi máy chủ khi xử lý thanh toán." });
-  }
 
-  const order = {
-    orderCode: orderCode, // Mã đơn hàng duy nhất, là số nguyên
-    amount: amount,
-    description: productName,
-    returnUrl: `${process.env.FRONTEND_URL}/payment-success`,
-    cancelUrl: `${process.env.FRONTEND_URL}/payment-cancel`,
-  };
-
-  let paymentRecord = null;
-  try {
-    if (!payOS || typeof payOS.paymentRequests.create !== "function") {
-      throw new Error("PayOS SDK chưa được khởi tạo đúng cách.");
-    }
-
-    // Persist a Payment record before calling PayOS
-    paymentRecord = await Payment.create({
-      orderCode: String(orderCode),
-      vnp_txnref: String(orderCode),
-      slotId: slotId || null,
-      amount,
-      productName,
-      status: "PENDING",
-      metadata: {
-        metadata: req.body.metadata || {},
-        product: req.body.product || {},
-      },
-    });
-
-    console.log("Creating payment link with order:", order);
-    const paymentLink = await payOS.paymentRequests.create(order);
-
-    console.log(
-      `Resolved payment amount for orderCode ${orderCode}:`,
-      amount,
-      "description:",
-      productName
-    );
-
-    // Update the payment record with checkout/qr info
-    paymentRecord.checkoutUrl = paymentLink.checkoutUrl;
-    paymentRecord.qrUrl = paymentLink.qrUrl || null;
-    await paymentRecord.save();
-
-    const payload = {
-      success: true,
-      paymentId: paymentRecord._id,
-      checkoutUrl: paymentLink.checkoutUrl,
-      qrUrl: paymentLink.qrUrl || null,
-      qrBase64: paymentLink.qrBase64 || null,
+    // Create order object for PayOS
+    const order = {
+      orderCode: orderCode,
       amount: amount,
-      productName: productName,
+      // PayOS giới hạn 25 ký tự cho description
+      description: String(productName || "Thanh toán").slice(0, 25),
+      returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`,
+      cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-cancel`,
     };
 
-    console.log(
-      "✅ Payment link created successfully for orderCode:",
-      orderCode
-    );
-    return res.json(payload);
-  } catch (error) {
-    // Enhanced logging to help debug 500 errors
-    console.error("Error creating payment link", {
-      orderCode,
-      slotId,
-      amount,
-      productName,
-      message: error.message,
-      stack: error.stack,
-    });
+    console.log("📝 [Payment] Order object:", order);
 
-    // If a payment record was already created, mark it cancelled to avoid dangling PENDING
     try {
-      if (paymentRecord) {
-        paymentRecord.status = "CANCELLED";
-        paymentRecord.metadata = paymentRecord.metadata || {};
-        paymentRecord.metadata.error = (error && error.message) || "unknown";
-        await paymentRecord.save();
+      // Kiểm tra PayOS config
+      if (!payOS) {
+        console.error("❌ [Payment] PayOS is not initialized");
+        throw new Error("PayOS SDK chưa được khởi tạo. Vui lòng kiểm tra cấu hình PayOS.");
       }
-    } catch (e2) {
-      console.error("Error updating paymentRecord after failure:", e2);
-    }
 
-    // Return a clearer message for the frontend while avoiding sensitive details
-    const safeMessage =
-      error && error.message
-        ? error.message
-        : "Lỗi máy chủ khi tạo link thanh toán";
+      if (typeof payOS.paymentRequests?.create !== "function") {
+        console.error("❌ [Payment] PayOS.paymentRequests.create is not a function");
+        console.error("❌ [Payment] PayOS object keys:", Object.keys(payOS));
+        throw new Error("PayOS SDK chưa được khởi tạo đúng cách.");
+      }
+
+      // Validate PayOS credentials
+      if (!process.env.PAYOS_CLIENT_ID || !process.env.PAYOS_API_KEY || !process.env.PAYOS_CHECKSUM_KEY) {
+        console.error("❌ [Payment] Missing PayOS credentials");
+        throw new Error("Thiếu cấu hình PayOS. Vui lòng kiểm tra biến môi trường.");
+      }
+
+      console.log("📝 [Payment] Creating Payment record...");
+      // Persist a Payment record before calling PayOS
+      try {
+        // Đảm bảo slotId là ObjectId hợp lệ hoặc null
+        let validSlotId = null;
+        if (slotId && mongoose.Types.ObjectId.isValid(slotId)) {
+          validSlotId = new mongoose.Types.ObjectId(slotId);
+        }
+
+        paymentRecord = await Payment.create({
+          orderCode: String(orderCode),
+          vnp_txnref: String(orderCode),
+          userId: req.user?.id ? new mongoose.Types.ObjectId(req.user.id) : null,
+          slotId: validSlotId,
+          amount,
+          productName,
+          status: "PENDING",
+          metadata: {
+            metadata: req.body.metadata || {},
+            product: req.body.product || {},
+          },
+        });
+        console.log("✅ [Payment] Payment record created:", paymentRecord._id);
+      } catch (dbError) {
+        console.error("❌ [Payment] Database error:", dbError);
+        console.error("❌ [Payment] DB Error details:", dbError.message);
+        throw new Error(`Không thể tạo payment record: ${dbError.message}`);
+      }
+
+      console.log("📝 [Payment] Calling PayOS API...");
+      let paymentLink;
+      try {
+        paymentLink = await payOS.paymentRequests.create(order);
+        console.log("✅ [Payment] PayOS response received:", paymentLink.checkoutUrl ? "has checkoutUrl" : "no checkoutUrl");
+      } catch (payosError) {
+        console.error("❌ [Payment] PayOS API error:", payosError);
+        console.error("❌ [Payment] PayOS error message:", payosError.message);
+        console.error("❌ [Payment] PayOS error response:", payosError.response?.data || payosError.response);
+        throw new Error(`Lỗi PayOS: ${payosError.message || "Không thể tạo link thanh toán"}`);
+      }
+
+      // Update the payment record with checkout/qr info
+      paymentRecord.checkoutUrl = paymentLink.checkoutUrl;
+      paymentRecord.qrUrl = paymentLink.qrUrl || null;
+      await paymentRecord.save();
+
+      const payload = {
+        success: true,
+        paymentId: paymentRecord._id,
+        checkoutUrl: paymentLink.checkoutUrl,
+        qrUrl: paymentLink.qrUrl || null,
+        qrBase64: paymentLink.qrBase64 || null,
+        amount: amount,
+        productName: productName,
+      };
+
+      console.log("✅ [Payment] Payment link created successfully for orderCode:", orderCode);
+      return res.json(payload);
+    } catch (error) {
+      // Enhanced logging to help debug 500 errors
+      console.error("❌ [Payment] Error creating payment link:", {
+        orderCode,
+        slotId,
+        amount,
+        productName,
+        message: error.message,
+        stack: error.stack,
+      });
+
+      // If a payment record was already created, mark it cancelled to avoid dangling PENDING
+      try {
+        if (paymentRecord) {
+          paymentRecord.status = "CANCELLED";
+          paymentRecord.metadata = paymentRecord.metadata || {};
+          paymentRecord.metadata.error = (error && error.message) || "unknown";
+          await paymentRecord.save();
+          console.log("⚠️ [Payment] Payment record marked as CANCELLED");
+        }
+      } catch (e2) {
+        console.error("❌ [Payment] Error updating paymentRecord after failure:", e2);
+      }
+
+      // Return a clearer message for the frontend
+      const safeMessage =
+        error && error.message
+          ? error.message
+          : "Lỗi máy chủ khi tạo link thanh toán";
+      return res.status(500).json({
+        success: false,
+        message: `Không thể tạo link thanh toán: ${safeMessage}`,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  } catch (error) {
+    // Outer catch for any unexpected errors
+    console.error("❌ [Payment] Unexpected error in createPaymentLink:", error);
+    console.error("❌ [Payment] Error stack:", error.stack);
     return res.status(500).json({
       success: false,
-      message: `Không thể tạo link thanh toán: ${safeMessage}`,
+      message: "Lỗi máy chủ không xác định khi tạo link thanh toán",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -194,27 +250,8 @@ const receiveWebhook = async (req, res) => {
         message: webhookData.message,
       });
 
-    try {
-      console.log("Creating payment with PayOS:", order);
-      const paymentLink = await payOS.paymentRequests.create(order);
-      console.log("Payment link created:", paymentLink);
-
-      // Save payment to database
-      const payment = await Payment.create({
-        orderCode: String(orderCode),
-        amount: order.amount,
-        description: order.description,
-        status: "PENDING",
-        metadata: req.body
-      });
-
-      return res.json({
-        success: true,
-        checkoutUrl: paymentLink.checkoutUrl,
-        qrUrl: paymentLink.qrUrl,
-        amount: order.amount,
-        orderCode
-      });        // PayOS can send either "PAID" or "COMPLETED" for successful payments
+      try {
+        // PayOS can send either "PAID" or "COMPLETED" for successful payments
         // Check both the status and the response code
         if (
           webhookData.code === "00" &&
@@ -262,54 +299,63 @@ const receiveWebhook = async (req, res) => {
               await slot.save();
               console.log("📚 Slot update result:", slot._id);
 
-              // Create booking from slot
+              // Create booking from slot (kiểm tra tránh duplicate)
               try {
-                const roomId = generateRoomId();
-                const booking = await Booking.create({
-                  tutorProfile: slot.tutorProfile,
-                  student: payment.userId,
-                  start: slot.start,
-                  end: slot.end,
-                  mode: slot.mode,
-                  price: slot.price,
-                  notes: `Đặt từ slot: ${slot.courseName}`,
+                // Kiểm tra xem đã có booking từ slot này chưa
+                const existingBooking = await Booking.findOne({ 
                   slotId: slot._id,
-                  roomId: roomId,
-                  status: "accepted" // Auto-accept since payment is completed
+                  status: { $in: ["accepted", "pending", "completed"] }
                 });
+                
+                if (existingBooking) {
+                  console.log("⚠️ Booking already exists for this slot:", existingBooking._id);
+                  // Không tạo booking mới nếu đã có, nhưng vẫn gửi notification
+                  try {
+                    const studentNotification = await notifyStudentPaymentSuccess(existingBooking);
+                    console.log("📧 Student payment success notification sent:", studentNotification);
 
-                // Create teaching session
-                const session = await TeachingSession.create({
-                  booking: booking._id,
-                  tutorProfile: slot.tutorProfile,
-                  student: payment.userId,
-                  startTime: slot.start,
-                  endTime: slot.end,
-                  courseName: slot.courseName,
-                  mode: slot.mode,
-                  location: slot.location,
-                  status: "scheduled",
-                  roomId: roomId,
-                });
+                    const tutorNotification = await notifyTutorPaymentSuccess(existingBooking);
+                    console.log("📧 Tutor payment success notification sent:", tutorNotification);
+                  } catch (notificationError) {
+                    console.error("❌ Failed to send payment notifications:", notificationError);
+                  }
+                } else {
+                  // Tính toán escrow amount, platform fee và tutor payout
+                  const payouts = EscrowService.calculatePayouts(slot.price);
+                  console.log("💰 [Payment] Calculated payouts:", payouts);
 
-                booking.sessionId = session._id;
-                await booking.save();
+                  const booking = await Booking.create({
+                    tutorProfile: slot.tutorProfile,
+                    student: payment.userId,
+                    start: slot.start,
+                    end: slot.end,
+                    mode: slot.mode,
+                    price: slot.price,
+                    notes: `Đặt từ slot: ${slot.courseName}`,
+                    slotId: slot._id,
+                    status: "pending"
+                  });
+                  console.log("📝 Booking created (pending):", booking._id);
 
-                console.log("📝 Booking created:", booking._id);
-                console.log("📝 Teaching session created:", session._id);
-
-                // Send payment success notifications
-                try {
-                  const studentNotification = await notifyStudentPaymentSuccess(booking);
-                  console.log("📧 Student payment success notification sent:", studentNotification);
-
-                  const tutorNotification = await notifyTutorPaymentSuccess(booking);
-                  console.log("📧 Tutor payment success notification sent:", tutorNotification);
-                } catch (notificationError) {
-                  console.error("❌ Failed to send payment notifications:", notificationError);
-                  // Don't fail the payment processing if notification fails
+                  // Notify tutor about new pending request with payment info (email + in-app)
+                  try {
+                    await notifyTutorBookingCreated(booking);
+                    const tProfile = await TutorProfile.findById(slot.tutorProfile).populate('user','_id full_name');
+                    if (tProfile?.user?._id) {
+                      await Notification.create({
+                        recipient: tProfile.user._id,
+                        type: 'booking_created',
+                        title: '💰 Học viên đã thanh toán - Cần chấp nhận đơn',
+                        message: `Học viên đã thanh toán ${(slot.price || 0).toLocaleString()} VNĐ cho khóa học "${slot.courseName || ''}". Vui lòng xem hợp đồng và chấp nhận đơn.`,
+                        link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/bookings/tutor`,
+                        data: { bookingId: booking._id, slotId: String(slot._id), paymentAmount: slot.price }
+                      });
+                      console.log("✅ In-app notification sent to tutor about payment received");
+                    }
+                  } catch (notificationError) {
+                    console.error("❌ Failed to send booking created notifications:", notificationError);
+                  }
                 }
-
               } catch (bookingError) {
                 console.error("❌ Error creating booking from slot:", bookingError);
                 // Don't fail the payment processing if booking creation fails
@@ -356,9 +402,9 @@ const receiveWebhook = async (req, res) => {
 const listPayments = async (req, res) => {
   try {
     const filter = {};
-    // If authentication middleware sets req.user._id, filter by that user
-    if (req.user && req.user._id) {
-      filter.userId = req.user._id;
+    // If authentication middleware sets req.user.id, filter by that user
+    if (req.user && req.user.id) {
+      filter.userId = req.user.id;
     }
 
     // Basic pagination
@@ -395,9 +441,9 @@ const getPaymentById = async (req, res) => {
     // Optionally check ownership
     if (
       req.user &&
-      req.user._id &&
+      req.user.id &&
       payment.userId &&
-      String(payment.userId) !== String(req.user._id)
+      String(payment.userId) !== String(req.user.id)
     ) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
@@ -430,9 +476,9 @@ const cancelPayment = async (req, res) => {
     // Optionally check ownership
     if (
       req.user &&
-      req.user._id &&
+      req.user.id &&
       payment.userId &&
-      String(payment.userId) !== String(req.user._id)
+      String(payment.userId) !== String(req.user.id)
     ) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
@@ -495,11 +541,17 @@ const verifyPayment = async (req, res) => {
             });
             await slot.save();
 
-            // Create booking from slot if not exists
-            const existingBooking = await Booking.findOne({ slotId: slot._id });
+            // Create booking from slot if not exists (kiểm tra tránh duplicate)
+            const existingBooking = await Booking.findOne({ 
+              slotId: slot._id,
+              status: { $in: ["accepted", "pending", "completed"] }
+            });
             if (!existingBooking) {
               try {
-                const roomId = generateRoomId();
+                // Tính toán escrow amount, platform fee và tutor payout
+                const payouts = EscrowService.calculatePayouts(slot.price);
+                console.log("💰 [Payment] Calculated payouts:", payouts);
+
                 const booking = await Booking.create({
                   tutorProfile: slot.tutorProfile,
                   student: payment.userId,
@@ -509,32 +561,25 @@ const verifyPayment = async (req, res) => {
                   price: slot.price,
                   notes: `Đặt từ slot: ${slot.courseName}`,
                   slotId: slot._id,
-                  roomId: roomId,
-                  status: "accepted"
+                  status: "pending"
                 });
-
-                const session = await TeachingSession.create({
-                  booking: booking._id,
-                  tutorProfile: slot.tutorProfile,
-                  student: payment.userId,
-                  startTime: slot.start,
-                  endTime: slot.end,
-                  courseName: slot.courseName,
-                  mode: slot.mode,
-                  location: slot.location,
-                  status: "scheduled",
-                  roomId: roomId,
-                });
-
-                booking.sessionId = session._id;
-                await booking.save();
-
-                // Send notifications
+                // Notify tutor of new pending request with payment info (email + in-app)
                 try {
-                  await notifyStudentPaymentSuccess(booking);
-                  await notifyTutorPaymentSuccess(booking);
+                  await notifyTutorBookingCreated(booking);
+                  const tProfile = await TutorProfile.findById(slot.tutorProfile).populate('user','_id full_name');
+                  if (tProfile?.user?._id) {
+                    await Notification.create({
+                      recipient: tProfile.user._id,
+                      type: 'booking_created',
+                      title: '💰 Học viên đã thanh toán - Cần chấp nhận đơn',
+                      message: `Học viên đã thanh toán ${(slot.price || 0).toLocaleString()} VNĐ cho khóa học "${slot.courseName || ''}". Vui lòng xem hợp đồng và chấp nhận đơn.`,
+                      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/bookings/tutor`,
+                      data: { bookingId: booking._id, slotId: String(slot._id), paymentAmount: slot.price }
+                    });
+                    console.log("✅ In-app notification sent to tutor about payment received");
+                  }
                 } catch (notificationError) {
-                  console.error("❌ Failed to send payment notifications:", notificationError);
+                  console.error("❌ Failed to send booking created notifications:", notificationError);
                 }
               } catch (bookingError) {
                 console.error("❌ Error creating booking from slot:", bookingError);

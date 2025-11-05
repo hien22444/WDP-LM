@@ -347,7 +347,7 @@ function App() {
   };
 
   return (
-    <>
+    <ChatProvider>
       <Routes>
         {/* Public routes */}
         <Route
@@ -423,16 +423,7 @@ function App() {
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/tutors" element={<TutorList />} />
 
-          {/* ✅ Chỉ route này có ChatProvider */}
-          <Route
-            path="/tutor/:id"
-            element={
-              <ChatProvider>
-                <TutorProfilePage />
-                <ChatManager />
-              </ChatProvider>
-            }
-          />
+          <Route path="/tutor/:id" element={<><TutorProfilePage /><ChatManager /></>} />
 
           <Route
             path="/bookings/tutor"
@@ -496,7 +487,7 @@ function App() {
         profileCompletion={profileCompletion}
         onComplete={handleProfileCompletion}
       />
-    </>
+    </ChatProvider>
   );
 }
 

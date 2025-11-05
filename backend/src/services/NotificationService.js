@@ -3,6 +3,30 @@ const User = require("../models/User");
 const TutorProfile = require("../models/TutorProfile");
 const Notification = require("../models/Notification");
 
+// Safe datetime formatter to avoid template crashes
+const formatDateTime = (value) => {
+  try {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleString('vi-VN');
+  } catch (e) {
+    return String(value || '—');
+  }
+};
+
+// Safe number formatter for currency
+const formatCurrency = (value) => {
+  try {
+    if (value === null || value === undefined) return '0';
+    const num = Number(value);
+    if (isNaN(num)) return String(value || '0');
+    return num.toLocaleString('vi-VN');
+  } catch (e) {
+    return String(value || '0');
+  }
+};
+
 // Email template helper
 const createEmailTemplate = (type, data) => {
   const templates = {
@@ -20,7 +44,7 @@ const createEmailTemplate = (type, data) => {
             
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2cd4c0;">
               <h3>📅 Thông tin buổi học</h3>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
               ${data.roomUrl ? `<p><strong>Link phòng học:</strong> <a href="${data.roomUrl}">${data.roomUrl}</a></p>` : ''}
             </div>
@@ -45,35 +69,51 @@ const createEmailTemplate = (type, data) => {
       `
     },
     booking_created: {
-      subject: "🎓 Có yêu cầu đặt lịch mới - EduMatch",
+      subject: "💰 Học viên đã thanh toán - Cần chấp nhận đơn - EduMatch",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
+          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; text-align: center;">
             <h1>🎓 EduMatch</h1>
-            <h2>Yêu cầu đặt lịch mới</h2>
+            <h2>💰 Học viên đã thanh toán</h2>
+            <p style="margin: 10px 0; font-size: 18px;">Cần chấp nhận đơn thuê</p>
           </div>
           <div style="padding: 20px; background: #f8f9fa;">
             <p>Xin chào <strong>${data.tutorName}</strong>,</p>
-            <p>Bạn có một yêu cầu đặt lịch mới từ học viên:</p>
+            <p><strong>Học viên đã thanh toán thành công</strong> và gửi yêu cầu đặt lịch đến bạn:</p>
+            
+            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
+              <p style="margin: 0; font-weight: bold; color: #155724;">
+                ✅ Học viên đã thanh toán: <strong>${data.price ? formatCurrency(data.price) + ' VNĐ' : 'Liên hệ'}</strong>
+              </p>
+            </div>
             
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #667eea;">
               <h3>📚 Thông tin khóa học</h3>
               <p><strong>Học viên:</strong> ${data.studentName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
-              <p><strong>Học phí:</strong> ${data.price ? data.price.toLocaleString() + ' VNĐ' : 'Liên hệ'}</p>
+              <p><strong>Học phí:</strong> ${data.price ? formatCurrency(data.price) + ' VNĐ' : 'Liên hệ'}</p>
               ${data.notes ? `<p><strong>Ghi chú:</strong> ${data.notes}</p>` : ''}
             </div>
             
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <h4>⚠️ Bước tiếp theo:</h4>
+              <ol style="margin: 10px 0; padding-left: 20px;">
+                <li>Xem hợp đồng thuê gia sư mà học viên đã gửi</li>
+                <li>Ký xác nhận và chấp nhận đơn thuê</li>
+                <li>Hệ thống sẽ tạo phòng học sau khi bạn chấp nhận</li>
+              </ol>
+            </div>
+            
             <div style="text-align: center; margin: 20px 0;">
-              <a href="${process.env.FRONTEND_URL}/bookings/tutor" 
-                 style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Xem chi tiết và phản hồi
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/bookings/tutor" 
+                 style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                📋 Xem hợp đồng và chấp nhận đơn
               </a>
             </div>
             
             <p style="color: #666; font-size: 14px;">
-              Vui lòng phản hồi trong vòng 24 giờ để đảm bảo trải nghiệm tốt nhất cho học viên.
+              <strong>Vui lòng phản hồi trong vòng 24 giờ</strong> để đảm bảo trải nghiệm tốt nhất cho học viên đã thanh toán.
             </p>
           </div>
           <div style="background: #f8f9fa; padding: 15px; text-align: center; color: #666; font-size: 12px;">
@@ -148,41 +188,61 @@ const createEmailTemplate = (type, data) => {
     },
     
     booking_accepted: {
-      subject: "✅ Yêu cầu đặt lịch đã được chấp nhận - EduMatch",
+      subject: "✅ Gia sư đã chấp nhận đơn thuê - EduMatch",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; text-align: center;">
             <h1>🎓 EduMatch</h1>
-            <h2>✅ Đặt lịch thành công!</h2>
+            <h2>✅ Gia sư đã chấp nhận đơn thuê!</h2>
+            <p style="margin: 10px 0; font-size: 18px;">Hợp đồng đã được ký xác nhận</p>
           </div>
           <div style="padding: 20px; background: #f8f9fa;">
             <p>Xin chào <strong>${data.studentName}</strong>,</p>
-            <p>Chúc mừng! Yêu cầu đặt lịch của bạn đã được gia sư chấp nhận:</p>
+            <p><strong>Gia sư đã chấp nhận và ký hợp đồng</strong> cho yêu cầu đặt lịch của bạn:</p>
             
-            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
-              <h3>📚 Thông tin khóa học</h3>
-              <p><strong>Gia sư:</strong> ${data.tutorName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
-              <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
-              <p><strong>Học phí:</strong> ${data.price ? data.price.toLocaleString() + ' VNĐ' : 'Liên hệ'}</p>
-              ${data.location ? `<p><strong>Địa điểm:</strong> ${data.location}</p>` : ''}
+            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
+              <p style="margin: 0; font-weight: bold; color: #155724;">
+                ✅ Hợp đồng đã được ký xác nhận bởi cả hai bên
+              </p>
             </div>
             
-            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #667eea;">
+              <h3>📚 Thông tin khóa học</h3>
+              <p><strong>Gia sư:</strong> ${data.tutorName}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)} - ${formatDateTime(data.end)}</p>
+              <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
+              <p><strong>Học phí:</strong> ${data.price ? formatCurrency(data.price) + ' VNĐ' : 'Liên hệ'}</p>
+              ${data.location ? `<p><strong>Địa điểm:</strong> ${data.location}</p>` : ''}
+              ${data.roomCode ? `
+                <div style="background: #e7f3ff; padding: 10px; border-radius: 6px; margin-top: 10px;">
+                  <p style="margin: 0;"><strong>🔑 Mã phòng học:</strong> <code style="background: #fff; padding: 4px 8px; border-radius: 4px; font-size: 16px; font-weight: bold;">${data.roomCode}</code></p>
+                  <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Sử dụng mã này để tham gia phòng học trực tuyến</p>
+                </div>
+              ` : ''}
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
               <h4>📋 Bước tiếp theo:</h4>
-              <ul style="margin: 10px 0; padding-left: 20px;">
-                <li>Gia sư sẽ liên hệ với bạn để xác nhận chi tiết</li>
-                <li>Thanh toán học phí theo hướng dẫn của gia sư</li>
-                <li>Tham gia buổi học đúng giờ</li>
-              </ul>
+              <ol style="margin: 10px 0; padding-left: 20px;">
+                <li>Xem hợp đồng đã được ký xác nhận</li>
+                ${data.roomCode ? '<li>Tham gia phòng học trực tuyến bằng mã phòng đã cung cấp</li>' : '<li>Phòng học sẽ được tạo và thông báo sau</li>'}
+                <li>Tham gia buổi học đúng giờ đã đặt</li>
+              </ol>
             </div>
             
             <div style="text-align: center; margin: 20px 0;">
-              <a href="${process.env.FRONTEND_URL}/bookings/me" 
-                 style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Xem lịch học của tôi
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/bookings/me" 
+                 style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                📋 Xem lịch học và hợp đồng
               </a>
             </div>
+            
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+              <strong>Lưu ý:</strong> Tiền học phí đã được thanh toán và đang được giữ trong hệ thống. Tiền sẽ được chuyển cho gia sư sau khi buổi học hoàn thành.
+            </p>
+          </div>
+          <div style="background: #f8f9fa; padding: 15px; text-align: center; color: #666; font-size: 12px;">
+            <p>© 2024 EduMatch. Tất cả quyền được bảo lưu.</p>
           </div>
         </div>
       `
@@ -203,7 +263,7 @@ const createEmailTemplate = (type, data) => {
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc3545;">
               <h3>📚 Thông tin khóa học</h3>
               <p><strong>Gia sư:</strong> ${data.tutorName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Lý do:</strong> Gia sư không thể sắp xếp thời gian phù hợp</p>
             </div>
             
@@ -255,9 +315,9 @@ const createEmailTemplate = (type, data) => {
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
               <h3>📚 Thông tin khóa học</h3>
               <p><strong>Gia sư:</strong> ${data.tutorName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
-              <p><strong>Học phí:</strong> ${data.price ? data.price.toLocaleString() + ' VNĐ' : 'Liên hệ'}</p>
+              <p><strong>Học phí:</strong> ${data.price ? formatCurrency(data.price) + ' VNĐ' : 'Liên hệ'}</p>
               ${data.location ? `<p><strong>Địa điểm:</strong> ${data.location}</p>` : ''}
             </div>
             
@@ -328,9 +388,9 @@ const createEmailTemplate = (type, data) => {
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
               <h3>📚 Thông tin khóa học</h3>
               <p><strong>Học viên:</strong> ${data.studentName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
-              <p><strong>Học phí:</strong> ${data.price ? data.price.toLocaleString() + ' VNĐ' : 'Liên hệ'}</p>
+              <p><strong>Học phí:</strong> ${data.price ? formatCurrency(data.price) + ' VNĐ' : 'Liên hệ'}</p>
               ${data.location ? `<p><strong>Địa điểm:</strong> ${data.location}</p>` : ''}
             </div>
             
@@ -391,7 +451,7 @@ const createEmailTemplate = (type, data) => {
               <h3 style="color: #ffc107; margin-bottom: 15px;">💳 Thông tin thanh toán</h3>
               <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <div style="font-size: 24px; font-weight: bold; color: #ffc107;">
-                  ${data.escrowAmount.toLocaleString()} VNĐ
+                  ${formatCurrency(data.escrowAmount)} VNĐ
                 </div>
                 <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
                   Số tiền sẽ được chuyển cho gia sư sau buổi học
@@ -402,7 +462,7 @@ const createEmailTemplate = (type, data) => {
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
               <h3>📚 Thông tin buổi học</h3>
               <p><strong>Gia sư:</strong> ${data.tutorName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
             </div>
             
@@ -439,10 +499,10 @@ const createEmailTemplate = (type, data) => {
               <h3 style="color: #28a745; margin-bottom: 15px;">💰 Số tiền nhận được</h3>
               <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <div style="font-size: 28px; font-weight: bold; color: #28a745;">
-                  ${data.tutorPayout.toLocaleString()} VNĐ
+                  ${formatCurrency(data.tutorPayout)} VNĐ
                 </div>
                 <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-                  Đã trừ phí platform (${data.platformFee.toLocaleString()} VNĐ)
+                  Đã trừ phí platform (${formatCurrency(data.platformFee)} VNĐ)
                 </p>
               </div>
             </div>
@@ -450,7 +510,7 @@ const createEmailTemplate = (type, data) => {
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
               <h3>📚 Thông tin buổi học</h3>
               <p><strong>Học viên:</strong> ${data.studentName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
             </div>
             
@@ -485,7 +545,7 @@ const createEmailTemplate = (type, data) => {
               <h3 style="color: #dc3545; margin-bottom: 15px;">💰 Số tiền hoàn</h3>
               <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <div style="font-size: 28px; font-weight: bold; color: #dc3545;">
-                  ${data.refundAmount.toLocaleString()} VNĐ
+                  ${formatCurrency(data.refundAmount)} VNĐ
                 </div>
                 <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
                   Sẽ được chuyển về tài khoản trong 1-3 ngày làm việc
@@ -496,7 +556,7 @@ const createEmailTemplate = (type, data) => {
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc3545;">
               <h3>📚 Thông tin buổi học</h3>
               <p><strong>Gia sư:</strong> ${data.tutorName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
               <p><strong>Lý do hủy:</strong> ${data.reason}</p>
             </div>
             
@@ -531,15 +591,15 @@ const createEmailTemplate = (type, data) => {
               <h3 style="color: #ff6b6b; margin-bottom: 15px;">📋 Thông tin tranh chấp</h3>
               <p><strong>Lý do:</strong> ${data.reason}</p>
               <p><strong>Người mở:</strong> ${data.openedBy}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.openedAt).toLocaleString('vi-VN')}</p>
-              <p><strong>Số tiền:</strong> ${data.escrowAmount.toLocaleString()} VNĐ</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.openedAt)}</p>
+              <p><strong>Số tiền:</strong> ${formatCurrency(data.escrowAmount)} VNĐ</p>
             </div>
             
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff6b6b;">
               <h3>📚 Thông tin buổi học</h3>
               <p><strong>Gia sư:</strong> ${data.tutorName}</p>
               <p><strong>Học viên:</strong> ${data.studentName}</p>
-              <p><strong>Thời gian:</strong> ${new Date(data.start).toLocaleString('vi-VN')}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
             </div>
             
             <div style="text-align: center; margin: 20px 0;">
@@ -635,6 +695,9 @@ const notifyTutorBookingCreated = async (booking) => {
       notes: booking.notes
     };
     
+    // In-app notification for tutor (already created in paymentController, skip duplicate)
+    // Note: in-app notification is created in paymentController with payment-specific message
+    
     return await sendNotificationEmail(tutorProfile.user.email, 'booking_created', data);
   } catch (error) {
     console.error("Error notifying tutor:", error);
@@ -668,8 +731,26 @@ const notifyStudentBookingDecision = async (booking, decision) => {
       end: booking.end,
       mode: booking.mode,
       price: booking.price,
-      location: booking.mode === 'offline' ? 'Địa điểm sẽ được thông báo' : null
+      location: booking.mode === 'offline' ? 'Địa điểm sẽ được thông báo' : null,
+      roomCode: booking.roomId || null // Include room code if available
     };
+    
+    // Create in-app notification for student
+    if (decision === 'accept') {
+      try {
+        await Notification.create({
+          recipient: student._id,
+          type: 'booking_accepted',
+          title: '✅ Gia sư đã chấp nhận đơn thuê',
+          message: `${tutorProfile.user.full_name} đã chấp nhận và ký hợp đồng. ${booking.roomId ? `Mã phòng học: ${booking.roomId}` : 'Phòng học sẽ được tạo sau.'}`,
+          link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/bookings/me`,
+          data: { bookingId: booking._id, roomId: booking.roomId, tutorName: tutorProfile.user.full_name }
+        });
+        console.log("✅ In-app notification sent to student about acceptance");
+      } catch (e) {
+        console.warn('⚠️ Failed to create in-app notification for student:', e.message);
+      }
+    }
     
     const emailType = decision === 'accept' ? 'booking_accepted' : 'booking_rejected';
     return await sendNotificationEmail(student.email, emailType, data);

@@ -960,7 +960,9 @@ const TutorProfilePage = () => {
 
                     <div className="tutor-details-grid">
                       <div className="detail-item">
-                        <i className="fas fa-graduation-cap"></i>
+                        <div className="icon-wrapper">
+                          <i className="fas fa-graduation-cap"></i>
+                        </div>
                         <div>
                           <h4>Kinh nghiệm</h4>
                           <p>{tutor.experience}</p>
@@ -968,7 +970,9 @@ const TutorProfilePage = () => {
                       </div>
 
                       <div className="detail-item">
-                        <i className="fas fa-video"></i>
+                        <div className="icon-wrapper">
+                          <i className="fas fa-video"></i>
+                        </div>
                         <div>
                           <h4>Hình thức dạy</h4>
                           <p>
@@ -987,7 +991,9 @@ const TutorProfilePage = () => {
                       </div>
 
                       <div className="detail-item">
-                        <i className="fas fa-language"></i>
+                        <div className="icon-wrapper">
+                          <i className="fas fa-language"></i>
+                        </div>
                         <div>
                           <h4>Ngôn ngữ</h4>
                           <p>{tutor.languages?.join(", ") || "Tiếng Việt"}</p>
@@ -995,7 +1001,9 @@ const TutorProfilePage = () => {
                       </div>
 
                       <div className="detail-item">
-                        <i className="fas fa-university"></i>
+                        <div className="icon-wrapper">
+                          <i className="fas fa-university"></i>
+                        </div>
                         <div>
                           <h4>Học vấn</h4>
                           <p>{tutor.education}</p>
@@ -1003,7 +1011,9 @@ const TutorProfilePage = () => {
                       </div>
 
                       <div className="detail-item">
-                        <i className="fas fa-chalkboard-teacher"></i>
+                        <div className="icon-wrapper">
+                          <i className="fas fa-chalkboard-teacher"></i>
+                        </div>
                         <div>
                           <h4>Phong cách dạy</h4>
                           <p>{tutor.teachingStyle}</p>
@@ -1011,7 +1021,9 @@ const TutorProfilePage = () => {
                       </div>
 
                       <div className="detail-item">
-                        <i className="fas fa-clock"></i>
+                        <div className="icon-wrapper">
+                          <i className="fas fa-clock"></i>
+                        </div>
                         <div>
                           <h4>Thời gian rảnh</h4>
                           <p>
@@ -1379,88 +1391,16 @@ const TutorProfilePage = () => {
 
                 {activeTab === "schedule" && (
                   <div className="schedule-section">
-                    <h3>Lịch trống</h3>
+                    <h3>Lịch của gia sư</h3>
 
                     {availabilityLoading ? (
-                      <div className="loading-spinner">
-                        Đang tải lịch trống...
-                      </div>
-                    ) : availability.slots.length > 0 ? (
-                      <div className="availability-real-section">
-                        <div className="legend">
-                          <div className="legend-item">
-                            <span className="legend-dot available"></span>
-                            <span>Trống</span>
-                          </div>
-                          <div className="legend-item">
-                            <span className="legend-dot busy"></span>
-                            <span>Đã bận</span>
-                          </div>
-                        </div>
-
-                        <div className="slots-grid">
-                          {availability.slots
-                            .slice(0, 20)
-                            .map((slot, index) => (
-                              <div key={index} className="slot-card available">
-                                <div className="slot-date">
-                                  {new Date(slot.date).toLocaleDateString(
-                                    "vi-VN",
-                                    {
-                                      weekday: "long",
-                                      day: "2-digit",
-                                      month: "long",
-                                    }
-                                  )}
-                                </div>
-                                <div className="slot-time">
-                                  {slot.start} - {slot.end}
-                                </div>
-                                <button
-                                  className="btn-book-slot"
-                                  onClick={() => handleSelectSlot(slot)}
-                                >
-                                  Chọn slot này
-                                </button>
-                              </div>
-                            ))}
-
-                          {availability.booked.map((slot, index) => (
-                            <div
-                              key={`booked-${index}`}
-                              className="slot-card busy"
-                            >
-                              <div className="slot-date">
-                                {new Date(slot.date).toLocaleDateString(
-                                  "vi-VN",
-                                  {
-                                    weekday: "long",
-                                    day: "2-digit",
-                                    month: "long",
-                                  }
-                                )}
-                              </div>
-                              <div className="slot-time">
-                                {slot.start} - {slot.end}
-                              </div>
-                              <div className="slot-status">Đã được đặt</div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {availability.slots.length === 0 && (
-                          <p className="no-slots">
-                            Chưa có lịch trống trong 2 tuần tới.
-                          </p>
-                        )}
-                      </div>
+                      <div className="loading-spinner">Đang tải lịch trống...</div>
                     ) : (
-                      <div className="no-availability">
-                        <p>Gia sư chưa cập nhật lịch trống.</p>
-                        <p>
-                          Vui lòng liên hệ trực tiếp để thống nhất lịch học.
-                        </p>
-                      </div>
+                      <Timetable
+                        available={availability.slots || []}
+                        booked={availability.booked || []}
+                        onPick={(slot) => handleSelectSlot(slot)}
+                      />
                     )}
                   </div>
                 )}
@@ -2831,6 +2771,128 @@ const TutorProfilePage = () => {
     </div>
   );
 };
+
+// Timetable component for schedule display
+function Timetable({ available = [], booked = [], onPick }) {
+  const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+  const [weekOffset, setWeekOffset] = React.useState(0);
+
+  const getPeriod = (time) => {
+    const [h] = String(time).split(":");
+    const hour = parseInt(h || 0, 10);
+    if (hour < 12) return "morning"; // 06-11
+    if (hour < 18) return "afternoon"; // 12-17
+    return "evening"; // 18-22
+  };
+
+  // Build map: dayIndex(1..7 with CN=7) -> { morning: [], afternoon: [], evening: [] }
+  const initCell = () => ({ morning: [], afternoon: [], evening: [] });
+  const grid = new Map();
+  const addToGrid = (dateIso, start, end, type) => {
+    const d = new Date(dateIso);
+    // Convert Sunday(0) -> 7, Monday(1) -> 1..6
+    let dayIdx = d.getDay();
+    dayIdx = dayIdx === 0 ? 7 : dayIdx;
+    const period = getPeriod(start);
+    if (!grid.has(dayIdx)) grid.set(dayIdx, initCell());
+    grid.get(dayIdx)[period].push({ date: dateIso, start, end, type });
+  };
+
+  // Week window
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const startOfWeekMon = (d) => {
+    const x = new Date(d);
+    const day = x.getDay();
+    const diff = (day === 0 ? -6 : 1) - day; // Monday as start
+    return addDays(x, diff);
+  };
+  const windowStart = addDays(startOfWeekMon(new Date()), weekOffset * 7);
+  const windowEnd = addDays(windowStart, 7);
+
+  const inWindow = (iso) => {
+    const t = new Date(iso);
+    return t >= windowStart && t < windowEnd;
+  };
+
+  available.filter((s) => inWindow(s.date)).forEach((s) => addToGrid(s.date, s.start, s.end, "available"));
+  booked.filter((s) => inWindow(s.date)).forEach((s) => addToGrid(s.date, s.start, s.end, "booked"));
+
+  const periods = [
+    { key: "morning", label: "Sáng" },
+    { key: "afternoon", label: "Chiều" },
+    { key: "evening", label: "Tối" },
+  ];
+
+  const handleClick = (slot) => {
+    if (slot.type !== "available") return;
+    if (typeof onPick === "function") onPick(slot);
+  };
+
+  return (
+    <div className="timetable">
+      <div className="tt-legend">
+        <span className="lg-item">
+          <span className="lg-dot lg-available" /> Trống (màu xanh)
+        </span>
+        <span className="lg-item">
+          <span className="lg-dot lg-booked" /> Đã bận (màu đỏ)
+        </span>
+        <span className="lg-item">
+          <span className="lg-dot lg-empty" /> Chưa có lịch (màu trắng)
+        </span>
+      </div>
+      <div className="tt-toolbar">
+        <button
+          className="tt-nav"
+          disabled={weekOffset <= 0}
+          onClick={() => setWeekOffset((v) => Math.max(0, v - 1))}
+        >
+          Tuần trước
+        </button>
+        <div className="tt-range">
+          {windowStart.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+          {" - "}
+          {addDays(windowStart, 6).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+        </div>
+        <button className="tt-nav" onClick={() => setWeekOffset((v) => v + 1)}>
+          Tuần sau
+        </button>
+      </div>
+      <div className="tt-head">
+        <div className="tt-cell tt-corner"></div>
+        {days.map((d, i) => (
+          <div key={i} className="tt-cell tt-day">{d}</div>
+        ))}
+      </div>
+      {periods.map((p) => (
+        <div key={p.key} className="tt-row">
+          <div className="tt-cell tt-period">{p.label}</div>
+          {days.map((_, colIdx) => {
+            const dayIdx = colIdx + 1; // 1..7 (CN=7)
+            const items = (grid.get(dayIdx) || {})[p.key] || [];
+            if (items.length === 0) {
+              return <div key={colIdx} className="tt-cell tt-empty" />;
+            }
+            return (
+              <div key={colIdx} className="tt-cell tt-slotlist">
+                {items.map((s, idx) => (
+                  <div
+                    key={idx}
+                    className={`tt-slot ${s.type === "available" ? "tt-available" : "tt-booked"}`}
+                    onClick={() => handleClick(s)}
+                    role={s.type === "available" ? "button" : undefined}
+                  >
+                    <span className="tt-time">{s.start} – {s.end}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Helper function to get day name
 

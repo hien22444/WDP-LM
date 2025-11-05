@@ -13,6 +13,7 @@ const OrderSummary = () => {
   // Get slot and schedule data from location state (passed by CourseDetail)
   const slot = location.state?.slot;
   const weeklySchedule = location.state?.weeklySchedule || [];
+  const isFree = !slot || !slot.price || Number(slot.price) <= 0;
 
   if (!slot) {
     return (
@@ -25,17 +26,25 @@ const OrderSummary = () => {
   }
 
   const handlePayment = async () => {
+    if (isFree) {
+      setPayError("Khóa học miễn phí - không cần thanh toán.");
+      return;
+    }
     if (!window.confirm("Xác nhận thanh toán?")) return;
 
     setPayError("");
     try {
       setPayLoading(true);
 
-      // Simplified payload structure
+      // Payload với slotId trong metadata để webhook có thể tạo booking
       const payload = {
         product: {
           name: `Khóa học: ${slot.courseName}`,
-          unitPrice: parseInt(slot.price) || 100000,
+          unitPrice: parseInt(slot.price) || 0,
+          id: slot._id, // slotId
+        },
+        metadata: {
+          slotId: slot._id, // Đảm bảo slotId được lưu
         },
       };
 

@@ -794,137 +794,92 @@ router.patch("/me/preferences", auth(), async (req, res) => {
   }
 });
 
-// Update availability slots
+// Update availability slots (robust: accepts multiple payload shapes)
 router.put("/me/availability", auth(), async (req, res) => {
   try {
-    const { availability } = req.body; // [{dayOfWeek,start,end},...]
-
-    // Validation rules
-    const errors = [];
-
-    if (!availability || availability.length === 0) {
-      errors.push("Phải thiết lập ít nhất 1 khung giờ rảnh");
-    } else {
-      // Maximum 20 time slots per week
-      if (availability.length > 20) {
-        errors.push("Không được đặt quá 20 khung giờ trong tuần");
-      }
-
-      // Validate each time slot
-      availability.forEach((slot, index) => {
-        const { dayOfWeek, start, end } = slot;
-
-        // Day validation
-        if (
-          !dayOfWeek ||
-          ![
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-            "saturday",
-            "sunday",
-          ].includes(dayOfWeek)
-        ) {
-          errors.push(
-            `Khung giờ thứ ${index + 1}: Ngày trong tuần không hợp lệ`
-          );
-        }
-
-        // Time validation
-        if (!start || !end) {
-          errors.push(
-            `Khung giờ thứ ${
-              index + 1
-            }: Thời gian bắt đầu và kết thúc là bắt buộc`
-          );
-        } else {
-          const startTime = new Date(`2000-01-01T${start}:00`);
-          const endTime = new Date(`2000-01-01T${end}:00`);
-
-          // Check if start time is before end time
-          if (startTime >= endTime) {
-            errors.push(
-              `Khung giờ thứ ${
-                index + 1
-              }: Thời gian bắt đầu phải trước thời gian kết thúc`
-            );
-          }
-
-          // Check if duration is at least 1 hour
-          const duration = (endTime - startTime) / (1000 * 60 * 60);
-          if (duration < 1) {
-            errors.push(
-              `Khung giờ thứ ${index + 1}: Mỗi buổi học phải ít nhất 1 giờ`
-            );
-          }
-
-          // Check if duration is not more than 8 hours
-          if (duration > 8) {
-            errors.push(
-              `Khung giờ thứ ${index + 1}: Mỗi buổi học không được quá 8 giờ`
-            );
-          }
-
-          // Check if time is within working hours (6 AM - 10 PM)
-          const startHour = startTime.getHours();
-          const endHour = endTime.getHours();
-          if (startHour < 6 || endHour > 22) {
-            errors.push(
-              `Khung giờ thứ ${
-                index + 1
-              }: Thời gian dạy học phải trong khoảng 6:00 - 22:00`
-            );
-          }
-        }
-      });
-
-      // Check for overlapping time slots on the same day
-      const daySlots = {};
-      availability.forEach((slot, index) => {
-        const { dayOfWeek, start, end } = slot;
-        if (!daySlots[dayOfWeek]) {
-          daySlots[dayOfWeek] = [];
-        }
-        daySlots[dayOfWeek].push({ start, end, index });
-      });
-
-      Object.keys(daySlots).forEach((day) => {
-        const slots = daySlots[day].sort((a, b) =>
-          a.start.localeCompare(b.start)
-        );
-        for (let i = 1; i < slots.length; i++) {
-          const prevEnd = new Date(`2000-01-01T${slots[i - 1].end}:00`);
-          const currStart = new Date(`2000-01-01T${slots[i].start}:00`);
-          if (prevEnd > currStart) {
-            errors.push(
-              `Khung giờ bị trùng lặp vào ${day}: khung ${
-                slots[i - 1].index + 1
-              } và khung ${slots[i].index + 1}`
-            );
-          }
-        }
-      });
+    const { availability } = req.body;
+    if (!availability || !Array.isArray(availability) || availability.length === 0) {
+      return res.status(400).json({ message: "Availability must be a non-empty array" });
     }
 
-    if (errors.length > 0) {
+    // Helpers
+    const dayNameToIndex = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    const toHm = (t) => {
+      if (!t) return null;
+      const s = String(t);
+      // convert HH:mm:ss -> HH:mm
+      if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s.slice(0, 5);
+      if (/^\d{2}:\d{2}$/.test(s)) return s;
+      return null;
+    };
+
+    // Normalize incoming slots to schema { dayOfWeek: 0..6, start: HH:mm, end: HH:mm }
+    const normalized = availability.map((slot) => {
+      let dayIdx = null;
+      if (typeof slot.dayOfWeek === "number") {
+        // accept 0..6 or 1..7
+        dayIdx = slot.dayOfWeek >= 1 && slot.dayOfWeek <= 7 ? (slot.dayOfWeek % 7) : slot.dayOfWeek;
+      } else if (typeof slot.dayOfWeek === "string") {
+        dayIdx = dayNameToIndex[slot.dayOfWeek.toLowerCase()];
+      }
+      const start = toHm(slot.start || slot.startTime);
+      const end = toHm(slot.end || slot.endTime);
+      return { dayOfWeek: dayIdx, start, end };
+    });
+
+    // Validate
+    const errors = [];
+    normalized.forEach((s, i) => {
+      if (s.dayOfWeek == null || s.dayOfWeek < 0 || s.dayOfWeek > 6) {
+        errors.push(`Slot ${i + 1}: dayOfWeek must be 0-6 or valid weekday`);
+      }
+      if (!s.start || !s.end) {
+        errors.push(`Slot ${i + 1}: start/end are required in HH:mm`);
+        return;
+      }
+      if (s.end <= s.start) {
+        errors.push(`Slot ${i + 1}: end must be greater than start`);
+      }
+    });
+
+    // Overlap check per day
+    const byDay = {};
+    normalized.forEach((s) => {
+      if (s.dayOfWeek == null) return;
+      byDay[s.dayOfWeek] = byDay[s.dayOfWeek] || [];
+      byDay[s.dayOfWeek].push(s);
+    });
+    Object.values(byDay).forEach((arr) => {
+      arr.sort((a, b) => a.start.localeCompare(b.start));
+      for (let i = 1; i < arr.length; i++) {
+        if (arr[i - 1].end > arr[i].start) {
+          errors.push("Overlapping time ranges on the same day");
+          break;
+        }
+      }
+    });
+
+    if (errors.length) {
       return res.status(400).json({ message: "Validation failed", errors });
     }
 
     const profile = await TutorProfile.findOneAndUpdate(
       { user: req.user.id },
-      {
-        $set: {
-          availability: availability || [],
-          hasAvailability: availability && availability.length > 0,
-        },
-      },
+      { $set: { availability: normalized, hasAvailability: normalized.length > 0 } },
       { new: true, upsert: true }
     );
-    res.json({ profile });
-  } catch (e) {
-    res.status(500).json({ message: "Failed to update availability" });
+    return res.json({ profile, message: "Availability updated" });
+  } catch (error) {
+    console.error("Update availability error:", error);
+    return res.status(500).json({ message: "Failed to update availability" });
   }
 });
 
