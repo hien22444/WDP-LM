@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useChat } from "../../contexts/ChatContext";
 import TutorChatList from "../../components/Chat/TutorChatList";
 import ChatWidget from "../../components/Chat/ChatWidget";
+import { getConversationsApi } from "../../services/ApiService";
 import "./Messages.scss";
 
 const MessagesPage = () => {
@@ -27,67 +28,174 @@ const MessagesPage = () => {
   // Initial authentication and role check with persistence
   useEffect(() => {
     const checkAuth = async () => {
-      console.log("🔍 Checking auth state:", {
+      console.log("🔍 Auth Check State:", {
         isAuthenticated,
         userRole,
         loading,
         initialized,
         authLoading,
+        currentUser,
       });
 
-      // If still loading auth state, wait
+      // Nếu đang loading, đợi
       if (authLoading) {
-        console.log("⏳ Auth state still loading...");
+        console.log("⏳ Đang đợi auth state...");
         return;
       }
 
       try {
-        // First try to get user from localStorage
+        // Kiểm tra Redux state trước
+        if (isAuthenticated && userRole === "tutor") {
+          console.log("✅ Xác thực thành công từ Redux:", currentUser);
+          setInitialized(true);
+          setStoredUserData(currentUser);
+          setLoading(false);
+          return;
+        }
+
+        // Sau đó kiểm tra localStorage
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
-          const storedRole = parsedUser?.role || parsedUser?.account?.role;
+          console.log("📦 User data từ localStorage:", parsedUser);
 
+          const storedRole = parsedUser?.role || parsedUser?.account?.role;
           if (storedRole === "tutor") {
-            console.log("✅ Found valid tutor in localStorage");
-            setLoading(false);
+            console.log("✅ Tìm thấy gia sư trong localStorage");
             setInitialized(true);
-            // Store the user data for socket connection
             setStoredUserData(parsedUser);
+            setLoading(false);
             return;
           }
         }
 
-        // Then check Redux state
-        if (isAuthenticated && userRole === "tutor") {
-          console.log("✅ Found authenticated tutor in Redux state");
-          setLoading(false);
-          setInitialized(true);
-          return;
-        }
-
-        // Only redirect if we're sure no valid auth exists
+        // Nếu không có xác thực hợp lệ
         if (!authLoading && !isAuthenticated) {
-          console.log("❌ No valid authentication found");
+          console.log("❌ Không tìm thấy thông tin xác thực");
           navigate("/login", { replace: true });
           return;
         }
 
-        // Only redirect non-tutors if we're sure about their role
+        // Kiểm tra role
         if (!authLoading && userRole && userRole !== "tutor") {
-          console.log("❌ User is not a tutor");
+          console.log("❌ Người dùng không phải gia sư");
           navigate("/dashboard", { replace: true });
           return;
         }
       } catch (error) {
-        console.error("Error during auth check:", error);
+        console.error("Lỗi kiểm tra xác thực:", error);
       }
     };
 
     checkAuth();
+  }, [isAuthenticated, userRole, authLoading, initialized, navigate]);
 
-    checkAuth();
-  }, [isAuthenticated, userRole, authLoading, loading, initialized, navigate]);
+  // Load conversations independently khi đã initialized
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+
+    const loadConversations = async () => {
+      const effectiveUser = currentUser || storedUserData;
+      const userId = effectiveUser?._id || effectiveUser?.account?._id;
+
+      if (!userId) {
+        console.warn("⚠️ No userId available for loading conversations");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log("🔄 Loading conversations on mount for userId:", userId);
+        const response = await getConversationsApi();
+        console.log("📨 API Response on mount:", {
+          success: response.success,
+          conversationsCount: response.conversations?.length || 0,
+        });
+
+        if (response.success && response.conversations) {
+          if (response.conversations.length === 0) {
+            console.warn("⚠️ No conversations found");
+            setChatList([]);
+            setLoading(false);
+            return;
+          }
+
+          const mappedChats = response.conversations.map((conv) => {
+            const otherParticipant = conv.otherParticipant;
+            if (!otherParticipant) {
+              return null;
+            }
+
+            const otherParticipantId = otherParticipant._id || otherParticipant;
+            const [id1, id2] = [String(userId), String(otherParticipantId)].sort();
+            const roomId = `chat_${id1}_${id2}`;
+
+            return {
+              conversationId: conv._id,
+              roomId,
+              userId: String(otherParticipantId),
+              name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
+              avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
+              isOnline: false,
+              lastMessage: conv.lastMessage
+                ? {
+                    text: conv.lastMessage.content || conv.lastMessage.message,
+                    timestamp: conv.lastMessage.timestamp,
+                    isRead: conv.lastMessage.isRead,
+                  }
+                : null,
+              unreadCount: conv.unreadCount || 0,
+            };
+          }).filter(chat => chat !== null);
+
+          console.log(`✅ Loaded ${mappedChats.length} conversations on mount`);
+          setChatList(mappedChats);
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("❌ Error loading conversations on mount:", error);
+        setLoading(false);
+      }
+    };
+
+    loadConversations();
+  }, [initialized, currentUser, storedUserData]);
+
+  // Load saved messages from localStorage
+  useEffect(() => {
+    if (activeChat?.roomId) {
+      const savedMessages = localStorage.getItem(
+        `chat_messages_${activeChat.roomId}`
+      );
+      if (savedMessages) {
+        try {
+          const parsedMessages = JSON.parse(savedMessages);
+          console.log("🔄 Loaded saved messages:", parsedMessages);
+          setChatList((prevList) => {
+            return prevList.map((chat) => {
+              if (chat.roomId === activeChat.roomId) {
+                const lastMessage = parsedMessages[parsedMessages.length - 1];
+                return {
+                  ...chat,
+                  lastMessage: lastMessage
+                    ? {
+                        text: lastMessage.text,
+                        timestamp: lastMessage.timestamp,
+                      }
+                    : chat.lastMessage,
+                };
+              }
+              return chat;
+            });
+          });
+        } catch (err) {
+          console.error("Error loading saved messages:", err);
+        }
+      }
+    }
+  }, [activeChat]);
 
   useEffect(() => {
     // Don't try to connect socket until authentication is confirmed
@@ -117,24 +225,126 @@ const MessagesPage = () => {
     const tutorId = currentUser?._id || currentUser?.account?._id;
     console.log("🔍 Current tutor ID:", tutorId);
 
-    const handleConnect = () => {
-      console.log("Socket connected in MessagesPage");
+    const handleConnect = async () => {
+      console.log("🔌 Socket kết nối thành công");
       setReconnecting(false);
 
-      // Join tutor's personal room for direct messages
-      if (tutorId) {
-        console.log("🔍 Joining tutor room:", tutorId);
-        socket.emit("join_tutor_room", { tutorId });
-        socket.emit("join_personal_room", { userId: tutorId }); // Join personal room for updates
+      const userId =
+        currentUser?._id ||
+        currentUser?.account?._id ||
+        storedUserData?._id ||
+        storedUserData?.account?._id;
 
-        // Get initial chat list
-        socket.emit("get_tutor_chats", { tutorId });
-        socket.emit("get_chat_list"); // Get all chats including new ones
+      if (!userId) {
+        console.error("❌ Không tìm thấy userId cho socket");
+        return;
+      }
 
-        console.log("🔄 Requested chat lists for tutor:", tutorId);
+      console.log("🔍 Thông tin user cho socket:", {
+        userId,
+        role: userRole,
+        currentUser,
+        storedUserData,
+      });
+
+      // Join all necessary rooms
+      socket.emit("authenticate", {
+        userId,
+        userRole,
+        userName:
+          currentUser?.name || currentUser?.profile?.full_name || "Gia sư",
+      });
+
+      socket.emit("join_tutor_room", { tutorId: userId });
+      socket.emit("join_user_room", { userId });
+      socket.emit("get_chat_list");
+
+      console.log("🔄 Đã yêu cầu danh sách chat từ socket");
+
+      // Gửi trạng thái online
+      socket.emit("user_status", {
+        userId,
+        status: "online",
+        userRole,
+      });
+
+      // Load conversations từ REST API (fallback và primary source)
+      try {
+        console.log("🔄 Loading conversations from REST API...");
+        console.log("🔍 Current userId for API call:", userId);
+        const response = await getConversationsApi();
+        console.log("📨 API Response:", {
+          success: response.success,
+          conversationsCount: response.conversations?.length || 0,
+          conversations: response.conversations,
+        });
+        
+        if (response.success && response.conversations) {
+          console.log("✅ Loaded conversations from API:", response.conversations.length);
+          
+          if (response.conversations.length === 0) {
+            console.warn("⚠️ API returned empty conversations array");
+            setLoading(false);
+            return;
+          }
+          
+          // Map API response to chat list format
+          const mappedChats = response.conversations.map((conv) => {
+            const otherParticipant = conv.otherParticipant;
+            if (!otherParticipant) {
+              console.warn("⚠️ Conversation missing otherParticipant:", conv._id);
+              return null;
+            }
+            
+            const otherParticipantId = otherParticipant._id || otherParticipant;
+            const [id1, id2] = [String(userId), String(otherParticipantId)].sort();
+            const roomId = `chat_${id1}_${id2}`;
+
+            const mappedChat = {
+              conversationId: conv._id,
+              roomId, // Backward compatibility
+              userId: String(otherParticipantId),
+              name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
+              avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
+              isOnline: false, // Will be updated by socket
+              lastMessage: conv.lastMessage
+                ? {
+                    text: conv.lastMessage.content || conv.lastMessage.message,
+                    timestamp: conv.lastMessage.timestamp,
+                    isRead: conv.lastMessage.isRead,
+                  }
+                : null,
+              unreadCount: conv.unreadCount || 0,
+            };
+            
+            console.log("📋 Mapped chat:", {
+              conversationId: mappedChat.conversationId,
+              userId: mappedChat.userId,
+              name: mappedChat.name,
+              hasLastMessage: !!mappedChat.lastMessage,
+            });
+            
+            return mappedChat;
+          }).filter(chat => chat !== null); // Filter out null entries
+
+          console.log(`✅ Mapped ${mappedChats.length} chats from API`);
+          setChatList(mappedChats);
+          setLoading(false);
+        } else {
+          console.warn("⚠️ API response not successful or missing conversations:", response);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("❌ Error loading conversations from API:", error);
+        console.error("❌ Error details:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
+        setLoading(false);
+        // Continue with socket-based loading
       }
     };
-
     const handleDisconnect = () => {
       console.log("Socket disconnected in MessagesPage");
       setReconnecting(true);
@@ -248,13 +458,17 @@ const MessagesPage = () => {
           } else {
             // Thêm chat mới vào đầu danh sách
             console.log("📨 Adding new chat from message:", data);
+            const [id1, id2] = [String(tutorId), senderIdStr === tutorIdStr ? receiverIdStr : senderIdStr].sort();
+            const roomId = data.roomId || `chat_${id1}_${id2}`;
+            
             const newChat = {
-              roomId: data.roomId,
+              conversationId: data.conversationId || null, // Kiến trúc mới
+              roomId: roomId, // Backward compatibility
               userId: senderIdStr === tutorIdStr ? receiverIdStr : senderIdStr,
               name: data.senderName,
               avatar: data.senderAvatar || "https://via.placeholder.com/40",
               lastMessage: {
-                text: data.message,
+                text: data.message || data.content,
                 timestamp: new Date().toISOString(),
               },
               unreadCount: 1,
@@ -288,10 +502,45 @@ const MessagesPage = () => {
       // Force refresh chat list
       socket.emit("get_tutor_chats", { tutorId });
     });
-    socket.on("chat_list_updated", () => {
+    socket.on("chat_list_updated", async () => {
       // Refresh chat list when notified of updates
       const tutorId = currentUser?._id || currentUser?.account?._id;
       socket.emit("get_tutor_chats", { tutorId });
+      
+      // Also reload from REST API
+      try {
+        console.log("🔄 Refreshing conversations from API after update...");
+        const response = await getConversationsApi();
+        if (response.success && response.conversations) {
+          const userId = currentUser?._id || currentUser?.account?._id || storedUserData?._id || storedUserData?.account?._id;
+          const mappedChats = response.conversations.map((conv) => {
+            const otherParticipant = conv.otherParticipant;
+            const [id1, id2] = [String(userId), String(otherParticipant._id || otherParticipant)].sort();
+            const roomId = `chat_${id1}_${id2}`;
+
+            return {
+              conversationId: conv._id,
+              roomId,
+              userId: String(otherParticipant._id || otherParticipant),
+              name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
+              avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
+              isOnline: false,
+              lastMessage: conv.lastMessage
+                ? {
+                    text: conv.lastMessage.content || conv.lastMessage.message,
+                    timestamp: conv.lastMessage.timestamp,
+                    isRead: conv.lastMessage.isRead,
+                  }
+                : null,
+              unreadCount: conv.unreadCount || 0,
+            };
+          });
+          setChatList(mappedChats);
+          console.log("✅ Chat list refreshed from API");
+        }
+      } catch (error) {
+        console.error("❌ Error refreshing conversations:", error);
+      }
     });
 
     // Initial fetch of chat list
@@ -299,6 +548,20 @@ const MessagesPage = () => {
 
     // Clean up
     return () => {
+      const userId =
+        currentUser?._id ||
+        currentUser?.account?._id ||
+        storedUserData?._id ||
+        storedUserData?.account?._id;
+
+      if (userId) {
+        socket.emit("user_status", {
+          userId,
+          status: "offline",
+          userRole,
+        });
+      }
+
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("reconnect", handleReconnect);
@@ -306,6 +569,10 @@ const MessagesPage = () => {
       socket.off("student_chat_list", handleChatList);
       socket.off("new_chat_message", handleNewMessage);
       socket.off("chat_message", handleNewMessage);
+      socket.off("new_student_message");
+      socket.off("chat_list_updated");
+
+      console.log("🔌 Đã ngắt kết nối socket");
     };
   }, [socket, currentUser, userRole]);
 
@@ -373,7 +640,8 @@ const MessagesPage = () => {
               onClose={() => setActiveChat(null)}
               style={{ position: "relative", height: "100%", margin: 0 }}
               embedded={true}
-              key={activeChat.roomId || activeChat.userId}
+              conversationId={activeChat.conversationId || activeChat._id}
+              key={activeChat.conversationId || activeChat.roomId || activeChat.userId}
             />
           ) : (
             <div className="no-chat-selected">

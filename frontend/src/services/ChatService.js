@@ -49,25 +49,52 @@ class ChatService {
     }
   }
 
-  joinChatRoom(roomId, tutorId) {
+  // Join chat room (support both conversationId and roomId)
+  joinChatRoom(conversationId, roomId, tutorId) {
     if (this.socket && this.isConnected) {
-      this.socket.emit('join_chat_room', { roomId, tutorId });
+      const data = {};
+      if (conversationId) {
+        data.conversationId = conversationId;
+      }
+      if (roomId) {
+        data.roomId = roomId;
+      }
+      if (tutorId) {
+        data.tutorId = tutorId;
+      }
+      this.socket.emit('join_chat_room', data);
     }
   }
 
-  sendMessage(message, receiverId, roomId) {
+  // Send message (support both conversationId and roomId)
+  sendMessage(message, receiverId, conversationId, roomId) {
     if (this.socket && this.isConnected) {
-      this.socket.emit('send_message', {
+      const data = {
         message,
-        receiverId,
-        roomId
-      });
+      };
+      if (conversationId) {
+        data.conversationId = conversationId;
+      }
+      if (roomId) {
+        data.roomId = roomId;
+      }
+      if (receiverId) {
+        data.receiverId = receiverId;
+      }
+      this.socket.emit('send_message', data);
     }
   }
 
-  sendTyping(isTyping, roomId) {
+  // Send typing indicator
+  sendTyping(isTyping, conversationId, roomId) {
     if (this.socket && this.isConnected) {
-      this.socket.emit('typing', { isTyping, roomId });
+      const data = { isTyping };
+      if (conversationId) {
+        data.roomId = conversationId.toString(); // Use conversationId as roomId for socket
+      } else if (roomId) {
+        data.roomId = roomId;
+      }
+      this.socket.emit('typing', data);
     }
   }
 

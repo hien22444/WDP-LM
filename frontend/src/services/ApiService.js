@@ -5,6 +5,10 @@ import Cookies from "js-cookie";
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
 
+// Chat API uses /api/chat (not /api/v1)
+const CHAT_API_BASE_URL =
+  process.env.REACT_APP_API_URL?.replace("/api/v1", "") || "http://localhost:5000";
+
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -206,6 +210,76 @@ export const facebookAuthApi = async (accessToken) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Facebook authentication failed" };
+  }
+};
+
+// Chat API functions
+export const initiateConversationApi = async (tutorId) => {
+  try {
+    const accessToken = Cookies.get("accessToken");
+    const response = await axios.post(
+      `${CHAT_API_BASE_URL}/api/chat/initiate`,
+      { tutorId },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to initiate conversation" };
+  }
+};
+
+export const getConversationsApi = async () => {
+  try {
+    const accessToken = Cookies.get("accessToken");
+    const response = await axios.get(`${CHAT_API_BASE_URL}/api/chat/conversations`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to get conversations" };
+  }
+};
+
+export const getMessagesApi = async (conversationId, limit = 50, skip = 0) => {
+  try {
+    const accessToken = Cookies.get("accessToken");
+    const response = await axios.get(
+      `${CHAT_API_BASE_URL}/api/chat/messages?conversationId=${conversationId}&limit=${limit}&skip=${skip}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to get messages" };
+  }
+};
+
+export const markAsReadApi = async (conversationId) => {
+  try {
+    const accessToken = Cookies.get("accessToken");
+    const response = await axios.post(
+      `${CHAT_API_BASE_URL}/api/chat/mark-read`,
+      { conversationId },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to mark as read" };
   }
 };
 

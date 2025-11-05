@@ -143,6 +143,13 @@ const TutorProfilePage = () => {
       const t = response?.tutor || response?.profile || {};
 
       console.log("📊 Raw tutor data:", t);
+      console.log("📊 Tutor ID fields:", {
+        id: t.id,
+        _id: t._id,
+        userId: t.userId,
+        user: t.user,
+        user_id: t.user?._id,
+      });
 
       // Normalize subjects with their prices
       let normalizedSubjects = [];
@@ -207,8 +214,27 @@ const TutorProfilePage = () => {
         return `${baseUrl}/${url.replace(/^\/?/, "")}`;
       };
 
+      // Extract tutor ID - ưu tiên userId (User ID) cho chat, fallback về tutor profile ID
+      const tutorUserId = t.userId || t.user?._id || (typeof t.user === 'string' ? t.user : null);
+      const tutorProfileId = t._id || t.id;
+      
+      console.log("📊 Extracted tutor IDs in setTutor:", {
+        tutorUserId,
+        tutorProfileId,
+        originalUserId: t.userId,
+        originalUser: t.user,
+        original_id: t._id,
+        originalId: t.id,
+      });
+
       setTutor({
         ...t,
+        // Thêm userId và _id để dùng cho chat - ưu tiên User ID (để chat)
+        userId: tutorUserId || tutorProfileId, // Nếu không có userId, dùng profile ID
+        _id: tutorProfileId, // Profile ID
+        id: tutorProfileId, // Profile ID
+        // Giữ nguyên user object nếu có
+        user: t.user || (tutorUserId ? { _id: tutorUserId } : null),
         name: t.name || t.user?.fullName || t.user?.full_name || "Gia sư",
         // Ưu tiên avatar từ TutorProfile (avatarUrl), sau đó từ User (image), sau đó mới fallback
         avatar:

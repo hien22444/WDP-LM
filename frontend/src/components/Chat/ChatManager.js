@@ -11,6 +11,7 @@ const ChatManager = () => {
         <ChatWidget
           key={chat.id}
           tutor={chat.tutor}
+          conversationId={chat.conversationId || chat.id}
           isOpen={true}
           onClose={() => closeChat(chat.id)}
           isMinimized={chat.isMinimized}

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import io from "socket.io-client";
-import { getCurrentUserApi } from "../services/ApiService";
+import Cookies from "js-cookie";
+import { getCurrentUserApi, initiateConversationApi } from "../services/ApiService";
 
 const ChatContext = createContext();
 
@@ -28,103 +29,240 @@ export const ChatProvider = ({ children }) => {
     console.error("🔴 DEBUG: Error parsing localStorage user:", error);
   }
 
-  const openChat = (tutor, userData) => {
+  const openChat = async (tutor, userData) => {
     console.log("🔍 openChat called with:", { tutor, currentUser: userData });
+    console.log("🔍 Tutor object keys:", tutor ? Object.keys(tutor) : "tutor is null");
+    console.log("🔍 UserData object keys:", userData ? Object.keys(userData) : "userData is null");
 
-    const userId =
+    // Extract userId từ nhiều nguồn
+    // userData có thể là currentUser từ Redux với structure: { account: { _id, ... } }
+    let userId =
       userData?._id ||
       userData?.id ||
-      userData?.account?._id ||
+      userData?.account?._id || // Redux structure: user.account._id
       userData?.account?.id ||
+      userData?.account?.userId ||
       userData?.user?._id ||
       userData?.user?.id;
-    const tutorId =
-      tutor?.userId ||
-      tutor?._id ||
-      tutor?.id ||
-      tutor?.user?._id ||
-      tutor?.user?.id;
+    
+    // Debug: log chi tiết userData structure
+    console.log("🔍 UserData structure:", {
+      has_id: !!userData?._id,
+      has_id_value: userData?._id,
+      has_id_string: String(userData?._id),
+      has_account: !!userData?.account,
+      account_keys: userData?.account ? Object.keys(userData.account) : null,
+      account_values: userData?.account ? userData.account : null,
+      account_id: userData?.account?._id,
+      account_id_string: userData?.account?._id ? String(userData.account._id) : null,
+      full_userData: userData,
+    });
+    
+    // Thử lấy userId từ account trực tiếp (có thể account chính là user object)
+    if (!userId && userData?.account) {
+      // Kiểm tra xem account có phải là user object không
+      const account = userData.account;
+      userId = account._id || account.id || account.userId || account.user?._id;
+      if (userId) {
+        console.log("✅ Got userId from account object:", userId);
+      }
+    }
 
-    console.log("🔍 Extracted IDs:", { userId, tutorId });
+    // Extract tutorId từ nhiều nguồn
+    // Ưu tiên userId (User ID) vì đó là ID cần dùng cho conversation
+    // Nếu không có, mới dùng profile ID
+    let tutorId =
+      tutor?.userId || // User ID (từ backend API)
+      tutor?.user?._id || // User ID từ user object
+      (typeof tutor?.user === 'string' ? tutor.user : null) || // User ID nếu là string
+      tutor?.user?.id || // User ID từ user object
+      tutor?._id || // Profile ID (fallback)
+      tutor?.id; // Profile ID (fallback)
+
+    // Nếu vẫn chưa có userId, thử lấy từ localStorage
+    if (!userId) {
+      try {
+        const localStorageUserStr = localStorage.getItem("user");
+        if (localStorageUserStr) {
+          const localStorageUser = JSON.parse(localStorageUserStr);
+          console.log("🔍 localStorage user:", localStorageUser);
+          console.log("🔍 localStorage user keys:", localStorageUser ? Object.keys(localStorageUser) : null);
+          
+          // Thử nhiều cách để lấy userId
+          userId =
+            localStorageUser?._id ||
+            localStorageUser?.id ||
+            localStorageUser?.account?._id ||
+            localStorageUser?.account?.id ||
+            localStorageUser?.account?.userId ||
+            (localStorageUser?.account && typeof localStorageUser.account === 'object' && !Array.isArray(localStorageUser.account) 
+              ? (localStorageUser.account._id || localStorageUser.account.id) 
+              : null);
+          
+          if (userId) {
+            console.log("✅ Got userId from localStorage:", userId);
+          } else {
+            console.log("⚠️ localStorage user exists but no userId found:", localStorageUser);
+          }
+        } else {
+          console.log("⚠️ No user found in localStorage");
+        }
+      } catch (error) {
+        console.error("❌ Error parsing localStorage user:", error);
+      }
+    }
+
+    // Nếu vẫn chưa có userId, thử decode từ JWT token (ưu tiên cao vì luôn có khi đã login)
+    if (!userId) {
+      try {
+        const token = Cookies.get("accessToken");
+        if (token) {
+          console.log("🔍 Attempting to decode JWT token...");
+          // Decode JWT token để lấy userId (sub field chứa userId)
+          const base64Url = token.split('.')[1];
+          if (base64Url) {
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(
+              atob(base64)
+                .split('')
+                .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+            );
+            const decoded = JSON.parse(jsonPayload);
+            console.log("🔍 Decoded JWT payload:", decoded);
+            userId = decoded.sub || decoded.userId || decoded.id || decoded._id;
+            if (userId) {
+              console.log("✅ Got userId from JWT token (sub field):", userId);
+            } else {
+              console.log("⚠️ JWT token decoded but no userId found in:", decoded);
+            }
+          } else {
+            console.log("⚠️ Invalid JWT token format (no payload)");
+          }
+        } else {
+          console.log("⚠️ No accessToken in cookies");
+        }
+      } catch (error) {
+        console.error("❌ Error decoding JWT token:", error);
+      }
+    }
+
+    // Nếu vẫn chưa có userId, thử fetch từ API (nhưng không block nếu fail)
+    if (!userId) {
+      try {
+        console.log("🔍 Trying to fetch userId from API...");
+        const response = await getCurrentUserApi();
+        console.log("🔍 API response:", response);
+        if (response?.user) {
+          userId =
+            response.user._id ||
+            response.user.id ||
+            response.user.account?._id ||
+            response.user.account?.id;
+          
+          if (userId) {
+            console.log("✅ Got userId from API:", userId);
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error fetching user from API:", error);
+        console.log("⚠️ API call failed, will try to proceed with other sources");
+        // Không throw error, tiếp tục với các nguồn khác
+      }
+    }
+
+    // Nếu vẫn chưa có tutorId, thử lấy từ tutor.user nếu là string
+    if (!tutorId && tutor?.user && typeof tutor.user === 'string') {
+      tutorId = tutor.user;
+    }
+
+    console.log("🔍 Extracted IDs:", { userId, tutorId, tutorUser: tutor?.user });
 
     if (!userId || !tutorId) {
-      console.error("❌ Missing userId or tutorId:", { userId, tutorId });
-
-      // Try to fetch userId from multiple sources if missing
-      if (!userId) {
-        console.log("🔍 Attempting to fetch userId from multiple sources...");
-
-        // Try localStorage first
-        try {
-          const localStorageUserStr = localStorage.getItem("user");
-          if (localStorageUserStr) {
-            const localStorageUser = JSON.parse(localStorageUserStr);
-            const localUserId =
-              localStorageUser?._id ||
-              localStorageUser?.id ||
-              localStorageUser?.account?._id ||
-              localStorageUser?.account?.id;
-            if (localUserId && tutorId) {
-              console.log("🔍 Got userId from localStorage:", localUserId);
-              const chatId = `chat_${localUserId}_${tutorId}`;
-              console.log(
-                "🔍 Generated chatId with localStorage userId:",
-                chatId
-              );
-              const newCurrentUser = { ...userData, _id: localUserId };
-              openChat(tutor, newCurrentUser);
-              return;
-            }
+      console.error("❌ Missing userId or tutorId:", { 
+        userId, 
+        tutorId, 
+        tutor: tutor ? {
+          userId: tutor.userId,
+          _id: tutor._id,
+          id: tutor.id,
+          user: tutor.user
+        } : null,
+        userData: userData ? {
+          _id: userData._id,
+          id: userData.id,
+          account: userData.account,
+          account_keys: userData.account ? Object.keys(userData.account) : null,
+          account_values: userData.account
+        } : null,
+        localStorageUser: (() => {
+          try {
+            const str = localStorage.getItem("user");
+            return str ? JSON.parse(str) : null;
+          } catch {
+            return null;
           }
-        } catch (error) {
-          console.error("❌ Error parsing localStorage user:", error);
-        }
-
-        // Try API as fallback
-        try {
-          getCurrentUserApi()
-            .then((response) => {
-              if (response?.user) {
-                const apiUserId = response.user._id || response.user.id;
-                console.log("🔍 Got userId from API:", apiUserId);
-                if (apiUserId && tutorId) {
-                  const chatId = `chat_${apiUserId}_${tutorId}`;
-                  console.log("🔍 Generated chatId with API userId:", chatId);
-                  const newCurrentUser = { ...userData, _id: apiUserId };
-                  openChat(tutor, newCurrentUser);
-                }
-              }
-            })
-            .catch((error) => {
-              console.error("❌ Failed to fetch userId from API:", error);
-            });
-        } catch (error) {
-          console.error("❌ Error in API fallback:", error);
-        }
+        })(),
+        token: Cookies.get("accessToken") ? "exists" : "missing"
+      });
+      
+      // Hiển thị alert cho user với thông tin chi tiết hơn
+      if (!userId) {
+        alert("Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.");
+      } else if (!tutorId) {
+        alert("Không thể lấy thông tin gia sư. Vui lòng thử lại sau.");
+      } else {
+        alert("Không thể lấy thông tin người dùng hoặc gia sư. Vui lòng thử lại sau.");
       }
       return;
     }
 
-    const chatId = `chat_${userId}_${tutorId}`;
-    console.log("🔍 Generated chatId:", chatId);
+    // Kiến trúc mới: Gọi API để tạo/get conversation
+    try {
+      console.log("🔍 Initiating conversation with tutor:", tutorId);
+      const response = await initiateConversationApi(tutorId);
+      const conversation = response.conversation;
+      const conversationId = conversation._id;
 
-    // Check if chat already exists
-    const existingChat = activeChats.find((chat) => chat.id === chatId);
-    if (existingChat) {
-      // If chat exists, just maximize it
-      maximizeChat(chatId);
-      return;
+      console.log("✅ Conversation initiated:", conversationId);
+
+      // Tạo chatId từ conversationId
+      const chatId = conversationId;
+
+      // Check if chat already exists
+      const existingChat = activeChats.find((chat) => chat.id === chatId || chat.conversationId === conversationId);
+      if (existingChat) {
+        maximizeChat(existingChat.id);
+        return;
+      }
+
+      // Create new chat với conversationId
+      const newChat = {
+        id: chatId,
+        conversationId: conversationId,
+        tutor: tutor,
+        currentUser: userData,
+        isMinimized: false,
+      };
+
+      setActiveChats((prev) => [...prev, newChat]);
+    } catch (error) {
+      console.error("❌ Failed to initiate conversation:", error);
+      // Fallback: dùng roomId cũ nếu API fail
+      const chatId = `chat_${userId}_${tutorId}`;
+      const existingChat = activeChats.find((chat) => chat.id === chatId);
+      if (existingChat) {
+        maximizeChat(chatId);
+        return;
+      }
+      const newChat = {
+        id: chatId,
+        tutor: tutor,
+        currentUser: userData,
+        isMinimized: false,
+      };
+      setActiveChats((prev) => [...prev, newChat]);
     }
-
-    // Create new chat
-    const newChat = {
-      id: chatId,
-      tutor: tutor,
-      currentUser: userData,
-      isMinimized: false,
-    };
-
-    setActiveChats((prev) => [...prev, newChat]);
   };
 
   const closeChat = (chatId) => {
@@ -380,6 +518,7 @@ export const ChatProvider = ({ children }) => {
       // Create new chat from notification
       const newChat = {
         id: chatId,
+        conversationId: notification.chatId, // Có thể là conversationId hoặc roomId
         tutor: {
           userId: notification.senderId,
           name: notification.senderName,

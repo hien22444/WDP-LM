@@ -413,6 +413,7 @@ const profileCompletionRoutes = require("./src/routes/profile-completion");
 const tutorVerificationRoutes = require("./src/routes/tutor-verification");
 const adminVerificationRoutes = require("./src/routes/admin-verification");
 const notificationRoutes = require("./src/routes/notification");
+const chatRoutes = require("./src/routes/chat");
 const {
   googleStart,
   googleRedirect,
@@ -433,6 +434,7 @@ app.use("/api/v1/tutor-verification", tutorVerificationRoutes);
 app.use("/api/v1/admin/verification", adminVerificationRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/wallet", require("./src/routes/wallet"));
+app.use("/api/chat", chatRoutes);
 
 // Google OAuth routes
 app.get("/google/start", googleStart);
@@ -440,10 +442,23 @@ app.get("/google/redirect", googleRedirect);
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error("❌ Express Error:", err);
   res
     .status(err.status || 500)
     .json({ message: err.message || "Server error" });
+});
+
+// Handle unhandled promise rejections (prevent server crash)
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+  // Không exit process, chỉ log để server tiếp tục chạy
+});
+
+// Handle uncaught exceptions (prevent server crash)
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
+  // Không exit process ngay, log và tiếp tục
+  // Trong production, có thể cần restart server
 });
 
 // ========================
