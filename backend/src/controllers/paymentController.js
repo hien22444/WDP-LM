@@ -528,22 +528,48 @@ const verifyPayment = async (req, res) => {
     // Check with PayOS for current status
     try {
       const numericOrder = Number(orderCode);
+      console.log("🔍 [Verify] Checking PayOS status for orderCode:", orderCode, "numeric:", numericOrder);
+      
       const paymentStatus = await payOS.paymentRequests.getStatus(
         Number.isFinite(numericOrder) ? numericOrder : orderCode
       );
-      console.log("PayOS status check result:", paymentStatus);
+      
+      console.log("📋 [Verify] PayOS status check result (full):", JSON.stringify(paymentStatus, null, 2));
+      console.log("📋 [Verify] PaymentStatus.code:", paymentStatus?.code);
+      console.log("📋 [Verify] PaymentStatus.data:", paymentStatus?.data);
+      console.log("📋 [Verify] PaymentStatus.data?.status:", paymentStatus?.data?.status);
+      console.log("📋 [Verify] PaymentStatus.status:", paymentStatus?.status);
 
-      if (
-        paymentStatus &&
-        paymentStatus.code === "00" &&
-        (
-          String(paymentStatus.data?.status || "").toUpperCase() === "PAID" ||
-          String(paymentStatus.data?.status || "").toUpperCase() === "COMPLETED" ||
-          String(paymentStatus.data?.status || "").toUpperCase() === "SUCCESS" ||
-          String(paymentStatus.data?.status || "").toUpperCase() === "PROCESSED" ||
-          String(paymentStatus.data?.status || "") === "00"
-        )
-      ) {
+      // Mở rộng điều kiện kiểm tra: kiểm tra nhiều format response từ PayOS
+      const statusCode = String(paymentStatus?.code || "").toUpperCase();
+      const dataStatus = String(paymentStatus?.data?.status || "").toUpperCase();
+      const directStatus = String(paymentStatus?.status || "").toUpperCase();
+      const responseCode = String(paymentStatus?.responseCode || "").toUpperCase();
+      
+      console.log("🔍 [Verify] Parsed statuses:", { statusCode, dataStatus, directStatus, responseCode });
+
+      // Kiểm tra nhiều điều kiện success
+      const isSuccess = 
+        // Điều kiện 1: code === "00" và status là PAID/COMPLETED/SUCCESS
+        (statusCode === "00" && (
+          dataStatus === "PAID" ||
+          dataStatus === "COMPLETED" ||
+          dataStatus === "SUCCESS" ||
+          dataStatus === "PROCESSED" ||
+          dataStatus === "00"
+        )) ||
+        // Điều kiện 2: responseCode === "00"
+        responseCode === "00" ||
+        // Điều kiện 3: directStatus là success
+        directStatus === "PAID" ||
+        directStatus === "COMPLETED" ||
+        directStatus === "SUCCESS" ||
+        // Điều kiện 4: có checkoutUrl và không có lỗi
+        (paymentStatus?.checkoutUrl && !paymentStatus?.error);
+
+      console.log("🔍 [Verify] Is success?", isSuccess);
+
+      if (paymentStatus && isSuccess) {
         // Update payment record
         payment.status = "PAID";
         payment.paidAt = new Date();
@@ -619,31 +645,104 @@ const verifyPayment = async (req, res) => {
 
       // Return current status (and attempt offline reconciliation)
       // Fallback: if we previously received a successful webhook for this order, trust local record
+      console.log("⚠️ [Verify] PayOS response không match điều kiện success, kiểm tra offline reconciliation...");
+      console.log("⚠️ [Verify] Payment.paymentData:", payment.paymentData);
+      
       const localCode = String(payment.paymentData?.code || '').toUpperCase();
-      const localStatus = String(payment.paymentData?.data?.status || payment.paymentData?.status || '').toUpperCase();
-      const localSuccess = localCode === '00' || ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localStatus);
+      const localDataStatus = String(payment.paymentData?.data?.status || '').toUpperCase();
+      const localDirectStatus = String(payment.paymentData?.status || '').toUpperCase();
+      const localResponseCode = String(payment.paymentData?.responseCode || '').toUpperCase();
+      
+      console.log("🔍 [Verify] Local statuses:", { localCode, localDataStatus, localDirectStatus, localResponseCode });
+      
+      const localSuccess = 
+        localCode === '00' || 
+        localResponseCode === '00' ||
+        ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localDataStatus) ||
+        ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localDirectStatus);
+      
+      console.log("🔍 [Verify] Local success?", localSuccess, "Current status:", payment.status);
+      
       if (localSuccess && payment.status !== 'PAID') {
+        console.log("✅ [Verify] Offline reconciliation: Updating status to PAID");
         payment.status = 'PAID';
         payment.paidAt = payment.paidAt || new Date();
+        payment.paymentData = payment.paymentData || paymentStatus; // Update với data mới nhất
         await payment.save();
+        
+        // Trigger booking creation nếu chưa có
+        if (payment.slotId) {
+          try {
+            const slot = await TeachingSlot.findById(payment.slotId);
+            if (slot) {
+              const existingBooking = await Booking.findOne({ 
+                slotId: slot._id,
+                status: { $in: ["accepted", "pending", "completed"] }
+              });
+              if (!existingBooking) {
+                const payouts = EscrowService.calculatePayouts(slot.price);
+                const booking = await Booking.create({
+                  tutorProfile: slot.tutorProfile,
+                  student: payment.userId,
+                  start: slot.start,
+                  end: slot.end,
+                  mode: slot.mode,
+                  price: slot.price,
+                  notes: `Đặt từ slot: ${slot.courseName}`,
+                  slotId: slot._id,
+                  status: "pending"
+                });
+                await notifyTutorBookingCreated(booking);
+                console.log("✅ [Verify] Booking created from offline reconciliation");
+              }
+            }
+          } catch (bookingError) {
+            console.error("❌ [Verify] Error creating booking in offline reconciliation:", bookingError);
+          }
+        }
       }
+      
       return res.json({
         success: true,
         status: payment.status,
-        message: "Trạng thái thanh toán hiện tại",
+        message: payment.status === 'PAID' 
+          ? "Thanh toán đã được xác nhận (offline reconciliation)" 
+          : "Trạng thái thanh toán hiện tại",
+        paymentStatus: paymentStatus, // Trả về để frontend có thể debug
       });
     } catch (verifyError) {
-      console.error("Error verifying with PayOS:", verifyError);
+      console.error("❌ [Verify] Error verifying with PayOS:", verifyError);
+      console.error("❌ [Verify] Error message:", verifyError.message);
+      console.error("❌ [Verify] Error stack:", verifyError.stack);
+      
       // As a last resort, try to reconcile using local webhook data
+      console.log("🔍 [Verify] Attempting offline reconciliation from error handler...");
       const localCode = String(payment.paymentData?.code || '').toUpperCase();
-      const localStatus = String(payment.paymentData?.data?.status || payment.paymentData?.status || '').toUpperCase();
-      const localSuccess = localCode === '00' || ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localStatus);
+      const localDataStatus = String(payment.paymentData?.data?.status || '').toUpperCase();
+      const localDirectStatus = String(payment.paymentData?.status || '').toUpperCase();
+      const localResponseCode = String(payment.paymentData?.responseCode || '').toUpperCase();
+      
+      const localSuccess = 
+        localCode === '00' || 
+        localResponseCode === '00' ||
+        ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localDataStatus) ||
+        ['PAID','COMPLETED','SUCCESS','PROCESSED'].includes(localDirectStatus);
+      
       if (localSuccess && payment.status !== 'PAID') {
+        console.log("✅ [Verify] Offline reconciliation (error handler): Updating status to PAID");
         payment.status = 'PAID';
         payment.paidAt = payment.paidAt || new Date();
         await payment.save();
       }
-      return res.json({ success: true, status: payment.status, message: "Không thể kiểm tra trạng thái với PayOS" });
+      
+      return res.json({ 
+        success: true, 
+        status: payment.status, 
+        message: payment.status === 'PAID' 
+          ? "Thanh toán đã được xác nhận (offline reconciliation)" 
+          : "Không thể kiểm tra trạng thái với PayOS. Vui lòng thử lại sau.",
+        error: process.env.NODE_ENV === 'development' ? verifyError.message : undefined
+      });
     }
   } catch (error) {
     console.error("Error in verifyPayment:", error);

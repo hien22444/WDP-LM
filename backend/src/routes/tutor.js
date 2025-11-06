@@ -517,21 +517,22 @@ router.get("/:id/availability", async (req, res) => {
     // Get tutor's availability (general schedule)
     const availability = tutor.availability || [];
 
-    // Get all bookings for this tutor (next 2 weeks)
-    const twoWeeksFromNow = new Date();
-    twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+    // Get all bookings for this tutor (next 8 weeks = 56 days)
+    // Tăng từ 2 tuần lên 8 tuần để học viên có thể xem lịch xa hơn
+    const eightWeeksFromNow = new Date();
+    eightWeeksFromNow.setDate(eightWeeksFromNow.getDate() + 56);
 
     const bookings = await Booking.find({
       tutorProfile: tutorId,
       status: { $in: ["accepted", "completed", "in_progress"] },
-      start: { $gte: new Date(), $lte: twoWeeksFromNow },
+      start: { $gte: new Date(), $lte: eightWeeksFromNow },
     }).select("start end");
 
-    // Calculate available slots for next 14 days
+    // Calculate available slots for next 56 days (8 weeks)
     const availableSlots = [];
     const bookedSlots = [];
 
-    for (let day = 0; day < 14; day++) {
+    for (let day = 0; day < 56; day++) {
       const currentDate = new Date();
       currentDate.setDate(currentDate.getDate() + day);
       const dayOfWeek = currentDate.getDay(); // 0=Sunday, 1=Monday, ...
@@ -580,9 +581,9 @@ router.get("/:id/availability", async (req, res) => {
 
     res.json({
       availability: {
-        weekly: availability, // General weekly schedule
-        slots: availableSlots, // Available slots for next 14 days
-        booked: bookedSlots, // Booked slots
+        weekly: availability, // General weekly schedule (lịch tổng quát theo tuần)
+        slots: availableSlots, // Available slots for next 56 days (8 weeks)
+        booked: bookedSlots, // Booked slots (slots đã bận)
       },
     });
   } catch (error) {

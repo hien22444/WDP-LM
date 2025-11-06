@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { FaGoogle, FaFacebook } from "react-icons/fa";
+import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
 import { doLogin, doFacebookLogin } from "../../../redux/actions/authActions";
 import axios from "axios";
 import "./SignIn.scss";
@@ -11,6 +11,7 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
   const [googleOAuthEnabled, setGoogleOAuthEnabled] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -135,15 +136,34 @@ const SignIn = () => {
                 <label htmlFor="password" className="form-label">
                   Mật khẩu
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  className="form-input"
-                  placeholder="Tối thiểu 8 ký tự"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
+                <div className="input-group" style={{ display: 'flex', alignItems: 'stretch' }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    className="form-input"
+                    placeholder="Tối thiểu 8 ký tự"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                    onClick={() => setShowPassword((v) => !v)}
+                    disabled={loading}
+                    className="btn btn-outline-secondary"
+                    style={{
+                      padding: '0 12px',
+                      borderTopLeftRadius: 0,
+                      borderBottomLeftRadius: 0,
+                      border: '1px solid #ced4da',
+                      background: '#fff',
+                    }}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
               </div>
 
               <div className="forgot-password">

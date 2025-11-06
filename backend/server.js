@@ -116,7 +116,6 @@ const app = express();
       "GOOGLE_API_KEY",
       "GOOGLE_KEY",
       "CHATAI_KEY",
-      "OPENAI_API_KEY",
     ];
     let googleKey = null;
     let googleKeyName = null;
@@ -192,10 +191,8 @@ const app = express();
                     )}:${suffix}?key=${encodeURIComponent(apiKey)}`;
 
                     const body = {
-                      // Different RPCs expect slightly different payloads; keep a common shape
+                      // Use correct Gemini API format (no "input" field)
                       contents: [{ parts: [{ text: prompt }] }],
-                      input: prompt,
-                      // generationConfig is accepted by many endpoints
                       generationConfig: {
                         temperature: temperature,
                         maxOutputTokens: Math.min(max_tokens || 512, 2048),

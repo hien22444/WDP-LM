@@ -1030,19 +1030,29 @@ const TutorProfilePage = () => {
                             {Array.isArray(tutor.availability) &&
                             tutor.availability.length > 0
                               ? tutor.availability
-                                  .map((slot, index) => {
-                                    const days = [
-                                      "CN",
-                                      "T2",
-                                      "T3",
-                                      "T4",
-                                      "T5",
-                                      "T6",
-                                      "T7",
-                                    ];
-                                    return `${days[slot.dayOfWeek]}: ${
-                                      slot.start
-                                    }-${slot.end}`;
+                                  .map((slot) => {
+                                    const daysVN = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // 0..6
+                                    const mapStr = {
+                                      sunday: 0, sun: 0,
+                                      monday: 1, mon: 1, "t2": 1,
+                                      tuesday: 2, tue: 2, "t3": 2,
+                                      wednesday: 3, wed: 3, "t4": 3,
+                                      thursday: 4, thu: 4, "t5": 4,
+                                      friday: 5, fri: 5, "t6": 5,
+                                      saturday: 6, sat: 6, "t7": 6,
+                                    };
+                                    let d = slot.dayOfWeek ?? slot.day ?? slot.weekday ?? slot.dow;
+                                    if (typeof d === "string") d = mapStr[d.toLowerCase()] ?? 0;
+                                    if (typeof d === "number") {
+                                      // Accept 1..7 or 0..6
+                                      d = d === 7 ? 0 : d;
+                                    } else {
+                                      d = 0;
+                                    }
+                                    const label = daysVN[d] || "CN";
+                                    const start = slot.start || slot.startTime || slot.from || "";
+                                    const end = slot.end || slot.endTime || slot.to || "";
+                                    return `${label}: ${start}-${end}`;
                                   })
                                   .join(", ")
                               : tutor.availability || "Chưa cập nhật"}
@@ -1637,22 +1647,26 @@ const TutorProfilePage = () => {
                     <div>
                       <span className="info-label">Thời gian rảnh</span>
                       <span className="info-value">
-                        {Array.isArray(tutor.availability) &&
-                        tutor.availability.length > 0
+                        {Array.isArray(tutor.availability) && tutor.availability.length > 0
                           ? tutor.availability
-                              .map((slot, index) => {
-                                const days = [
-                                  "CN",
-                                  "T2",
-                                  "T3",
-                                  "T4",
-                                  "T5",
-                                  "T6",
-                                  "T7",
-                                ];
-                                return `${days[slot.dayOfWeek]}: ${
-                                  slot.start
-                                }-${slot.end}`;
+                              .map((slot) => {
+                                const daysVN = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // 0..6
+                                const mapStr = {
+                                  sunday: 0, sun: 0,
+                                  monday: 1, mon: 1, "t2": 1,
+                                  tuesday: 2, tue: 2, "t3": 2,
+                                  wednesday: 3, wed: 3, "t4": 3,
+                                  thursday: 4, thu: 4, "t5": 4,
+                                  friday: 5, fri: 5, "t6": 5,
+                                  saturday: 6, sat: 6, "t7": 6,
+                                };
+                                let d = slot.dayOfWeek ?? slot.day ?? slot.weekday ?? slot.dow;
+                                if (typeof d === "string") d = mapStr[d.toLowerCase()] ?? 0;
+                                if (typeof d === "number") d = d === 7 ? 0 : d;
+                                const label = daysVN[d] || "CN";
+                                const start = slot.start || slot.startTime || slot.from || "";
+                                const end = slot.end || slot.endTime || slot.to || "";
+                                return `${label}: ${start}-${end}`;
                               })
                               .join(", ")
                           : tutor.availability || "Chưa cập nhật"}

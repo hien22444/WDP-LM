@@ -82,27 +82,25 @@ if (!OPENAI_KEY) {
 
   if (aiEnabled) {
     try {
-      // prefer app-level client if provided by server.js
-      if (global?.app && global.app.locals?.openai) {
+      const providerEnv = (
+        process.env.CHATAI_PROVIDER || process.env.CHATAI_PROVIDER_NAME || ""
+      ).toLowerCase();
+      // Only use app-level (Gemini/Google) client when provider explicitly set to google/gemini and server attached it
+      if ((providerEnv === "google" || providerEnv === "gemini") && global?.app && global.app.locals?.openai) {
         openai = global.app.locals.openai;
-        console.log(
-          "[AI] Using app-level OpenAI client from global.app.locals"
-        );
-      } else if (typeof require !== "undefined") {
-        // fallback to local init
+        console.log("[AI] Using app-level Google/Gemini client from app.locals");
+      } else {
+        // Initialize OpenAI SDK with provided key
         openai = new OpenAI({ apiKey: OPENAI_KEY });
         console.log(`[AI] OpenAI client initialized (keyType=${keyType}).`);
-      }
-      if (keyType !== "secret") {
-        console.warn(
-          "⚠️ You are using a non-secret OpenAI key. Calls may fail if the key lacks permissions or billing. Check OpenAI Dashboard if you see errors."
-        );
+        if (keyType !== "secret") {
+          console.warn(
+            "⚠️ You are using a non-secret OpenAI key. Calls may fail if the key lacks permissions or billing. Check OpenAI Dashboard if you see errors."
+          );
+        }
       }
     } catch (e) {
-      console.error(
-        "[AI] Failed to initialize OpenAI client:",
-        e?.message || e
-      );
+      console.error("[AI] Failed to initialize AI client:", e?.message || e);
       aiEnabled = false;
     }
   }
@@ -122,22 +120,45 @@ if (!OPENAI_KEY) {
   }
 }
 
-// Extra safety: if OPENAI_KEY was missing earlier we still want to detect
-// an app-level AI client attached by server.js. This runs regardless of
-// the earlier branch to ensure aiEnabled is correctly set when using
-// Gemini/Google wrapper.
+// Extra safety: only adopt app-level client when provider explicitly is google/gemini and no local key
 try {
-  if (!aiEnabled && global?.app && global.app.locals?.openai) {
+  const providerEnv = (
+    process.env.CHATAI_PROVIDER || process.env.CHATAI_PROVIDER_NAME || ""
+  ).toLowerCase();
+  if (!aiEnabled && (providerEnv === "google" || providerEnv === "gemini") && global?.app && global.app.locals?.openai) {
     openai = global.app.locals.openai;
     aiEnabled = true;
-    console.log("[AI] App-level AI client detected (post-init); AI enabled");
+    console.log("[AI] App-level Google/Gemini client detected (post-init); AI enabled");
   }
 } catch (e) {
   // ignore
 }
 
 const conversationHistory = [];
-const systemPrompt = `Bạn là chatbot thân thiện giúp người dùng tìm gia sư. Khi người dùng chào, hãy chào lại tự nhiên và thân thiện. Khi họ hỏi tìm gia sư, phân tích các yếu tố: môn học, cấp độ, hình thức (online/offline), địa điểm và yêu cầu khác. Đề xuất gia sư phù hợp dựa trên chuyên môn, kinh nghiệm, mức học phí và lịch dạy. Trả lời bằng tiếng Việt, ngắn gọn, thân mật.`;
+const systemPrompt = `Bạn là trợ lý AI thông minh của hệ thống đặt gia sư Learnova/EduMatch. Nhiệm vụ của bạn:
+
+1. HƯỚNG DẪN NGƯỜI DÙNG:
+   - Quy trình đặt gia sư: Tìm → Xem chi tiết → Chọn slot → Ký hợp đồng → Thanh toán → Gia sư chấp nhận → Vào phòng học
+   - Cách trở thành gia sư: Đăng ký → Điền hồ sơ → Upload giấy tờ → Chờ duyệt → Tạo khóa học
+   - Cách tìm gia sư: Dùng tìm kiếm → Lọc theo môn/khu vực → Xem hồ sơ → Đặt lịch
+   - Thanh toán: Qua PayOS → Tiền giữ trong escrow → Giải phóng sau khi học xong
+   - Rút tiền: Vào Ví → Rút tiền → Điền STK → Chờ 1-3 ngày
+   - Phòng học: Sau khi gia sư chấp nhận → Nhận roomId → Vào Phòng Học → Video call
+
+2. TRẢ LỜI CÂU HỎI:
+   - Về quy trình, thanh toán, hủy/hoàn tiền, thông báo, hợp đồng, phòng học, đánh giá, rút tiền
+   - Về cách sử dụng các tính năng: tìm gia sư, đặt lịch, tạo khóa học, quản lý đơn
+   - Về học phí, escrow, phí platform (15%)
+
+3. TÌM GIA SƯ:
+   - Phân tích: môn học, cấp độ, hình thức (online/offline), khu vực, ngân sách, khung giờ
+   - Đề xuất gia sư phù hợp dựa trên chuyên môn, kinh nghiệm, học phí, lịch dạy
+   - Hướng dẫn cách xem chi tiết và đặt lịch
+
+4. PHONG CÁCH:
+   - Trả lời bằng tiếng Việt, ngắn gọn, thân mật, dễ hiểu
+   - Luôn hướng dẫn cụ thể từng bước
+   - Khi không chắc, hướng dẫn người dùng liên hệ hỗ trợ`;
 
 function resolveModelForClient(client, defaultModel = "gpt-3.5-turbo") {
   try {
@@ -162,14 +183,63 @@ function resolveModelForClient(client, defaultModel = "gpt-3.5-turbo") {
 
 function fallbackReply(userMsg) {
   const lower = (userMsg || "").toLowerCase();
-  if (!userMsg || userMsg.trim() === "") return "Bạn chưa nhập gì cả 😊";
-  if (lower.includes("xin chào") || lower.includes("chào"))
-    return "Chào bạn! Mình có thể giúp bạn tìm gia sư. Bạn cần môn gì và ở đâu?";
-  if (lower.includes("toán"))
-    return "Bạn đang tìm gia sư Toán. Bạn muốn học ở Hà Nội hay TP.HCM?";
-  if (lower.includes("anh"))
-    return "Bạn đang tìm gia sư Tiếng Anh. Bạn cần luyện giao tiếp hay ngữ pháp?";
-  return "Mình đã nhận tin nhắn của bạn. Hiện tại dịch vụ AI chưa khả dụng, bạn có thể cho biết rõ môn học, cấp độ và địa điểm không?";
+  if (!userMsg || userMsg.trim() === "") return "Chào bạn 👋 Mình là trợ lý đặt gia sư. Bạn vui lòng cho mình biết: 1) Môn/Chương trình, 2) Hình thức (online/offline), 3) Khu vực, 4) Ngân sách/buổi, 5) Khung giờ rảnh. Ví dụ: 'Toán cấp 2, online, Hà Nội, 150k/buổi, tối T2-T5'.";
+  
+  // Try FAQs first - comprehensive matching
+  try {
+    const { getFAQs } = require("../services/SiteKnowledge");
+    const faqs = getFAQs();
+    
+    // Match FAQs by keywords - comprehensive list
+    const faqMatches = [
+      { keywords: ["quy trình", "quy trinh", "đặt gia sư", "dat gia su", "cách đặt", "cach dat"], faq: "Quy trình đặt gia sư thế nào?" },
+      { keywords: ["thanh toán", "thanh toan", "thanh toan xong", "chuyển khoản", "chuyen khoan"], faq: "Thanh toán xong có gì xảy ra?" },
+      { keywords: ["hủy", "huy", "hoàn tiền", "hoan tien", "hoàn lại", "hoan lai"], faq: "Hủy/hoàn tiền thế nào?" },
+      { keywords: ["thông báo", "thong bao", "notification", "chuông", "chuong", "xem thông báo", "xem thong bao"], faq: "Cách xem thông báo?" },
+      { keywords: ["trở thành gia sư", "tro thanh gia su", "đăng ký gia sư", "dang ky gia su", "làm gia sư", "lam gia su"], faq: "Làm sao để trở thành gia sư?" },
+      { keywords: ["tạo khóa học", "tao khoa hoc", "tạo slot", "tao slot", "đăng khóa", "dang khoa"], faq: "Cách tạo khóa học/slot?" },
+      { keywords: ["học phí", "hoc phi", "giá", "gia", "phí", "phi", "tiền", "tien", "tính học phí", "tinh hoc phi"], faq: "Học phí được tính thế nào?" },
+      { keywords: ["rút tiền", "rut tien", "withdraw", "rút", "rut"], faq: "Làm sao rút tiền?" },
+      { keywords: ["phòng học", "phong hoc", "room", "video call", "video", "phòng", "phong"], faq: "Phòng học hoạt động thế nào?" },
+      { keywords: ["đánh giá", "danh gia", "review", "rating", "sao"], faq: "Đánh giá gia sư thế nào?" },
+      { keywords: ["tìm gia sư", "tim gia su", "tìm", "tim", "search"], faq: "Làm sao tìm gia sư?" },
+      { keywords: ["hợp đồng", "hop dong", "contract", "ký", "ky"], faq: "Hợp đồng là gì?" },
+      { keywords: ["liên hệ", "lien he", "hỗ trợ", "ho tro", "support", "help"], faq: "Làm sao liên hệ hỗ trợ?" },
+      { keywords: ["trạng thái đơn", "trang thai don", "status", "pending", "accepted"], faq: "Các trạng thái đơn đặt lịch là gì?" },
+      { keywords: ["trạng thái thanh toán", "trang thai thanh toan", "payment status", "paid", "pending payment"], faq: "Trạng thái thanh toán là gì?" },
+      { keywords: ["menu", "navigation", "điều hướng", "dieu huong"], faq: "Menu trong hệ thống có gì?" },
+      { keywords: ["đổi mật khẩu", "doi mat khau", "change password", "đổi password"], faq: "Cách đổi mật khẩu?" },
+      { keywords: ["quên mật khẩu", "quen mat khau", "forgot password", "reset password"], faq: "Quên mật khẩu thì sao?" },
+      { keywords: ["lịch sử đặt lịch", "lich su dat lich", "booking history", "đơn của tôi", "don cua toi"], faq: "Cách xem lịch sử đặt lịch?" },
+      { keywords: ["lịch rảnh", "lich ranh", "availability", "quản lý lịch", "quan ly lich"], faq: "Cách quản lý lịch rảnh?" },
+    ];
+    
+    for (const match of faqMatches) {
+      if (match.keywords.some(kw => lower.includes(kw))) {
+        const f = faqs.find((x) => x.q === match.faq);
+        if (f) return f.a;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  
+  // Greeting patterns
+  if (lower.includes("xin chào") || lower.includes("chào") || lower.includes("hello") || lower.includes("hi"))
+    return "Chào bạn! Mình sẽ giúp bạn tìm gia sư phù hợp. Hãy cho mình biết: môn/level, online hay offline, khu vực, ngân sách và khung giờ rảnh nhé.";
+  
+  // Subject-specific responses
+  if (lower.includes("toán") || lower.includes("toan") || lower.includes("math"))
+    return "Bạn đang tìm gia sư Toán. Bạn muốn học online hay offline? Khu vực nào? Và mức học phí dự kiến/khung giờ rảnh để mình lọc kỹ hơn nhé.";
+  if (lower.includes("anh") || lower.includes("english") || lower.includes("tiếng anh") || lower.includes("tieng anh"))
+    return "Bạn đang tìm gia sư Tiếng Anh. Bạn cần giao tiếp/IELTS/TOEIC hay bổ trợ ngữ pháp? Hình thức học và ngân sách dự kiến là bao nhiêu?";
+  if (lower.includes("lý") || lower.includes("ly") || lower.includes("physics"))
+    return "Bạn đang tìm gia sư Vật lý. Bạn muốn học online hay offline? Khu vực nào? Và mức học phí dự kiến/khung giờ rảnh để mình lọc kỹ hơn nhé.";
+  if (lower.includes("hóa") || lower.includes("hoa") || lower.includes("chemistry"))
+    return "Bạn đang tìm gia sư Hóa học. Bạn muốn học online hay offline? Khu vực nào? Và mức học phí dự kiến/khung giờ rảnh để mình lọc kỹ hơn nhé.";
+  
+  // Default: return null để trigger DB search fallback
+  return null;
 }
 
 function logOpenAIError(err) {
@@ -194,23 +264,50 @@ function logOpenAIError(err) {
 // Local reply generator: build a friendly Vietnamese summary from items
 function localGenerateReply(userMsg, items) {
   if (!items || !items.length) return fallbackReply(userMsg);
+
+  const formatVnd = (n) => {
+    if (n === null || n === undefined) return "—";
+    const num = Number(n);
+    if (Number.isNaN(num)) return "—";
+    return num.toLocaleString("vi-VN") + " đ";
+  };
+
+  // If user typed a number, show details of that tutor
+  try {
+    const pick = parseInt(String(userMsg || "").trim(), 10);
+    if (!Number.isNaN(pick) && pick >= 1 && pick <= items.length) {
+      const t = items[pick - 1];
+      const subjects = (t.subjects || []).filter(Boolean).join(", ") || "—";
+      const modes = (t.teachModes || []).join(", ") || "—";
+      const fee = formatVnd(t.sessionRate);
+      return (
+        `Chi tiết gia sư #${pick}:\n` +
+        `- Họ tên: ${t.name || "Gia sư"}\n` +
+        `- Khu vực: ${t.city || "—"}\n` +
+        `- Môn/Lĩnh vực: ${subjects}\n` +
+        `- Hình thức: ${modes}\n` +
+        `- Học phí buổi: ${fee}\n` +
+        `Bạn muốn đặt lịch hay xem gia sư khác? (gõ số khác)`
+      );
+    }
+  } catch (e) {
+    // ignore
+  }
+
   const top = items.slice(0, 5);
-  let reply = `Mình đã tìm thấy ${items.length} gia sư phù hợp với yêu cầu của bạn.`;
+  let reply = `Mình đã tìm thấy ${items.length} gia sư phù hợp. Bạn có thể gõ số thứ tự (1-5) để xem chi tiết, hoặc nhắn thêm thông tin: môn/level, hình thức (online/offline), khu vực, ngân sách/buổi và khung giờ rảnh.`;
   reply += "\n\n";
   reply += top
     .map((t, i) => {
-      const subjects =
-        (t.subjects || []).filter(Boolean).join(", ") || "Chưa cập nhật";
-      const city = t.city ? ` — ${t.city}` : "";
-      const rating = t.avgRating ? ` — ⭐ ${t.avgRating}/5` : "";
-      const courses = (t.courses || []).length
-        ? ` • ${t.courses.length} khóa`
-        : "";
-      return `${i + 1}. ${t.name}${city} — ${subjects}${rating}${courses}`;
+      const subjects = (t.subjects || []).filter(Boolean).join(", ") || "—";
+      const city = t.city ? ` • ${t.city}` : "";
+      const rating = t.avgRating ? ` • ⭐ ${t.avgRating}/5` : "";
+      const fee = t.sessionRate ? ` • ${formatVnd(t.sessionRate)}` : "";
+      return `${i + 1}) ${t.name || "Gia sư"}${city} • ${subjects}${fee}${rating}`;
     })
     .join("\n");
   reply +=
-    "\n\nBạn muốn xem chi tiết gia sư nào (gõ số thứ tự), hoặc lọc thêm?";
+    "\n\nHướng dẫn nhanh:\n- Gõ '1' hoặc '2'... để xem chi tiết gia sư tương ứng\n- Gõ: 'Toán cấp 2, online, Hà Nội, 150k/buổi, tối T2-T5' để mình lọc chính xác hơn\n- Gõ: 'đặt 3' (hoặc 'book 3') để bắt đầu đặt lịch với gia sư #3";
   return reply;
 }
 
@@ -368,7 +465,31 @@ const chatCompletion = async (req, res) => {
     conversationHistory.push({ role: "user", content: userMsg });
     if (conversationHistory.length > 10) conversationHistory.shift();
 
+    // Pre-calc FAQ answer (used in both AI and fallback paths)
+    let faqAnswer = null;
+    try {
+      const maybe = fallbackReply(userMsg);
+      // consider it FAQ if it's not the generic greeting/search prompts
+      if (maybe && !/Bạn đang tìm gia sư|Bạn chưa nhập/i.test(maybe)) {
+        faqAnswer = maybe;
+      }
+    } catch (e) {
+      // ignore
+    }
+
     if (!aiEnabled) {
+      // Try to answer with FAQs first
+      try {
+        const maybe = fallbackReply(userMsg);
+        // If FAQ produced something specific (not generic search lines), return immediately
+        if (maybe && !/Bạn đang tìm gia sư|Bạn chưa nhập/i.test(maybe)) {
+          conversationHistory.push({ role: "assistant", content: maybe });
+          return res.json({ success: true, message: maybe, fallback: true });
+        }
+      } catch (e) {
+        // ignore
+      }
+
       // Provide a richer local fallback using DB results so chat is still useful
       const tutorsFromDb = await fetchRelevantTutorsFromDB(userMsg, 5);
       const items = await sanitizeTutors(tutorsFromDb);
@@ -382,6 +503,9 @@ const chatCompletion = async (req, res) => {
       });
     }
 
+    // AI enabled but might fail - handle gracefully
+    let aiFailed = false;
+
     try {
       // Fetch relevant tutors from DB and provide as context
       const tutorsFromDb = await fetchRelevantTutorsFromDB(userMsg, 5);
@@ -391,6 +515,15 @@ const chatCompletion = async (req, res) => {
         null,
         2
       )}`;
+
+      // Site-wide knowledge (stats + FAQs)
+      let siteContext = "";
+      try {
+        const { buildSiteKnowledgeText } = require("../services/SiteKnowledge");
+        siteContext = await buildSiteKnowledgeText();
+      } catch (e) {
+        siteContext = "";
+      }
 
       // prefer request-scoped client (set by server.js) to support Gemini/Google wrapper
       const client =
@@ -412,14 +545,18 @@ const chatCompletion = async (req, res) => {
               "Sử dụng thông tin gia sư sau để trả lời nếu cần: " +
               tutorContext,
           },
+          { role: "system", content: `Thông tin hệ thống: ${siteContext}` },
         ],
         temperature: 0.7,
         max_tokens: 500,
       });
 
-      const reply =
+      let reply =
         completion?.choices?.[0]?.message?.content ||
         "Xin lỗi, tôi chưa nhận được phản hồi từ AI.";
+      if (faqAnswer) {
+        reply = `${faqAnswer}\n\n${reply}`;
+      }
       if (completion?.raw)
         console.debug("[AI] completion.raw:", completion.raw);
       conversationHistory.push({ role: "assistant", content: reply });
@@ -441,7 +578,8 @@ const chatCompletion = async (req, res) => {
       // Provide DB-based fallback suggestions to keep chat useful (using local generator)
       const tutorsFromDb = await fetchRelevantTutorsFromDB(userMsg, 5);
       const items = await sanitizeTutors(tutorsFromDb);
-      const localText = localGenerateReply(userMsg, items);
+      let localText = localGenerateReply(userMsg, items);
+      if (faqAnswer) localText = `${faqAnswer}\n\n${localText}`;
       conversationHistory.push({ role: "assistant", content: localText });
       // Return fallback as HTTP 200 so frontends using axios don't throw on non-2xx
       return res.json({

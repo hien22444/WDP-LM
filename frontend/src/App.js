@@ -306,6 +306,7 @@ import authService from "./services/AuthService";
 // ✅ Import Chat Context đúng cách
 import { ChatProvider } from "./contexts/ChatContext";
 import ChatManager from "./components/Chat/ChatManager";
+import ChatWidget from "./components/ChatBot/ChatWidget";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -487,6 +488,9 @@ function App() {
         profileCompletion={profileCompletion}
         onComplete={handleProfileCompletion}
       />
+
+      {/* Floating AI chat widget */}
+      <ChatWidget />
     </ChatProvider>
   );
 }

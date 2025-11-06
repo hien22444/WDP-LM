@@ -79,7 +79,7 @@ const TutorList = () => {
       console.log("🔍 Number of tutors:", data?.tutors?.length || 0);
 
       // Map dữ liệu và log chi tiết từng bước
-      const tutors = (data?.tutors || []).map((tutor) => {
+      const allTutors = (data?.tutors || []).map((tutor) => {
         console.log("🔍 Processing tutor:", tutor.name, tutor.email);
         // Parse experience to extract years
         let experienceYears = 0;
@@ -125,9 +125,29 @@ const TutorList = () => {
         };
       });
 
-      setTutors(tutors);
-      setTotalPages(data?.totalPages || 1);
-      setTotalTutors(data?.total || 0);
+      // Apply client-side filters
+      const q = (query || "").toLowerCase().trim();
+      const subj = (subject || "").toLowerCase().trim();
+      const loc = (location || "").toLowerCase().trim();
+      const gender = (filters.gender || "").toLowerCase().trim();
+
+      const filtered = allTutors.filter((t) => {
+        const name = (t.user?.full_name || "").toLowerCase();
+        const subjectsText = (t.subjects || []).join(" ").toLowerCase();
+        const locText = (t.location || "").toLowerCase();
+        const genderText = (t.gender || t.user?.gender || "").toLowerCase();
+
+        const matchQuery = q ? name.includes(q) || subjectsText.includes(q) : true;
+        const matchSubject = subj ? subjectsText.includes(subj) : true;
+        const matchLocation = loc ? locText.includes(loc) : true;
+        const matchGender = gender ? genderText === gender : true;
+
+        return matchQuery && matchSubject && matchLocation && matchGender;
+      });
+
+      setTutors(filtered);
+      setTotalPages(1);
+      setTotalTutors(filtered.length);
     } catch (e) {
       console.error("❌ Error loading tutors:", e);
       setTutors([]); // Ensure tutors is empty on error
