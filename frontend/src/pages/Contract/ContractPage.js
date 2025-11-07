@@ -2,7 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { restoreUser, updateProfile } from "../../redux/slices/userSlice";
-import { getTutorProfile } from "../../services/BookingService";
+import {
+  getTutorProfile,
+  saveBookingContract,
+} from "../../services/BookingService";
 import {
   getCurrentUserApi,
   updateUserProfileApi,
@@ -133,9 +136,18 @@ const ContractPage = () => {
       // Tạo một biến tạm để kiểm tra giá trị price từ booking
       console.log("🏷️ Price from booking:", bookingData.price);
 
-      // Định nghĩa giá trị cố định cho giá và số buổi
-      const PRICE_PER_SESSION = 100000; // 100,000đ mỗi buổi
+      // Số buổi mặc định nếu thiếu dữ liệu
       const DEFAULT_SESSIONS = 6; // 6 buổi mặc định
+
+      // Xác định học phí mỗi buổi theo thứ tự ưu tiên từ dữ liệu truyền vào
+      const derivedPricePerSession = Number(
+        bookingData.sessionPrice ||
+          bookingData.sessionDetails?.price ||
+          bookingData.price ||
+          tutorData.price ||
+          tutorData.sessionRate ||
+          0
+      );
 
       // Xử lý tên môn học - chỉ lấy tên môn, bỏ phần giá
       const subjectName = (bookingData.subject || tutorData.subject || "")
@@ -163,11 +175,11 @@ const ContractPage = () => {
           bookingData.sessions?.length ||
           DEFAULT_SESSIONS,
         notes: bookingData.notes || "",
-        // Sử dụng giá cố định 100,000đ một buổi
-        pricePerSession: PRICE_PER_SESSION,
-        // Tính tổng học phí dựa trên số buổi và giá cố định
+        // Học phí mỗi buổi lấy theo dữ liệu thực tế của gia sư/đặt lịch
+        pricePerSession: derivedPricePerSession,
+        // Tổng học phí = học phí mỗi buổi × số buổi
         totalPrice:
-          PRICE_PER_SESSION *
+          derivedPricePerSession *
           (bookingData.totalSessions ||
             bookingData.numberOfSessions ||
             bookingData.sessions?.length ||
@@ -384,35 +396,23 @@ const ContractPage = () => {
     }
   };
 
-  const handleSignContract = () => {
+  const handleSignContract = async () => {
     console.log("📝 [TEST] Chuyển hướng đến trang OrderSummary...");
     console.log("Debug tutor object:", tutor); // Thêm log để xem cấu trúc của tutor
     setSigning(true); // Kích hoạt trạng thái "Đang ký..."
 
-    // --- 1. VALIDATION LẦN CUỐI TRƯỚC KHI SUBMIT ---
-    const nameError = validateRequired(contractData.studentName);
-    const phoneError = validateVnPhoneNumber(contractData.studentPhone);
-    const addressError = validateRequired(contractData.studentAddress);
-    const signatureError = validateRequired(signature); // Dùng lại hàm validateRequired // Kiểm tra tất cả lỗi
-
-    if (nameError || phoneError || addressError || signatureError || !agreed) {
-      // Cập nhật state lỗi để hiển thị cho người dùng
-      setErrors({
-        studentName: nameError,
-        studentPhone: phoneError,
-        studentAddress: addressError,
-      }); // Hiển thị thông báo lỗi cụ thể
-
-      if (nameError || phoneError || addressError) {
-        toast.error("Vui lòng điền đầy đủ thông tin học viên.");
-      } else if (signatureError) {
-        toast.error("Vui lòng ký tên của bạn vào hợp đồng.");
-      } else if (!agreed) {
-        toast.error("Bạn cần đồng ý với các điều khoản.");
+    // Nếu có bookingId được truyền vào state, lưu hợp đồng ngay
+    const bookingId = location.state?.bookingId;
+    if (bookingId) {
+      try {
+        await saveBookingContract(bookingId, {
+          contractData,
+          studentSignature: contractData.studentName || "signed",
+        });
+      } catch (e) {
+        // Nếu lưu hợp đồng lỗi, vẫn cho tiếp tục thanh toán
+        console.error("Failed to save contract before payment:", e);
       }
-
-      setSigning(false);
-      return; // Dừng lại nếu có lỗi
     }
 
     // Truyền thông tin cần thiết cho thanh toán và thông tin giảng viên

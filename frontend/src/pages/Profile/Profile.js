@@ -499,8 +499,8 @@ const Profile = () => {
           {/* Đã có menu avatar ở header chung, bỏ avatar trong banner để tránh dư */}
         </div>
 
-        {/* Tutor onboarding status banner */}
-        {(tutorProfile?.status || (role === "student" && !tutorProfile)) && (
+        {/* Tutor onboarding status banner - chỉ hiện với role gia sư */}
+        {role === "tutor" && tutorProfile?.status && (
           <div
             className={`tutor-status-banner status-${
               tutorProfile?.status || "pending"

@@ -26,7 +26,6 @@ const PublicLandingPage = () => {
       <header className="header">
         <div className="logo">
           <img src="/edumatch-logo.png" alt="EduMatch" className="brand-logo" />
-          <span className="brand-text">EduMatch</span>
         </div>
         <nav className="nav">
           <a href="/tutor">Tìm gia sư</a>

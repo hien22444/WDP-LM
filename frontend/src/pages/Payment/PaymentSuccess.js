@@ -14,18 +14,38 @@ const PaymentSuccess = () => {
     const orderCode = searchParams.get('orderCode');
     
     if (orderCode) {
-      // Simulate checking payment status
-      setTimeout(() => {
-        setPaymentInfo({
-          orderCode,
-          status: 'PAID',
-          amount: '500,000',
-          courseName: 'Toán 12 - Hình học không gian',
-          roomCode: 'ABC123XYZ'
-        });
-        setLoading(false);
-        toast.success('🎉 Thanh toán thành công! Mã phòng học đã được gửi qua email.');
-      }, 2000);
+      // Verify payment status từ API
+      const verifyPayment = async () => {
+        try {
+          const response = await fetch(
+            `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1'}/payment/verify/${orderCode}`
+          );
+          const data = await response.json();
+          
+          if (data.success && data.status === 'PAID') {
+            // Lấy thông tin booking từ payment nếu có
+            // Có thể cần gọi API khác để lấy booking details
+            setPaymentInfo({
+              orderCode,
+              status: 'PAID',
+              amount: '500,000', // TODO: Lấy từ payment data
+              courseName: 'Khóa học', // TODO: Lấy từ payment data
+              roomCode: 'ABC123XYZ' // TODO: Lấy từ booking data
+            });
+            toast.success('🎉 Thanh toán thành công! Mã phòng học đã được gửi qua email.');
+          } else {
+            setPaymentInfo(null);
+            toast.warning('Thanh toán chưa hoàn tất hoặc đang xử lý...');
+          }
+        } catch (error) {
+          console.error('Error verifying payment:', error);
+          toast.error('Không thể xác minh thanh toán. Vui lòng kiểm tra lại sau.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      verifyPayment();
     } else {
       setLoading(false);
     }

@@ -31,9 +31,10 @@ export const listMyBookings = async (role = "student") => {
   return res.data.items;
 };
 
-export const tutorDecision = async (id, decision) => {
+export const tutorDecision = async (id, decision, tutorSignature) => {
   try {
-    const res = await client.post(`/bookings/${id}/decision`, { decision });
+    const payload = tutorSignature ? { decision, tutorSignature } : { decision };
+    const res = await client.post(`/bookings/${id}/decision`, payload);
     const message =
       decision === "accept"
         ? "✅ Đã chấp nhận yêu cầu đặt lịch. Học viên đã được thông báo qua email."
@@ -44,6 +45,19 @@ export const tutorDecision = async (id, decision) => {
     const message =
       error.response?.data?.message ||
       "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+    toast.error(`❌ ${message}`);
+    throw error;
+  }
+};
+
+// Save/attach contract to an existing booking
+export const saveBookingContract = async (bookingId, payload) => {
+  try {
+    const res = await client.post(`/bookings/${bookingId}/contract`, payload);
+    toast.success('📝 Đã lưu hợp đồng cho yêu cầu đặt lịch.');
+    return res.data.booking;
+  } catch (error) {
+    const message = error.response?.data?.message || 'Không thể lưu hợp đồng.';
     toast.error(`❌ ${message}`);
     throw error;
   }
@@ -255,6 +269,7 @@ const bookingService = {
   createBooking,
   listMyBookings,
   tutorDecision,
+  saveBookingContract,
   getBookingsByDateRange,
   getTutorAvailability,
   updateTutorAvailability,

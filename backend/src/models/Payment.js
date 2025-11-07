@@ -8,6 +8,12 @@ const PaymentSchema = new mongoose.Schema(
     // unique index on vnp_txnref). Ensure we store a non-null value when
     // creating payments to avoid duplicate-null insert errors.
     vnp_txnref: { type: String, default: null },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false, // Optional for backward compatibility
+      index: true,
+    },
     slotId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TeachingSlot",
@@ -22,6 +28,8 @@ const PaymentSchema = new mongoose.Schema(
       enum: ["PENDING", "PAID", "CANCELLED"],
       default: "PENDING",
     },
+    paidAt: { type: Date, default: null },
+    paymentData: { type: Object, default: {} }, // Lưu dữ liệu từ PayOS webhook
     metadata: { type: Object, default: {} },
   },
   {

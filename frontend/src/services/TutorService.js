@@ -38,7 +38,22 @@ export const updateTutorPreferences = async (payload) => {
 };
 
 export const saveAvailability = async (availability) => {
-  const res = await client.put(`/tutors/me/availability`, { availability });
+  const toHms = (t) =>
+    typeof t === "string" && t.length === 5 ? `${t}:00` : t || "00:00:00";
+
+  const list = Array.isArray(availability) ? availability : [];
+  const normalized = list.map((it) => ({
+    // nhiều backend dùng 0..6 (CN=0). Nếu cần 1..7 có thể bật map sau
+    dayOfWeek: typeof it.dayOfWeek === "number" ? it.dayOfWeek : 0,
+    startTime: toHms(it.start),
+    endTime: toHms(it.end),
+  }));
+
+  const res = await client.put(
+    `/tutors/me/availability`,
+    { availability: normalized },
+    { headers: { "Content-Type": "application/json" } }
+  );
   return res.data.profile;
 };
 

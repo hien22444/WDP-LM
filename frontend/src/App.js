@@ -307,6 +307,7 @@ import authService from "./services/AuthService";
 import { ChatProvider } from "./contexts/ChatContext";
 import ChatManager from "./components/Chat/ChatManager";
 import MessagesPage from "./pages/Messages";
+import ChatWidget from "./components/ChatBot/ChatWidget";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -348,7 +349,7 @@ function App() {
   };
 
   return (
-    <>
+    <ChatProvider>
       <Routes>
         {/* Public routes */}
         <Route
@@ -425,6 +426,15 @@ function App() {
           <Route path="/tutors" element={<TutorList />} />
 
           <Route path="/tutor/:id" element={<TutorProfilePage />} />
+          <Route
+            path="/tutor/:id"
+            element={
+              <>
+                <TutorProfilePage />
+                <ChatManager />
+              </>
+            }
+          />
 
           <Route
             path="/bookings/tutor"
@@ -506,7 +516,10 @@ function App() {
         profileCompletion={profileCompletion}
         onComplete={handleProfileCompletion}
       />
-    </>
+
+      {/* Floating AI chat widget */}
+      <ChatWidget />
+    </ChatProvider>
   );
 }
 

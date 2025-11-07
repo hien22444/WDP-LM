@@ -12,14 +12,11 @@ const Footer = () => {
         <div className="footer-main">
           <div className="footer-section">
             <div className="footer-logo">
-              <div className="logo-icon">
-                <i className="fas fa-graduation-cap"></i>
-              </div>
-<<<<<<< HEAD
-              <span className="logo-text">LearnMate</span>
-=======
-              <span className="logo-text">EduMatch</span>
->>>>>>> Quan3
+              <img 
+                src="/edumatch-logo.png" 
+                alt="EduMatch Logo" 
+                className="footer-logo-image" 
+              />
             </div>
             <p className="footer-description">
               Nền tảng kết nối gia sư và học viên hàng đầu Việt Nam. 
@@ -48,10 +45,6 @@ const Footer = () => {
             <h3 className="footer-title">Dịch vụ</h3>
             <ul className="footer-links">
               <li>
-<<<<<<< HEAD
-                <Link to="/tutor" className="footer-link">
-                  Tìm gia sư
-=======
                 <Link to="/tutors" className="footer-link">
                   Danh sách gia sư
                 </Link>
@@ -59,7 +52,6 @@ const Footer = () => {
               <li>
                 <Link to="/courses" className="footer-link">
                   Khóa học
->>>>>>> Quan3
                 </Link>
               </li>
               <li>
@@ -168,11 +160,7 @@ const Footer = () => {
                 <i className="fas fa-envelope"></i>
                 <div>
                   <p>Email:</p>
-<<<<<<< HEAD
-                  <span>support@learnmate.vn</span>
-=======
                   <span>support@edumatch.vn</span>
->>>>>>> Quan3
                 </div>
               </div>
               <div className="contact-item">
@@ -211,11 +199,7 @@ const Footer = () => {
         <div className="footer-bottom">
           <div className="footer-bottom-content">
             <div className="copyright">
-<<<<<<< HEAD
-              <p>&copy; {currentYear} LearnMate. Tất cả quyền được bảo lưu.</p>
-=======
-              <p>&copy; {currentYear} EduMatch. Tất cả quyền được bảo lưu.</p>
->>>>>>> Quan3
+              <p>&copy; {currentYear} Tất cả quyền được bảo lưu.</p>
             </div>
             <div className="footer-legal">
               <Link to="/privacy" className="legal-link">

@@ -205,7 +205,7 @@ router.post("/", auth(), async (req, res) => {
 // Tutor accepts/rejects
 router.post("/:id/decision", auth(), async (req, res) => {
   try {
-    const { decision } = req.body; // 'accept' or 'reject'
+    const { decision, tutorSignature } = req.body; // 'accept' or 'reject'
 
     // Validation rules
     const errors = [];
@@ -303,6 +303,13 @@ router.post("/:id/decision", auth(), async (req, res) => {
       });
 
       booking.sessionId = session._id;
+      if (tutorSignature) {
+        booking.tutorSignature = tutorSignature;
+        booking.tutorSignedAt = new Date();
+      }
+      if (booking.studentSignature && booking.tutorSignature) {
+        booking.contractSigned = true;
+      }
     } else if (decision === "reject") {
       booking.status = "rejected";
     }
@@ -332,6 +339,42 @@ router.post("/:id/decision", auth(), async (req, res) => {
     res.json({ booking, message });
   } catch (e) {
     res.status(500).json({ message: "Failed to update booking" });
+  }
+});
+
+// Student attaches contract data and signature to a booking
+router.post("/:id/contract", auth(), async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // Only the student of the booking can attach contract
+    if (String(booking.student) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const { contractData, studentSignature } = req.body || {};
+    if (contractData && typeof contractData === 'object') {
+      booking.contractData = {
+        ...booking.contractData,
+        ...contractData,
+      };
+    }
+    if (studentSignature) {
+      booking.studentSignature = studentSignature;
+      booking.studentSignedAt = new Date();
+    }
+
+    // Generate a contract number if absent
+    if (!booking.contractNumber) {
+      booking.contractNumber = `HD-${Date.now()}`;
+    }
+
+    await booking.save();
+    res.json({ success: true, booking });
+  } catch (error) {
+    console.error('Attach contract error:', error);
+    res.status(500).json({ message: 'Failed to attach contract' });
   }
 });
 

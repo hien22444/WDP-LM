@@ -9,8 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import Cookies from "js-cookie";
 import { logout } from "../../redux/slices/userSlice";
-// TEMPORARILY DISABLED - Causing lag (requires ChatProvider)
-// import NotificationCenter from "../Notifications/NotificationCenter";
+import NotificationCenter from "../Notifications/NotificationCenter";
 import { toast } from "react-toastify";
 import "./UniversalHeader.scss";
 
@@ -24,11 +23,37 @@ const UniversalHeader = () => {
   const [roomCode, setRoomCode] = useState("");
   const dropdownRef = useRef(null);
 
-  const role = useMemo(
-    () =>
-      userState?.account?.role || userState?.profile?.role || userState?.role,
-    [userState]
-  );
+  const isTutor = useMemo(() => {
+    const normalize = (v) =>
+      typeof v === "string"
+        ? v
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+        : "";
+    let localRole = "";
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) {
+        const u = JSON.parse(raw);
+        localRole =
+          u?.role || u?.account?.role || u?.profile?.role || "";
+      }
+    } catch (e) {}
+    const roles = [
+      userState?.user?.role,
+      userState?.user?.account?.role,
+      userState?.user?.profile?.role,
+      userState?.account?.role,
+      userState?.profile?.role,
+      userState?.role,
+      localRole,
+    ]
+      .filter(Boolean)
+      .map(normalize);
+    return roles.some((r) => r === "tutor" || r.includes("giasu") || r.includes("gia su"));
+  }, [userState]);
   const avatar = useMemo(
     () =>
       userState?.profile?.image ||
@@ -82,7 +107,6 @@ const UniversalHeader = () => {
               alt="EduMatch"
               className="logo-image"
             />
-            <span className="logo-text">EduMatch</span>
           </div>
 
           {/* Nav */}
@@ -132,8 +156,7 @@ const UniversalHeader = () => {
         {/* Right Section */}
         <div className="header-right-elements">
           {/* Notifications */}
-          {/* TEMPORARILY DISABLED - Causing lag (requires ChatProvider) */}
-          {/* <NotificationCenter /> */}
+          <NotificationCenter />
 
           {/* Join Room Button */}
           <button
@@ -171,6 +194,17 @@ const UniversalHeader = () => {
               >
                 Khóa học của tôi
               </button>
+              {isTutor && (
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate("/bookings/tutor");
+                  }}
+                  className="dropdown-item"
+                >
+                  Đơn yêu cầu
+                </button>
+              )}
               <button
                 onClick={() => {
                   setIsMenuOpen(false);
