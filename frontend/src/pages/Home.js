@@ -1,41 +1,7 @@
-<<<<<<< HEAD
-"use client"
-
-import { useSelector, useDispatch } from "react-redux"
-import { useNavigate } from "react-router-dom"
-import { logout } from "../redux/slices/userSlice"
-import "./Home.scss"
-
-const Home = () => {
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const user = useSelector((state) => state.user.user)
-
-  const handleLogout = () => {
-    dispatch(logout())
-    navigate("/signin")
-  }
-
-  return (
-    <div className="home-container">
-      <div className="home-content">
-        <h1>Welcome to Dashboard</h1>
-        <p>Email: {user.account.email}</p>
-        <p>Role: {user.account.role || "User"}</p>
-        <button onClick={handleLogout} className="logout-btn">
-          Logout
-        </button>
-      </div>
-    </div>
-  )
-}
-
-export default Home
-=======
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import './Home.scss';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import "./Home.scss";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -46,51 +12,59 @@ const Home = () => {
     {
       name: "Nguyễn Minh Anh",
       role: "Học sinh lớp 12",
-      content: "EduMatch giúp tôi tìm được gia sư Toán tuyệt vời. Điểm số của tôi đã cải thiện rõ rệt từ 6.5 lên 8.5 chỉ sau 2 tháng!",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
+      content:
+        "EduMatch giúp tôi tìm được gia sư Toán tuyệt vời. Điểm số của tôi đã cải thiện rõ rệt từ 6.5 lên 8.5 chỉ sau 2 tháng!",
+      avatar:
+        "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
     },
     {
       name: "Trần Văn Nam",
       role: "Phụ huynh",
-      content: "Con tôi rất thích học với gia sư trên EduMatch. Giao diện dễ sử dụng, thanh toán an toàn và chất lượng giảng dạy rất tốt.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+      content:
+        "Con tôi rất thích học với gia sư trên EduMatch. Giao diện dễ sử dụng, thanh toán an toàn và chất lượng giảng dạy rất tốt.",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
     },
     {
       name: "Lê Thị Hương",
       role: "Gia sư",
-      content: "Làm gia sư trên EduMatch rất thuận tiện. Tôi có thể quản lý lịch dạy, nhận thanh toán và tương tác với học sinh một cách dễ dàng.",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
-    }
+      content:
+        "Làm gia sư trên EduMatch rất thuận tiện. Tôi có thể quản lý lịch dạy, nhận thanh toán và tương tác với học sinh một cách dễ dàng.",
+      avatar:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+    },
   ];
 
   const features = [
     {
       icon: "fas fa-search",
       title: "Tìm kiếm thông minh",
-      description: "Tìm gia sư phù hợp với nhu cầu học tập của bạn trong vài giây"
+      description:
+        "Tìm gia sư phù hợp với nhu cầu học tập của bạn trong vài giây",
     },
     {
       icon: "fas fa-video",
       title: "Học trực tuyến",
-      description: "Tham gia lớp học trực tuyến với công nghệ WebRTC hiện đại"
+      description: "Tham gia lớp học trực tuyến với công nghệ WebRTC hiện đại",
     },
     {
       icon: "fas fa-shield-alt",
       title: "Thanh toán an toàn",
-      description: "Hệ thống thanh toán bảo mật với escrow đảm bảo quyền lợi"
+      description: "Hệ thống thanh toán bảo mật với escrow đảm bảo quyền lợi",
     },
     {
       icon: "fas fa-star",
       title: "Đánh giá chất lượng",
-      description: "Hệ thống đánh giá và phản hồi giúp duy trì chất lượng giảng dạy"
-    }
+      description:
+        "Hệ thống đánh giá và phản hồi giúp duy trì chất lượng giảng dạy",
+    },
   ];
 
   const stats = [
     { number: "10,000+", label: "Gia sư đã đăng ký" },
     { number: "50,000+", label: "Học sinh tin tưởng" },
     { number: "100,000+", label: "Giờ học đã hoàn thành" },
-    { number: "4.9/5", label: "Đánh giá trung bình" }
+    { number: "4.9/5", label: "Đánh giá trung bình" },
   ];
 
   useEffect(() => {
@@ -117,27 +91,27 @@ const Home = () => {
                 cho việc học của bạn
               </h1>
               <p className="hero-description">
-                Tìm kiếm gia sư phù hợp, đặt lịch học linh hoạt và học tập hiệu quả 
-                với nền tảng gia sư trực tuyến hàng đầu Việt Nam.
+                Tìm kiếm gia sư phù hợp, đặt lịch học linh hoạt và học tập hiệu
+                quả với nền tảng gia sư trực tuyến hàng đầu Việt Nam.
               </p>
               <div className="hero-actions">
-                <button 
+                <button
                   className="btn-primary"
-                  onClick={() => navigate('/tutors')}
+                  onClick={() => navigate("/tutors")}
                 >
                   <i className="fas fa-users"></i>
                   Danh sách gia sư
                 </button>
-                <button 
+                <button
                   className="btn-secondary"
-                  onClick={() => navigate('/courses')}
+                  onClick={() => navigate("/courses")}
                 >
                   <i className="fas fa-book"></i>
                   Khóa học
                 </button>
-                <button 
+                <button
                   className="btn-outline"
-                  onClick={() => navigate('/tutor/onboarding')}
+                  onClick={() => navigate("/tutor/onboarding")}
                 >
                   <i className="fas fa-chalkboard-teacher"></i>
                   Trở thành gia sư
@@ -182,7 +156,8 @@ const Home = () => {
           <div className="section-header">
             <h2 className="section-title">Tại sao chọn EduMatch?</h2>
             <p className="section-description">
-              Chúng tôi cung cấp giải pháp học tập toàn diện với công nghệ hiện đại
+              Chúng tôi cung cấp giải pháp học tập toàn diện với công nghệ hiện
+              đại
             </p>
           </div>
           <div className="features-grid">
@@ -212,7 +187,10 @@ const Home = () => {
             <div className="testimonial-card">
               <div className="testimonial-content">
                 <div className="testimonial-avatar">
-                  <img src={testimonials[currentTestimonial].avatar} alt={testimonials[currentTestimonial].name} />
+                  <img
+                    src={testimonials[currentTestimonial].avatar}
+                    alt={testimonials[currentTestimonial].name}
+                  />
                 </div>
                 <div className="testimonial-text">
                   <p>"{testimonials[currentTestimonial].content}"</p>
@@ -227,7 +205,9 @@ const Home = () => {
               {testimonials.map((_, index) => (
                 <button
                   key={index}
-                  className={`dot ${index === currentTestimonial ? 'active' : ''}`}
+                  className={`dot ${
+                    index === currentTestimonial ? "active" : ""
+                  }`}
                   onClick={() => setCurrentTestimonial(index)}
                 />
               ))}
@@ -241,17 +221,20 @@ const Home = () => {
         <div className="cta-container">
           <div className="cta-content">
             <h2>Sẵn sàng bắt đầu hành trình học tập?</h2>
-            <p>Tham gia cùng hàng nghìn học sinh đã cải thiện kết quả học tập với EduMatch</p>
+            <p>
+              Tham gia cùng hàng nghìn học sinh đã cải thiện kết quả học tập với
+              EduMatch
+            </p>
             <div className="cta-actions">
-              <button 
+              <button
                 className="btn-primary"
-                onClick={() => navigate('/tutors')}
+                onClick={() => navigate("/tutors")}
               >
                 Xem danh sách gia sư
               </button>
-              <button 
+              <button
                 className="btn-outline"
-                onClick={() => navigate('/about')}
+                onClick={() => navigate("/about")}
               >
                 Tìm hiểu thêm
               </button>
@@ -264,4 +247,3 @@ const Home = () => {
 };
 
 export default Home;
->>>>>>> Quan3
