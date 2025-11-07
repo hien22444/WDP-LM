@@ -136,7 +136,10 @@ const SignIn = () => {
                 <label htmlFor="password" className="form-label">
                   Mật khẩu
                 </label>
-                <div className="input-group" style={{ display: 'flex', alignItems: 'stretch' }}>
+                <div
+                  className="input-group"
+                  style={{ display: "flex", alignItems: "stretch" }}
+                >
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
@@ -145,20 +148,26 @@ const SignIn = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                    style={{
+                      flex: 1,
+                      borderTopRightRadius: 0,
+                      borderBottomRightRadius: 0,
+                    }}
                   />
                   <button
                     type="button"
-                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                    aria-label={
+                      showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"
+                    }
                     onClick={() => setShowPassword((v) => !v)}
                     disabled={loading}
                     className="btn btn-outline-secondary"
                     style={{
-                      padding: '0 12px',
+                      padding: "0 12px",
                       borderTopLeftRadius: 0,
                       borderBottomLeftRadius: 0,
-                      border: '1px solid #ced4da',
-                      background: '#fff',
+                      border: "1px solid #ced4da",
+                      background: "#fff",
                     }}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -229,7 +238,7 @@ const SignIn = () => {
 
         <div className="signin-image-section">
           <img
-            src="/giaoduc.jpg"
+            src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1762520025/qua%CC%89n-ly%CC%81-gia%CC%81o-du%CC%A3c-la%CC%80-gi%CC%80-2_qts39w.jpg"
             alt="Beautiful floral arrangement"
             className="signin-image"
           />

@@ -98,9 +98,8 @@ const UniversalHeader = () => {
   return (
     <header className="universal-header">
       <div className="header-container">
-        {/* Left Section */}
+        {/* Left Section - Logo */}
         <div className="header-left-section">
-          {/* Logo */}
           <div className="logo-container" onClick={() => navigate("/")}>
             <img
               src="/edumatch-logo.png"
@@ -108,30 +107,31 @@ const UniversalHeader = () => {
               className="logo-image"
             />
           </div>
-
-          {/* Nav */}
-          <nav className="main-nav">
-            <button className="nav-button" onClick={() => navigate("/tutors")}>
-              Danh sách gia sư
-            </button>
-            <button className="nav-button" onClick={() => navigate("/courses")}>
-              Khóa học
-            </button>
-            <button
-              className="nav-button"
-              onClick={() => navigate("/tutor/onboarding")}
-            >
-              Trở thành gia sư
-            </button>
-            <button className="nav-button" onClick={() => navigate("/about")}>
-              Về Chúng Tôi
-            </button>
-          </nav>
         </div>
 
-        {/* Center Section - Search */}
-        <div className="search-container">
-          <div className="search-box">
+        {/* Center Section - Nav */}
+        <nav className="main-nav">
+          <button className="nav-button" onClick={() => navigate("/tutors")}>
+            Danh sách gia sư
+          </button>
+          <button className="nav-button" onClick={() => navigate("/courses")}>
+            Khóa học
+          </button>
+          <button
+            className="nav-button"
+            onClick={() => navigate("/tutor/onboarding")}
+          >
+            Trở thành gia sư
+          </button>
+          <button className="nav-button" onClick={() => navigate("/about")}>
+            Về Chúng Tôi
+          </button>
+        </nav>
+
+        {/* Right Section */}
+        <div className="header-right-elements">
+          {/* Search bar */}
+          <div className="search-container">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -146,15 +146,12 @@ const UniversalHeader = () => {
               onClick={() =>
                 navigate(`/courses?q=${encodeURIComponent(search.trim())}`)
               }
-              className="search-button"
+              className="search-btn"
             >
               <i className="fas fa-search" />
             </button>
           </div>
-        </div>
 
-        {/* Right Section */}
-        <div className="header-right-elements">
           {/* Notifications */}
           <NotificationCenter />
 

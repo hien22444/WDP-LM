@@ -24,40 +24,60 @@ const PublicLandingPage = () => {
   return (
     <div className="home-container">
       <header className="header">
-        <div className="logo">
-          <img src="/edumatch-logo.png" alt="EduMatch" className="brand-logo" />
-        </div>
-        <nav className="nav">
-          <a href="/tutor">Tìm gia sư</a>
-          <a href="/courses">Khóa học mở</a>
-          <a href="/tutor-application">Trở thành gia sư</a>
-          <a href="/about-us" className="about-us-link">
-            Về Chúng Tôi
-          </a>
-        </nav>
-        <div className="right-section">
-          {/* Search bar */}
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Tìm kiếm gia sư, môn học..."
-              className="search-input"
-            />
-            <button className="search-btn">
-              <i className="fas fa-search"></i>
-            </button>
+        <div className="header-wrapper">
+          <div className="logo">
+            <img src="/edumatch-logo.png" alt="EduMatch" className="brand-logo" />
           </div>
+          <nav className="nav">
+            <a href="/tutors">Tìm gia sư</a>
+            <a href="/courses">Khóa học mở</a>
+            <a href="/tutor-application">Trở thành gia sư</a>
+            <a href="/about-us" className="about-us-link">
+              Về Chúng Tôi
+            </a>
+          </nav>
+          <div className="right-section">
+            {/* Search bar */}
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Tìm kiếm gia sư, môn học..."
+                className="search-input"
+              />
+              <button className="search-btn">
+                <i className="fas fa-search"></i>
+              </button>
+            </div>
 
-          <div className="auth-buttons">
-            <button className="signin-btn" onClick={() => navigate("/signin")}>
-              Sign In
-            </button>
-            <button className="signout-btn" onClick={() => navigate("/signup")}>
-              Sign Up
-            </button>
+            <div className="auth-buttons">
+              <button className="signin-btn" onClick={() => navigate("/signin")}>
+                Sign In
+              </button>
+              <button className="signout-btn" onClick={() => navigate("/signup")}>
+                Sign Up
+              </button>
+            </div>
           </div>
         </div>
       </header>
+
+      <style>{`
+        .quick-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:24px 0}
+        .q-card{border-radius:16px;padding:16px;border:1px solid #eef2f7;background:#fff;display:flex;align-items:center;gap:12px;transition:.2s box-shadow}
+        .q-card:hover{box-shadow:0 10px 24px rgba(2,8,23,.08)}
+        .q-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff}
+        .q1{background:#6366f1}.q2{background:#06b6d4}.q3{background:#10b981}
+        .testimonials{padding:60px 0}
+        .t-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+        .t-card{background:#fff;border:1px solid #eef2f7;border-radius:16px;padding:18px;box-shadow:0 8px 20px rgba(2,8,23,.06)}
+        .t-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+        .t-ava{width:44px;height:44px;border-radius:50%;object-fit:cover}
+        .logos-strip{display:flex;gap:28px;justify-content:center;align-items:center;opacity:.7;flex-wrap:wrap}
+        .faq{margin-top:30px}
+        .faq-item{border:1px solid #eef2f7;border-radius:12px;margin-bottom:10px;background:#fff}
+        .faq-q{padding:14px 16px;font-weight:600;cursor:pointer}
+        .faq-a{padding:0 16px 14px;color:#475569}
+      `}</style>
 
       <main>
         <section className="new-hero" data-aos="fade-up">
@@ -65,7 +85,7 @@ const PublicLandingPage = () => {
             <div className="hero-left">
               <h1>Gia sư hoàn hảo cho con bạn</h1>
               <p>
-                Learnova luôn nỗ lực hết mình để tìm ra gia sư hoàn hảo cho nhu
+                EduMatch luôn nỗ lực hết mình để tìm ra gia sư hoàn hảo cho nhu
                 cầu cụ thể của con bạn. Chúng tôi kết nối trẻ em với các gia sư
                 chuyên môn về đọc, toán, viết, khoa học và tiếng Anh. Chúng tôi
                 mang đến trải nghiệm học tập được thiết kế riêng, giúp nâng cao
@@ -78,15 +98,54 @@ const PublicLandingPage = () => {
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <button
                   className="try-class-btn"
-                  onClick={() => navigate("/courses")}
+                  onClick={() => navigate("/tutors")}
                 >
-                  Xem khóa học mở →
+                  Tìm gia sư →
                 </button>
                 <button
                   className="try-class-btn"
-                  onClick={() => navigate("/tutor")}
+                  onClick={() => navigate("/courses")}
                 >
-                  Tìm gia sư →
+                  Khóa học →
+                </button>
+              </div>
+              {/* Quick links */}
+              <div className="quick-links">
+                <button
+                  className="q-card"
+                  onClick={() => navigate("/tutor/onboarding")}
+                >
+                  <span className="q-icon q1">
+                    <i className="fas fa-chalkboard-teacher"></i>
+                  </span>
+                  <div>
+                    <div className="fw-bold">Trở thành gia sư</div>
+                    <div className="text-secondary" style={{ fontSize: 12 }}>
+                      Đăng ký nhanh trong 2 phút
+                    </div>
+                  </div>
+                </button>
+                <button className="q-card" onClick={() => navigate("/tutors")}>
+                  <span className="q-icon q2">
+                    <i className="fas fa-search"></i>
+                  </span>
+                  <div>
+                    <div className="fw-bold">Tìm gia sư phù hợp</div>
+                    <div className="text-secondary" style={{ fontSize: 12 }}>
+                      Lọc theo môn, hình thức, giá
+                    </div>
+                  </div>
+                </button>
+                <button className="q-card" onClick={() => navigate("/courses")}>
+                  <span className="q-icon q3">
+                    <i className="fas fa-book-open"></i>
+                  </span>
+                  <div>
+                    <div className="fw-bold">Xem khóa học mở</div>
+                    <div className="text-secondary" style={{ fontSize: 12 }}>
+                      Đặt chỗ ngay trong 1 chạm
+                    </div>
+                  </div>
                 </button>
               </div>
               <div className="rating">
@@ -129,6 +188,78 @@ const PublicLandingPage = () => {
           </div>
         </section>
 
+        {/* Testimonials */}
+        <section className="features-section testimonials" data-aos="fade-up">
+          <h2 style={{ textAlign: "center", marginBottom: 24 }}>
+            Học viên nói gì về EduMatch
+          </h2>
+          <div className="t-grid">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="t-card">
+                <div className="t-head">
+                  <img
+                    className="t-ava"
+                    src={`https://i.pravatar.cc/100?img=${10 + i}`}
+                    alt="avatar"
+                  />
+                  <div>
+                    <div className="fw-bold">Học viên {i}</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>
+                      Khóa Toán nâng cao
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  "Giáo trình rõ ràng, gia sư rất tận tâm. Mình tiến bộ nhanh
+                  chỉ sau vài tuần."
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Partners / Logos */}
+        <section
+          className="features-section"
+          data-aos="fade-up"
+          style={{ textAlign: "center" }}
+        >
+          <h2 style={{ marginBottom: 18 }}>Đối tác đồng hành</h2>
+          <div className="logos-strip">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <img
+                key={i}
+                src={`https://dummyimage.com/120x40/ddd/555&text=Logo+${i}`}
+                alt={`logo ${i}`}
+                style={{ filter: "grayscale(1)" }}
+              />
+            ))}
+          </div>
+
+          {/* FAQ */}
+          <div className="faq">
+            {[
+              [
+                "EduMatch hoạt động thế nào?",
+                "Bạn tìm gia sư/khóa học, đặt lịch, học trực tuyến hoặc tại nhà.",
+              ],
+              [
+                "Chi phí ra sao?",
+                "Có nhiều mức giá linh hoạt theo gia sư/khóa học, hiển thị rõ ràng trước khi đặt.",
+              ],
+              [
+                "Bảo đảm chất lượng?",
+                "Gia sư được xét duyệt hồ sơ và đánh giá từ học viên thực, luôn minh bạch.",
+              ],
+            ].map(([q, a], idx) => (
+              <div key={idx} className="faq-item">
+                <div className="faq-q">{q}</div>
+                <div className="faq-a">{a}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="features-section" data-aos="fade-up">
           <div className="features-container">
             <div className="feature-item" data-aos="fade-right">
@@ -159,7 +290,7 @@ const PublicLandingPage = () => {
               </div>
               <h3>Gia sư giàu kinh nghiệm</h3>
               <p>
-                Mỗi gia sư Learnova đều là những giáo viên giàu kinh nghiệm,
+                Mỗi gia sư EduMatch đều là những giáo viên giàu kinh nghiệm,
                 được tuyển chọn kỹ lưỡng vì khả năng truyền cảm hứng yêu thích
                 học tập.
               </p>
@@ -242,7 +373,7 @@ const PublicLandingPage = () => {
               </ul>
               <button
                 className="btn-primary"
-                onClick={() => navigate("/signup")}
+                onClick={() => navigate("/tutor/onboarding")}
               >
                 Trở thành gia sư →
               </button>
@@ -268,15 +399,22 @@ const PublicLandingPage = () => {
             <h4>Về chúng tôi</h4>
             <ul>
               <li>
-                <button onClick={() => navigate("/signin")}>Giới thiệu</button>
+                <button type="button" onClick={() => navigate("/about")}>
+                  Giới thiệu
+                </button>
               </li>
               <li>
-                <button onClick={() => navigate("/signin")}>
+                <button
+                  type="button"
+                  onClick={() => navigate("/tutor/onboarding")}
+                >
                   Cơ hội nghề nghiệp
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate("/signin")}>Blog</button>
+                <button type="button" onClick={() => navigate("/signin")}>
+                  Blog
+                </button>
               </li>
             </ul>
           </div>
@@ -284,15 +422,17 @@ const PublicLandingPage = () => {
             <h4>Hỗ trợ</h4>
             <ul>
               <li>
-                <button onClick={() => navigate("/signin")}>
+                <button type="button" onClick={() => navigate("/signin")}>
                   Trung tâm trợ giúp
                 </button>
               </li>
               <li>
-                <button onClick={() => navigate("/signin")}>Liên hệ</button>
+                <button type="button" onClick={() => navigate("/signin")}>
+                  Liên hệ
+                </button>
               </li>
               <li>
-                <button onClick={() => navigate("/signin")}>
+                <button type="button" onClick={() => navigate("/signin")}>
                   Câu hỏi thường gặp
                 </button>
               </li>
@@ -301,29 +441,49 @@ const PublicLandingPage = () => {
           <div className="footer-social">
             <h4>Kết nối</h4>
             <div className="social-icons">
-              <button onClick={() => navigate("/signin")}>
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <i className="fab fa-facebook-f"></i>
-              </button>
-              <button onClick={() => navigate("/signin")}>
+              </a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <i className="fab fa-instagram"></i>
-              </button>
-              <button onClick={() => navigate("/signin")}>
+              </a>
+              <a
+                href="https://youtube.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <i className="fab fa-youtube"></i>
-              </button>
+              </a>
             </div>
             <div className="app-links">
-              <button onClick={() => navigate("/signin")}>
+              <a
+                href="https://play.google.com"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <img
                   src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
-                  alt="Google Play - Đăng nhập để tải"
+                  alt="Google Play"
                 />
-              </button>
-              <button onClick={() => navigate("/signin")}>
+              </a>
+              <a
+                href="https://www.apple.com/app-store/"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <img
                   src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
-                  alt="App Store - Đăng nhập để tải"
+                  alt="App Store"
                 />
-              </button>
+              </a>
             </div>
           </div>
         </div>

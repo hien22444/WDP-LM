@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import BookingService from "../../services/BookingService";
 import "./TutorOpenCourses.scss";
 
 const TutorOpenCourses = () => {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -20,8 +22,33 @@ const TutorOpenCourses = () => {
   // Get user info for permission checking
   const userState = useSelector((state) => state.user);
   const isAuthenticated = userState?.isAuthenticated;
-  const userRole = userState?.user?.role || userState?.account?.role;
-  const isTutor = userRole === "tutor";
+  const currentUser = userState?.user || userState?.account;
+
+  // Handler for contact button
+  const handleContact = (course) => {
+    if (!isAuthenticated) {
+      toast.info("Vui lòng đăng nhập để liên hệ với gia sư", {
+        toastId: "course-contact-auth-required"
+      });
+      navigate("/signin", { state: { from: `/courses/${course._id}` } });
+      return;
+    }
+    // TODO: Implement contact logic (navigate to chat or open contact form)
+    toast.info("Tính năng liên hệ đang được phát triển");
+  };
+
+  // Handler for register button
+  const handleRegister = (course) => {
+    if (!isAuthenticated) {
+      toast.info("Vui lòng đăng nhập để đăng ký khóa học", {
+        toastId: "course-register-auth-required"
+      });
+      navigate("/signin", { state: { from: `/courses/${course._id}` } });
+      return;
+    }
+    // Navigate to course detail or payment page
+    navigate(`/courses/${course._id}`);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -279,8 +306,18 @@ const TutorOpenCourses = () => {
               </div>
 
               <div className="course-actions">
-                <button className="btn btn-outline">📞 Liên hệ</button>
-                <button className="btn btn-primary">Đăng ký ngay</button>
+                <button 
+                  className="btn btn-outline"
+                  onClick={() => handleContact(course)}
+                >
+                  📞 Liên hệ
+                </button>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => handleRegister(course)}
+                >
+                  Đăng ký ngay
+                </button>
               </div>
             </div>
           ))}
