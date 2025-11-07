@@ -8,9 +8,15 @@ import React, {
 } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import { useChat } from "../../contexts/ChatContext";
 import { getTutorProfile, createBooking } from "../../services/BookingService";
 import { getTutorCourses } from "../../services/TutorService";
+import {
+  addFavoriteTutor,
+  removeFavoriteTutor,
+  checkFavoriteTutor,
+} from "../../services/FavoriteTutorService";
 import "./TutorProfilePage.scss";
 
 // Lazy load components for better performance
@@ -28,6 +34,7 @@ const TutorProfilePage = () => {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("about");
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [bookingData, setBookingData] = useState({
     subject: null, // Object môn học được chọn {name, price, level, description}
     start: "",
@@ -214,10 +221,11 @@ const TutorProfilePage = () => {
         return `${baseUrl}/${url.replace(/^\/?/, "")}`;
       };
 
-      // Extract tutor ID - ưu tiên userId (User ID) cho chat, fallback về tutor profile ID
-      const tutorUserId = t.userId || t.user?._id || (typeof t.user === 'string' ? t.user : null);
+      // Extract tutor ID - ưu tiên _id của TutorProfile
       const tutorProfileId = t._id || t.id;
-      
+      const tutorUserId =
+        t.userId || t.user?._id || (typeof t.user === "string" ? t.user : null);
+
       console.log("📊 Extracted tutor IDs in setTutor:", {
         tutorUserId,
         tutorProfileId,
@@ -229,10 +237,10 @@ const TutorProfilePage = () => {
 
       setTutor({
         ...t,
-        // Thêm userId và _id để dùng cho chat - ưu tiên User ID (để chat)
-        userId: tutorUserId || tutorProfileId, // Nếu không có userId, dùng profile ID
-        _id: tutorProfileId, // Profile ID
-        id: tutorProfileId, // Profile ID
+        // Sử dụng tutorProfileId cho tất cả các chức năng liên quan đến profile
+        userId: tutorUserId, // Chỉ dùng cho chat
+        _id: tutorProfileId, // ID chính của TutorProfile
+        id: tutorProfileId, // ID chính của TutorProfile
         // Giữ nguyên user object nếu có
         user: t.user || (tutorUserId ? { _id: tutorUserId } : null),
         name: t.name || t.user?.fullName || t.user?.full_name || "Gia sư",
@@ -336,9 +344,54 @@ const TutorProfilePage = () => {
     return new Intl.NumberFormat("vi-VN").format(tutor.price);
   }, [tutor?.price]);
 
+  // Kiểm tra trạng thái yêu thích
+  const checkIfFavorite = async () => {
+    if (!tutor?._id) return;
+    try {
+      const result = await checkFavoriteTutor(tutor._id);
+      setIsFavorite(result);
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+    }
+  };
+
+  // Xử lý khi click vào nút yêu thích
+  const handleToggleFavorite = async () => {
+    if (!currentUser) {
+      toast.error("Vui lòng đăng nhập để thêm gia sư vào danh sách yêu thích");
+      return;
+    }
+
+    if (!tutor?._id) {
+      toast.error("Không thể thực hiện thao tác này");
+      return;
+    }
+
+    try {
+      if (isFavorite) {
+        await removeFavoriteTutor(tutor._id);
+        toast.success("Đã xóa khỏi danh sách yêu thích");
+      } else {
+        await addFavoriteTutor(tutor._id);
+        toast.success("Đã thêm vào danh sách yêu thích");
+      }
+      setIsFavorite(!isFavorite);
+    } catch (error) {
+      console.error("Error toggling favorite status:", error);
+      toast.error("Có lỗi xảy ra, vui lòng thử lại");
+    }
+  };
+
   useEffect(() => {
     loadTutorProfile();
   }, [id, loadTutorProfile]);
+
+  // Kiểm tra favorite status khi đã có tutor data
+  useEffect(() => {
+    if (tutor?._id) {
+      checkIfFavorite();
+    }
+  }, [tutor?._id]);
 
   const loadTutorCourses = async () => {
     try {
@@ -820,7 +873,24 @@ const TutorProfilePage = () => {
                     </div>
                   )}
                 </Suspense>
-                {/* Removed verified badge */}
+                {/* Nút yêu thích */}
+                <button
+                  className={`favorite-heart-btn ${isFavorite ? "active" : ""}`}
+                  onClick={handleToggleFavorite}
+                  title={
+                    isFavorite
+                      ? "Xóa khỏi danh sách yêu thích"
+                      : "Thêm vào yêu thích"
+                  }
+                >
+                  <i className={`${isFavorite ? "fas" : "far"} fa-heart`}></i>
+                </button>
+                {/* Verified badge nếu cần */}
+                {tutor.verified && (
+                  <div className="verified-badge">
+                    <i className="fas fa-check-circle"></i>
+                  </div>
+                )}
               </div>
 
               {/* Contact Information Only */}

@@ -160,8 +160,39 @@ export const bookFromSlot = async (slotId, notes = "") => {
 };
 // Tutor search API
 export const searchTutors = async (params) => {
-  const res = await client.get("/tutors/search", { params });
-  return res.data;
+  // Add default params to ensure only verified tutors are returned
+  const searchParams = {
+    ...params,
+    status: "approved", // Only get approved tutors
+    verified: true, // Only get verified tutors
+    includePending: false, // Exclude pending tutors
+  };
+
+  // Xử lý các tham số tìm kiếm
+  if (params.search) {
+    searchParams.name = params.search; // Tìm theo tên
+    delete searchParams.search; // Xóa param search chung
+  }
+
+  if (params.subject) {
+    searchParams.subjects = params.subject; // Tìm theo môn học
+  }
+
+  if (params.mode) {
+    searchParams.teachingMode = params.mode; // Tìm theo hình thức dạy
+  }
+
+  // Log request để debug
+  console.log("🔍 Searching tutors with params:", searchParams);
+
+  try {
+    const res = await client.get("/tutors/search", { params: searchParams });
+    console.log("📋 Search results:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("❌ Search error:", error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export const getTutorProfile = async (tutorId) => {
