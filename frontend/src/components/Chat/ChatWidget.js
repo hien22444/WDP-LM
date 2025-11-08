@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
-import { useChat } from "../../contexts/ChatContext";
+// import { useChat } from "../../contexts/ChatContext"; // Removed - not used
 import io from "socket.io-client";
 import Cookies from "js-cookie";
 import { getMessagesApi } from "../../services/ApiService";
@@ -14,6 +14,9 @@ const ChatWidget = ({
   style = {},
   embedded = false,
   conversationId, // Kiến trúc mới: conversationId từ ChatContext
+  isMinimized: propIsMinimized, // Nhận isMinimized từ props
+  onMinimize, // Nhận onMinimize từ props
+  onMaximize, // Nhận onMaximize từ props
 }) => {
   // Get chat partner info based on role
   const chatPartner = tutor || student;
@@ -24,7 +27,9 @@ const ChatWidget = ({
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  // Sử dụng prop isMinimized nếu có, nếu không thì dùng state local
+  const [localIsMinimized, setLocalIsMinimized] = useState(false);
+  const isMinimized = propIsMinimized !== undefined ? propIsMinimized : localIsMinimized;
   const [unreadCount, setUnreadCount] = useState(0);
   const [previousUserId, setPreviousUserId] = useState(null);
   const messagesEndRef = useRef(null);
@@ -863,7 +868,19 @@ const ChatWidget = ({
         <div className="chat-controls">
           <button
             className="minimize-btn"
-            onClick={() => setIsMinimized(!isMinimized)}
+            onClick={() => {
+              if (propIsMinimized !== undefined) {
+                // Nếu nhận từ props, gọi callback từ props
+                if (isMinimized && onMaximize) {
+                  onMaximize();
+                } else if (!isMinimized && onMinimize) {
+                  onMinimize();
+                }
+              } else {
+                // Nếu không có props, dùng local state
+                setLocalIsMinimized(!isMinimized);
+              }
+            }}
             aria-label={isMinimized ? "Mở rộng" : "Thu nhỏ"}
           >
             <i className={`fas fa-${isMinimized ? "expand" : "minus"}`}></i>

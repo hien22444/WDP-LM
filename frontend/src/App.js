@@ -504,6 +504,9 @@ function App() {
         onComplete={handleProfileCompletion}
       />
 
+      {/* Chat Manager - Hiển thị các cửa sổ chat với gia sư */}
+      <ChatManager />
+
       {/* Floating AI chat widget */}
       <ChatWidget />
     </ChatProvider>
