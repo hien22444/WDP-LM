@@ -89,21 +89,6 @@ export const doRegister =
     }
   };
 
-export const resendVerification = (email) => async () => {
-  try {
-    const res = await axios.post(`${API_URL}/auth/resend-verification`, {
-      email,
-    });
-    toast.success(res.data.message || "Verification email resent.");
-    return { success: true };
-  } catch (error) {
-    const msg =
-      error.response?.data?.message || "Failed to resend verification email";
-    toast.error(msg);
-    return { success: false, error: msg };
-  }
-};
-
 export const doGoogleLogin = () => async (dispatch) => {
   let clientId =
     process.env.REACT_APP_GOOGLE_CLIENT_ID || window.__GOOGLE_CLIENT_ID__;

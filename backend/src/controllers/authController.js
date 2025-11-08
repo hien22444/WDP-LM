@@ -4,6 +4,11 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
 const { OAuth2Client } = require("google-auth-library");
+const {
+  setPendingRegistration,
+  getPendingRegistration,
+  removePendingRegistration,
+} = require("../utils/pendingRegistrations");
 
 // ----- Minimal env resolvers (match your original .env keys) -----
 const strip = (v) =>
@@ -238,40 +243,52 @@ exports.register = async (req, res) => {
       return res.status(409).json({ message: "Email already registered" });
 
     const password_hash = await bcrypt.hash(password, 10);
-    const verify_token = crypto.randomBytes(40).toString("hex");
-    const verify_token_expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
+    
+    // Generate OTP (6 digits)
+    const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp_expires = Date.now() + 1000 * 60 * 1; // 1 minute from now (timestamp)
 
-    const user = await User.create({
+    // Store pending registration in memory (NOT in database yet)
+    setPendingRegistration(email, {
       full_name: `${firstName} ${lastName}`,
       email,
       password_hash,
-      verify_token,
-      verify_token_expires,
-      status: "pending",
+      otp_code,
+      otp_expires,
     });
 
-    const verifyLink = `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
-    }/verify-account?token=${verify_token}`;
+    // Send OTP email
     const mailResult = await sendMail({
       to: email,
-      subject: "Verify your account",
-      html: `<p>Nhấn vào nút bên dưới để xác minh tài khoản của bạn:</p><p><a style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600" href="${verifyLink}" target="_blank" rel="noopener">Click here to verify</a></p><p>Liên kết hết hạn sau 24 giờ.</p><p>Nếu bạn không tạo tài khoản, hãy bỏ qua email này.</p>`,
+      subject: "Verify your account - OTP",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb;">Xác minh tài khoản của bạn</h2>
+          <p>Chào bạn,</p>
+          <p>Mã OTP của bạn là:</p>
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <h1 style="color: #1f2937; font-size: 36px; letter-spacing: 8px; margin: 0;">${otp_code}</h1>
+          </div>
+          <p style="color: #ef4444; font-weight: 600;">Mã OTP sẽ hết hạn sau 1 phút.</p>
+          <p>Nếu bạn không tạo tài khoản, hãy bỏ qua email này.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+          <p style="color: #6b7280; font-size: 12px;">Email này được gửi tự động, vui lòng không trả lời.</p>
+        </div>
+      `,
     });
 
     if (!mailResult.ok) {
-      // If email send fails, remove the user to enforce rule "only stored after email works"
-      await User.deleteOne({ _id: user._id });
+      // If email send fails, remove pending registration
+      removePendingRegistration(email);
       return res
         .status(500)
-        .json({ message: "Could not send verification email" });
+        .json({ message: "Could not send OTP email" });
     }
 
     res.status(201).json({
       status: "pending",
       mail: mailResult.mode,
-      message:
-        "Registration submitted. Please check your email to verify your account.",
+      message: "OTP has been sent to your email. Please verify within 1 minute.",
     });
   } catch (err) {
     console.error(err);
@@ -572,8 +589,6 @@ exports.googleRedirect = async (req, res) => {
       if (user.status === "pending") {
         user.status = "active";
         user.email_verified_at = user.email_verified_at || new Date();
-        user.verify_token = null;
-        user.verify_token_expires = null;
       }
     }
     const accessToken = signAccessToken(user._id.toString());
@@ -650,8 +665,6 @@ exports.googleLogin = async (req, res) => {
       if (user.status === "pending") {
         user.status = "active";
         user.email_verified_at = user.email_verified_at || new Date();
-        user.verify_token = null;
-        user.verify_token_expires = null;
       }
     }
     const accessToken = signAccessToken(user._id.toString());
@@ -693,83 +706,65 @@ exports.logout = async (req, res) => {
   }
 };
 
-exports.verifyAccount = async (req, res) => {
-  try {
-    let { token } = req.query;
-    if (!token) return res.status(400).json({ message: "Missing token" });
-    token = String(token).trim();
-    // Basic validation length ~80 hex chars (40 bytes)
-    if (!/^[a-f0-9]{80}$/i.test(token)) {
-      console.warn("[verifyAccount] token format invalid", token);
-    }
-    const user = await User.findOne({
-      verify_token: token,
-      verify_token_expires: { $gt: new Date() },
-    });
-    if (!user) {
-      console.warn("[verifyAccount] token not found or expired", { token });
-      return res.status(400).json({ message: "Invalid or expired token" });
-    }
-    if (user.status === "active")
-      return res.json({ message: "Account already verified" });
-    user.status = "active";
-    user.email_verified_at = new Date();
-    user.verify_token = null;
-    user.verify_token_expires = null;
-    await user.save();
-    res.json({ message: "Account verified. You can now sign in." });
-  } catch (err) {
-    console.error("[verifyAccount]", err.message);
-    res.status(500).json({ message: "Verification failed" });
-  }
-};
-
-// Resend verification email
-exports.resendVerification = async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Missing email" });
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-    if (user.status === "active")
-      return res.status(400).json({ message: "Email already verified" });
-    // generate new token
-    user.verify_token = crypto.randomBytes(40).toString("hex");
-    user.verify_token_expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
-    await user.save();
-    const link = `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
-    }/verify-account?token=${user.verify_token}`;
-    const mailResult = await sendMail({
-      to: email,
-      subject: "Resend verification",
-      html: `<p>Nhấn nút để xác minh tài khoản của bạn:</p><p><a style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600" href='${link}' target="_blank" rel="noopener">Click here to verify</a></p>`,
-    });
-    if (!mailResult.ok)
-      return res.status(500).json({ message: "Could not send email" });
-    res.json({ message: "Verification email resent", mail: mailResult.mode });
-  } catch (err) {
-    console.error("[resendVerification]", err.message);
-    res.status(500).json({ message: "Failed to resend verification" });
-  }
-};
-
 exports.resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otp_code = otp;
-    user.otp_expires = new Date(Date.now() + 1000 * 60 * 10);
-    await user.save();
-    await sendMail({
-      to: email,
-      subject: "Your OTP",
-      html: `<p>OTP: <b>${otp}</b></p>`,
+    
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Check if there's a pending registration
+    const pendingData = getPendingRegistration(email);
+    
+    if (!pendingData) {
+      // Maybe user already exists in DB (for password reset or other cases)
+      const user = await User.findOne({ email });
+      if (user && user.status === "pending") {
+        // User exists but not verified yet - this shouldn't happen with new logic
+        return res.status(400).json({ message: "Please register again to receive a new OTP" });
+      }
+      return res.status(404).json({ message: "No pending registration found. Please register again." });
+    }
+
+    // Generate new OTP (6 digits)
+    const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp_expires = Date.now() + 1000 * 60 * 1; // 1 minute
+
+    // Update pending registration with new OTP
+    setPendingRegistration(email, {
+      ...pendingData,
+      otp_code,
+      otp_expires,
     });
-    res.json({ message: "OTP resent" });
+    
+    // Send OTP email
+    const mailResult = await sendMail({
+      to: email,
+      subject: "Resend OTP - Verify your account",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb;">Xác minh tài khoản của bạn</h2>
+          <p>Chào bạn,</p>
+          <p>Mã OTP mới của bạn là:</p>
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <h1 style="color: #1f2937; font-size: 36px; letter-spacing: 8px; margin: 0;">${otp_code}</h1>
+          </div>
+          <p style="color: #ef4444; font-weight: 600;">Mã OTP sẽ hết hạn sau 1 phút.</p>
+          <p>Nếu bạn không yêu cầu mã này, hãy bỏ qua email này.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+          <p style="color: #6b7280; font-size: 12px;">Email này được gửi tự động, vui lòng không trả lời.</p>
+        </div>
+      `,
+    });
+    
+    if (!mailResult.ok) {
+      return res.status(500).json({ message: "Could not send OTP email" });
+    }
+    
+    res.json({ message: "OTP resent successfully", mail: mailResult.mode });
   } catch (err) {
+    console.error("[resendOTP]", err.message);
     res.status(500).json({ message: "Failed to resend OTP" });
   }
 };
@@ -777,17 +772,45 @@ exports.resendOTP = async (req, res) => {
 exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const user = await User.findOne({ email });
-    if (!user || !user.otp_code)
-      return res.status(400).json({ message: "Invalid OTP" });
-    if (user.otp_code !== otp || user.otp_expires < new Date())
-      return res.status(400).json({ message: "Invalid or expired OTP" });
-    user.otp_code = null;
-    user.otp_expires = null;
-    user.status = "active";
-    await user.save();
-    res.json({ message: "OTP verified" });
+    
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    // Get pending registration from memory
+    const pendingData = getPendingRegistration(email);
+    
+    if (!pendingData) {
+      return res.status(400).json({ message: "No pending registration found. Please register again." });
+    }
+
+    // Check OTP expiry
+    if (pendingData.otp_expires < Date.now()) {
+      removePendingRegistration(email);
+      return res.status(400).json({ message: "OTP has expired. Please register again." });
+    }
+
+    // Verify OTP
+    if (pendingData.otp_code !== otp) {
+      return res.status(400).json({ message: "Invalid OTP code" });
+    }
+
+    // OTP is valid! Now create the user in database
+    const user = await User.create({
+      full_name: pendingData.full_name,
+      email: pendingData.email,
+      password_hash: pendingData.password_hash,
+      status: "active",
+      email_verified_at: new Date(),
+    });
+
+    // Remove pending registration from memory
+    removePendingRegistration(email);
+
+    console.log(`[verifyOTP] User created successfully: ${email}`);
+    res.json({ message: "OTP verified. Account created successfully!" });
   } catch (err) {
+    console.error("[verifyOTP]", err.message);
     res.status(500).json({ message: "Failed to verify OTP" });
   }
 };

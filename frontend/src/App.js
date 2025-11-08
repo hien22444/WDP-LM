@@ -275,7 +275,7 @@ import ForgotPassword from "./components/Auth/ForgotPassword/ForgotPassword";
 import ResetPassword from "./components/Auth/ResetPassword/ResetPassword";
 import ChangePassword from "./components/Auth/ChangePassword/ChangePassword";
 import OAuthCallback from "./components/Auth/OAuthCallback";
-import OnboardingWizard from "./pages/Tutor/OnboardingWizard";
+import ProtectedOnboarding from "./components/Auth/ProtectedOnboarding";
 import TutorProfilePage from "./pages/Tutor/TutorProfilePage";
 import TutorProfileUpdatePage from "./pages/Tutor/TutorProfileUpdatePage";
 import TutorBookings from "./pages/Tutor/TutorBookings";
@@ -288,6 +288,7 @@ import TutorList from "./pages/Tutor/TutorList";
 import CourseDetail from "./pages/Tutor/CourseDetail";
 import Wallet from "./pages/Tutor/Wallet";
 import ChatLayout from "./components/Layout/ChatLayout";
+import AuthenticatedLayout from "./components/Layout/AuthenticatedLayout";
 import AdminLayout from "./components/Admin/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminUsers from "./pages/Admin/AdminUsers";
@@ -368,10 +369,7 @@ function App() {
         />
         <Route path="/verify-account" element={<VerifyAccount />} />
         <Route path="/otp" element={<OTP />} />
-        <Route
-          path="/tutor/onboarding"
-          element={isAuthenticated ? <OnboardingWizard /> : <Navigate to="/" />}
-        />
+        <Route path="/tutor/onboarding" element={<ProtectedOnboarding />} />
         <Route
           path="/tutor/profile-update"
           element={
@@ -406,7 +404,19 @@ function App() {
           <Route path="reports" element={<AdminReports />} />
         </Route>
 
-        {/* Protected routes */}
+        {/* Public/Authenticated Routes - Automatically switches layout based on auth status */}
+        <Route element={<AuthenticatedLayout />}>
+          <Route path="/tutors" element={<TutorList />} />
+          <Route path="/tutor/:id" element={<TutorProfilePage />} />
+          <Route path="/courses" element={<TutorOpenCourses />} />
+          <Route path="/courses/:id" element={<CourseDetail />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<div>Contact Page</div>} />
+          <Route path="/help" element={<div>Help Page</div>} />
+          <Route path="/faq" element={<div>FAQ Page</div>} />
+        </Route>
+
+        {/* Protected routes - Dashboard and other features */}
         <Route element={<ChatLayout />}>
           <Route
             path="/home"
@@ -415,25 +425,6 @@ function App() {
           <Route
             path="/dashboard"
             element={isAuthenticated ? <UserDashboard /> : <Navigate to="/" />}
-          />
-          <Route
-            path="/courses"
-            element={
-              isAuthenticated ? <TutorOpenCourses /> : <Navigate to="/" />
-            }
-          />
-          <Route path="/courses/:id" element={<CourseDetail />} />
-          <Route path="/tutors" element={<TutorList />} />
-
-          <Route path="/tutor/:id" element={<TutorProfilePage />} />
-          <Route
-            path="/tutor/:id"
-            element={
-              <>
-                <TutorProfilePage />
-                <ChatManager />
-              </>
-            }
           />
 
           <Route
@@ -495,11 +486,7 @@ function App() {
               )
             }
           />
-          <Route path="/about" element={<About />} />
           <Route path="/room/:roomId" element={<GoogleMeetStyle />} />
-          <Route path="/contact" element={<div>Contact Page</div>} />
-          <Route path="/help" element={<div>Help Page</div>} />
-          <Route path="/faq" element={<div>FAQ Page</div>} />
         </Route>
 
         {/* Redirect unknown routes */}

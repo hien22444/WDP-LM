@@ -423,6 +423,13 @@ const TutorProfilePage = () => {
   };
 
   const handleBookSession = () => {
+    // Kiểm tra đăng nhập trước khi cho phép đặt lịch
+    if (!currentUser) {
+      toast.error("Vui lòng đăng nhập để đặt lịch học");
+      navigate("/signin", { state: { from: window.location.pathname } });
+      return;
+    }
+
     setShowBookingForm(true);
     setBookingError("");
     // Reset form with default values and set tutor's price
@@ -443,6 +450,13 @@ const TutorProfilePage = () => {
   };
 
   const handleSelectSlot = (slot) => {
+    // Kiểm tra đăng nhập trước khi cho phép chọn slot
+    if (!currentUser) {
+      toast.error("Vui lòng đăng nhập để đặt lịch học");
+      navigate("/signin", { state: { from: window.location.pathname } });
+      return;
+    }
+
     // Mỗi buổi học = 2h30 (150 phút)
     const startDate = new Date(slot.date);
     const endDate = new Date(startDate.getTime() + 2.5 * 60 * 60 * 1000); // +2h30
@@ -782,7 +796,8 @@ const TutorProfilePage = () => {
 
   const handleContactTutor = () => {
     if (!currentUser) {
-      alert("Vui lòng đăng nhập để liên hệ với gia sư");
+      toast.error("Vui lòng đăng nhập để liên hệ với gia sư");
+      navigate("/signin", { state: { from: window.location.pathname } });
       return;
     }
     openChat(tutor, currentUser);
@@ -815,10 +830,8 @@ const TutorProfilePage = () => {
   if (loading) {
     return (
       <div className="tutor-profile-loading">
-        <div className="loading-spinner">
-          <i className="fas fa-spinner fa-spin"></i>
-          <p>Đang tải thông tin gia sư...</p>
-        </div>
+        <div className="loading-spinner"></div>
+        <p>Đang tải thông tin gia sư...</p>
       </div>
     );
   }

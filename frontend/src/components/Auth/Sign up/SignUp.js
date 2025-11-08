@@ -75,8 +75,9 @@ const SignUp = () => {
     );
 
     if (result.success) {
-      navigate("/verify-account", {
-        state: { email, justRegistered: true, pending: true },
+      // Redirect to OTP page instead of verify-account
+      navigate("/otp", {
+        state: { email, justRegistered: true },
       });
     }
   };
@@ -270,7 +271,7 @@ const SignUp = () => {
 
         <div className="signup-image-section">
           <img
-            src="/giaoduc2.jpg"
+            src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1762520025/Hinh-7.-Vai-tro-giao-duc-1024x580_iqhgbt.jpg"
             alt="Beautiful floral artwork"
             className="signup-image"
           />
