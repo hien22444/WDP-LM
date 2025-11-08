@@ -71,7 +71,7 @@ const ResetPassword = () => {
     <div className="reset-password-container">
       <div className="reset-password-card">
         <div className="brand-logo">
-          <span className="brand-name">EduMatch</span>
+          <span className="brand-name">Learnova</span>
         </div>
 
         <div className="card-content">

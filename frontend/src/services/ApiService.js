@@ -181,7 +181,19 @@ export const resendOTPApi = async (email) => {
     throw error.response?.data || { message: "Failed to resend OTP" };
   }
 };
-
+// Resend verification email (newer behavior)
+export const resendVerification = async (email) => {
+  try {
+    const response = await apiClient.post("/auth/resend-verification", {
+      email,
+    });
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data || { message: "Failed to resend verification email" }
+    );
+  }
+};
 // OAuth API functions
 export const googleAuthApi = async (credential) => {
   try {

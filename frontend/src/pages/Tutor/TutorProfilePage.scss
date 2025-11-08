@@ -1,47 +1,6 @@
 @import '../../styles/design-tokens.scss';
 
-// Loading State - Must be outside .tutor-profile-page to work properly
-.tutor-profile-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-  z-index: 10000;
-  margin: 0;
-  padding: 0;
-
-  .loading-spinner {
-    width: 60px;
-    height: 60px;
-    border: 6px solid #f3f4f6;
-    border-top: 6px solid #667eea;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 24px;
-  }
-
-  p {
-    font-size: 18px;
-    color: #374151;
-    margin: 0;
-    font-weight: 500;
-  }
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.tutor-profile-page {
+  .tutor-profile-page {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0;
@@ -439,6 +398,29 @@
     100% {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  // Loading State
+  .tutor-profile-loading {
+          display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+
+    .loading-spinner {
+      font-size: 2rem;
+      color: #667eea;
+      margin-bottom: 16px;
+      animation: spin 1s linear infinite;
+    }
+
+    p {
+      font-size: 16px;
+      color: #6b7280;
+      margin: 0;
     }
   }
 

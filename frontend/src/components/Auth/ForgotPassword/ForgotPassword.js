@@ -51,7 +51,7 @@ const ForgotPassword = () => {
     <div className="forgot-password-container">
       <div className="forgot-password-card">
         <div className="brand-logo">
-          <span className="brand-name">EduMatch</span>
+          <span className="brand-name">Learnmate</span>
         </div>
 
         <div className="card-content">

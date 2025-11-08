@@ -72,7 +72,7 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    document.title = "Hồ Sơ Cá Nhân - EduMatch";
+    document.title = "Hồ Sơ Cá Nhân - Learnova";
 
     if (!isAuthenticated) {
       navigate("/signin");
@@ -484,6 +484,21 @@ const Profile = () => {
       </div>
 
       <div className="main-content">
+        <div className="profile-header" style={{ gap: 16 }}>
+          <div className="welcome-section">
+            <h1>Xin chào, {userProfile?.profile?.full_name || "User"}</h1>
+            <p className="date">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "short",
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+          {/* Đã có menu avatar ở header chung, bỏ avatar trong banner để tránh dư */}
+        </div>
+
         {/* Tutor onboarding status banner - chỉ hiện với role gia sư */}
         {role === "tutor" && tutorProfile?.status && (
           <div
@@ -517,11 +532,28 @@ const Profile = () => {
             <div className="status-actions">
               <button
                 type="button"
-                className="btn-primary"
+                className="btn-secondary"
                 onClick={() => navigate("/tutor/profile-update")}
               >
                 Cập nhật hồ sơ gia sư
               </button>
+              {tutorProfile?.status === "approved" ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  Vào bảng điều khiển
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => navigate("/profile")}
+                >
+                  Xem hồ sơ
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -699,6 +731,7 @@ const Profile = () => {
               <h3 className="section-title">Địa chỉ</h3>
               <div className="form-row">
                 <div className="form-group full-width">
+                  <label htmlFor="address">Địa chỉ</label>
                   <textarea
                     name="address"
                     id="address"

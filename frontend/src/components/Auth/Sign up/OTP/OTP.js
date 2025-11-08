@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { verifyOTPApi, resendOTPApi } from "../../../../services/ApiService";
 import "./OTP.scss";
@@ -8,6 +9,7 @@ import "./OTP.scss";
 const OTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,14 @@ const OTP = () => {
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
+
+    // Auto-submit when all 6 digits are entered
+    if (index === 5 && value) {
+      const fullOtp = [...newOtp.slice(0, 5), value].join("");
+      if (fullOtp.length === 6) {
+        handleVerify(fullOtp);
+      }
+    }
   };
 
   const handleKeyDown = (index, e) => {
@@ -68,6 +78,11 @@ const OTP = () => {
       const newOtp = pastedData.split("");
       setOtp(newOtp);
       inputRefs.current[5]?.focus();
+
+      // Auto-submit after paste
+      setTimeout(() => {
+        handleVerify(pastedData);
+      }, 100);
     }
   };
 
@@ -83,21 +98,17 @@ const OTP = () => {
     try {
       const response = await verifyOTPApi(email, otpValue);
 
-      // Backend returns { message: "OTP verified" }
-      if (response && response.message) {
-        toast.success("Tài khoản đã được xác minh thành công!");
-        setTimeout(() => {
-          navigate("/signin");
-        }, 1000);
+      if (response && response.EC === 0) {
+        toast.success("Email verified successfully!");
+        navigate("/signin");
       } else {
-        toast.error("Invalid OTP. Please try again.");
+        toast.error(response?.EM || "Invalid OTP. Please try again.");
         setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       }
     } catch (error) {
       console.error("OTP verification error:", error);
-      const errorMsg = error?.message || "Mã OTP không hợp lệ hoặc đã hết hạn";
-      toast.error(errorMsg);
+      toast.error("Verification failed. Please try again.");
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
@@ -110,17 +121,16 @@ const OTP = () => {
     try {
       const response = await resendOTPApi(email);
 
-      if (response && response.message) {
-        toast.success("Mã OTP mới đã được gửi đến email của bạn!");
+      if (response && response.EC === 0) {
+        toast.success("OTP has been resent to your email!");
         setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       } else {
-        toast.error("Failed to resend OTP. Please try again.");
+        toast.error(response?.EM || "Failed to resend OTP. Please try again.");
       }
     } catch (error) {
       console.error("Resend OTP error:", error);
-      const errorMsg = error?.message || "Failed to resend OTP. Please try again.";
-      toast.error(errorMsg);
+      toast.error("Failed to resend OTP. Please try again.");
     } finally {
       setResending(false);
     }
@@ -132,7 +142,7 @@ const OTP = () => {
         {/* Image Section */}
         <div className="otp-image-section">
           <img
-            src="https://res.cloudinary.com/dnyvwjbbm/image/upload/v1762520026/OTP_yf2m0l.png"
+            src="/otp-image.jpg"
             alt="OTP Verification"
             className="otp-image"
           />
@@ -143,23 +153,12 @@ const OTP = () => {
           <div className="form-wrapper">
             <div className="form-header">
               <div className="brand-logo">
-                <span className="brand-name">EduMatch</span>
+                <span className="brand-name">Learnmate</span>
               </div>
-              <h1 className="form-title">Nhập mã OTP</h1>
+              <h1 className="form-title">Enter OTP</h1>
               <p className="form-subtitle">
-                Chúng tôi đã gửi mã OTP đến email của bạn
+                We have sent OTP to your gmail
                 {email && <span className="email-display"> {email}</span>}
-              </p>
-              <p
-                className="form-warning"
-                style={{
-                  color: "#ef4444",
-                  fontSize: "14px",
-                  marginTop: "8px",
-                  fontWeight: "600",
-                }}
-              >
-                Mã OTP sẽ hết hạn sau 1 phút
               </p>
             </div>
 

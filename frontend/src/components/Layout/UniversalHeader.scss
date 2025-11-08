@@ -34,8 +34,8 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 8px 16px;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 16px;
   position: relative;
@@ -43,10 +43,11 @@
   box-sizing: border-box;
 }
 
-// Left Section (Logo)
+// Left Section (Logo + Navigation)
 .header-left-section {
   display: flex;
   align-items: center;
+  gap: 20px;
 }
 
 // Logo Section
@@ -101,7 +102,6 @@
   display: flex;
   gap: 16px;
   align-items: center;
-  flex-wrap: wrap;
 }
 
 .nav-button {
@@ -146,6 +146,13 @@
   }
 }
 
+// Search Section (Center)
+.search-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 // Right Side Elements Container
 .header-right-elements {
   display: flex;
@@ -154,83 +161,10 @@
   flex-shrink: 0;
   position: relative;
   z-index: 10;
-  flex-wrap: wrap;
-
-  .search-container {
-    display: flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid #e5e7eb;
-    border-radius: 20px;
-    padding: 6px;
-    margin-right: 16px;
-    transition: all 0.2s ease;
-    min-width: 300px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-      border-color: #d1d5db;
-    }
-
-    &:focus-within {
-      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.15);
-      border-color: #4f46e5;
-      transform: translateY(-1px);
-    }
-
-    .search-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      flex: 1;
-      padding: 8px 12px;
-      font-size: 13px;
-      border-radius: 16px;
-      color: #374151;
-      font-weight: 400;
-
-      &::placeholder {
-        color: #9ca3af;
-        font-weight: 400;
-      }
-    }
-
-    .search-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: none;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
-
-      &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4);
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
-      }
-
-      &:active {
-        transform: scale(0.95);
-      }
-
-      i {
-        font-size: 12px;
-      }
-    }
-  }
 }
 
-// Remove old search-box styles
 .search-box {
+  width: 300px;
   display: flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.95);
@@ -239,10 +173,8 @@
   border: 1px solid #e5e7eb;
   border-radius: 20px;
   padding: 6px;
-  margin-right: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
-  min-width: 300px;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
@@ -257,13 +189,13 @@
 }
 
 .search-input {
-  border: none;
-  background: transparent;
-  outline: none;
   flex: 1;
+  border: none;
+  outline: none;
   padding: 8px 12px;
   font-size: 13px;
   border-radius: 16px;
+  background: transparent;
   color: #374151;
   font-weight: 400;
 
@@ -280,11 +212,11 @@
   border: none;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
 
   &:hover {
@@ -295,10 +227,6 @@
 
   &:active {
     transform: scale(0.95);
-  }
-
-  i {
-    font-size: 12px;
   }
 }
 
@@ -587,22 +515,26 @@
     gap: 12px;
   }
 
+  .header-left-section {
+    gap: 16px;
+  }
+
   .main-nav {
     gap: 12px;
   }
 
+  .search-box {
+    width: 250px;
+  }
+
   .header-right-elements {
     gap: 8px;
-
-    .search-container {
-      min-width: 250px;
-      margin-right: 8px;
-    }
   }
 }
 
 @media (max-width: 768px) {
   .header-container {
+    display: flex;
     flex-direction: column;
     gap: 16px;
     padding: 12px 16px;
@@ -610,26 +542,28 @@
 
   .header-left-section {
     width: 100%;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 16px;
   }
 
   .main-nav {
     gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
+  }
+
+  .search-container {
+    width: 100%;
+    order: 2;
+  }
+
+  .search-box {
+    width: 100%;
+    max-width: 400px;
   }
 
   .header-right-elements {
-    width: 100%;
-    flex-direction: column;
-    gap: 12px;
-
-    .search-container {
-      width: 100%;
-      max-width: 400px;
-      margin-right: 0;
-      min-width: auto;
-    }
+    order: 3;
+    gap: 8px;
+    justify-content: center;
   }
 
   .join-room-button {
@@ -642,6 +576,12 @@
   .header-container {
     padding: 8px 12px;
     gap: 12px;
+  }
+
+  .header-left-section {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
   }
 
   .logo-text {
@@ -664,12 +604,12 @@
     padding: 6px 10px;
   }
 
+  .search-box {
+    width: 100%;
+  }
+
   .header-right-elements {
     gap: 6px;
-
-    .search-container {
-      width: 100%;
-    }
   }
 
   .join-room-button {

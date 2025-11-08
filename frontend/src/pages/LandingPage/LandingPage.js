@@ -181,7 +181,7 @@ const LandingPage = () => {
             <div className="hero-left">
               <h1>Gia sư hoàn hảo cho con bạn</h1>
               <p>
-                EduMatch luôn nỗ lực hết mình để tìm ra gia sư hoàn hảo cho nhu
+                Learnova luôn nỗ lực hết mình để tìm ra gia sư hoàn hảo cho nhu
                 cầu cụ thể của con bạn. Chúng tôi kết nối trẻ em với các gia sư
                 chuyên môn về đọc, toán, viết, khoa học và tiếng Anh. Chúng tôi
                 mang đến trải nghiệm học tập được thiết kế riêng, giúp nâng cao
@@ -386,7 +386,7 @@ const LandingPage = () => {
               </div>
               <h3>Gia sư giàu kinh nghiệm</h3>
               <p>
-                Mỗi gia sư EduMatch đều là những giáo viên giàu kinh nghiệm,
+                Mỗi gia sư Learnova đều là những giáo viên giàu kinh nghiệm,
                 được tuyển chọn kỹ lưỡng vì khả năng truyền cảm hứng yêu thích
                 học tập.
               </p>

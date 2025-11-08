@@ -5,9 +5,12 @@ import "./VerifyAccount.scss";
 import { ImSpinner9 } from "react-icons/im";
 import {
   verifyAccountApi,
-  resendOTPApi,
+  resendVerification,
 } from "../../services/ApiService";
 import { toast } from "react-toastify";
+import axios from "axios";
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
 
 const VerifyAccount = () => {
   const [searchParams] = useSearchParams();
@@ -148,10 +151,10 @@ const VerifyAccount = () => {
     if (!email || !isEmailValid(email) || resendLoading || cooldown > 0) return;
     setResendLoading(true);
     try {
-      await resendOTPApi(email);
-      setMessage(`OTP đã được gửi lại đến ${email}. Vui lòng kiểm tra email.`);
+      await resendVerification(email);
+      setMessage(`Verification email resent to ${email}. Please check again.`);
       setCooldown(60);
-      toast.success("Đã gửi lại mã OTP. Vui lòng kiểm tra hộp thư/spam.");
+      toast.success("Resent verification email. Please check your inbox/spam.");
       // Simple analytics: đếm số lần resend trong localStorage
       try {
         const k = "verify_resend_count";
@@ -163,12 +166,12 @@ const VerifyAccount = () => {
       setMessage(
         err?.message ||
           err?.response?.data?.message ||
-          "Không thể gửi lại mã OTP"
+          "Failed to resend verification email"
       );
       toast.error(
         err?.message ||
           err?.response?.data?.message ||
-          "Không thể gửi lại mã OTP"
+          "Failed to resend verification email"
       );
     } finally {
       setResendLoading(false);

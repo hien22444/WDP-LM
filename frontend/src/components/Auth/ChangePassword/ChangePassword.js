@@ -70,7 +70,7 @@ const ChangePassword = () => {
     <div className="change-password-container">
       <div className="change-password-card">
         <div className="brand-logo">
-          <span className="brand-name">EduMatch</span>
+          <span className="brand-name">Learnova</span>
         </div>
 
         <div className="card-content">
