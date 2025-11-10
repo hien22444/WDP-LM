@@ -35,21 +35,9 @@ const BookingSchema = new mongoose.Schema(
     notes: { type: String, default: null },
     paymentStatus: {
       type: String,
-      enum: [
-        "none",
-        "prepaid",
-        "postpaid",
-        "escrow",
-        "held",
-        "released",
-        "refunded",
-      ],
+      enum: ["none", "paid"],
       default: "none",
     },
-    escrowAmount: { type: Number, default: 0 },
-    platformFee: { type: Number, default: 0 },
-    tutorPayout: { type: Number, default: 0 },
-    refundAmount: { type: Number, default: 0 },
     paymentId: { type: String, default: null },
     cancellationReason: { type: String, default: null },
     cancelledBy: {

@@ -15,9 +15,11 @@ const TutorBookings = () => {
     try {
       const bookings = await BookingService.listMyBookings("tutor");
       console.log("📋 Tutor bookings loaded:", bookings);
+      console.log("📊 Sample booking data:", bookings[0]);
       setItems(bookings);
     } catch (error) {
       console.error("❌ Error loading tutor bookings:", error);
+      console.error("Error details:", error.response?.data);
       setItems([]);
     } finally {
       setLoading(false);
@@ -109,60 +111,70 @@ const TutorBookings = () => {
             </tr>
           </thead>
           <tbody>
-            {items.map((b) => (
-              <tr key={b._id}>
-                <td title={b.student}>{String(b.student).slice(0,8)}...</td>
-                <td>
-                  {new Date(b.start).toLocaleString()} –{" "}
-                  {new Date(b.end).toLocaleString()}
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
+                  📭 Chưa có đơn yêu cầu nào
                 </td>
-                <td>{b.mode}</td>
-                <td>{(b.price || 0).toLocaleString()} đ</td>
-                <td>
-                  <span
-                    style={{
-                      padding: "4px 8px",
-                      borderRadius: 12,
-                      background:
-                        b.status === "pending"
-                          ? "#FEF3C7"
-                          : b.status === "accepted"
-                          ? "#DCFCE7"
-                          : "#E5E7EB",
-                      color:
-                        b.status === "pending"
-                          ? "#92400E"
-                          : b.status === "accepted"
-                          ? "#065F46"
-                          : "#374151",
-                      fontWeight: 600,
-                      fontSize: 12,
-                    }}
-                  >
-                    {b.status}
-                  </span>
-                </td>
-                <td>
-                  {b.status === "pending" ? (
-                    <>
+              </tr>
+            ) : (
+              items.map((b) => (
+                <tr key={b._id}>
+                  <td title={b.student?._id || b.student}>
+                    {b.student?.full_name || b.student?.email || String(b.student).slice(0,8) + '...'}
+                  </td>
+                  <td>
+                    {new Date(b.start).toLocaleString()} –{" "}
+                    {new Date(b.end).toLocaleString()}
+                  </td>
+                  <td>{b.mode}</td>
+                  <td>{(b.price || 0).toLocaleString()} đ</td>
+                  <td>
+                    <span
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 12,
+                        background:
+                          b.status === "pending"
+                            ? "#FEF3C7"
+                            : b.status === "accepted"
+                            ? "#DCFCE7"
+                            : "#E5E7EB",
+                        color:
+                          b.status === "pending"
+                            ? "#92400E"
+                            : b.status === "accepted"
+                            ? "#065F46"
+                            : "#374151",
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                    >
+                      {b.status}
+                    </span>
+                  </td>
+                  <td>
+                    {b.status === "pending" ? (
+                      <>
+                        <button onClick={() => { setViewing(b); setShowContract(true); }}>
+                          Xem hợp đồng
+                        </button>
+                        <button
+                          onClick={() => decide(b._id, "reject")}
+                          style={{ marginLeft: 8 }}
+                        >
+                          Từ chối
+                        </button>
+                      </>
+                    ) : (
                       <button onClick={() => { setViewing(b); setShowContract(true); }}>
                         Xem hợp đồng
                       </button>
-                      <button
-                        onClick={() => decide(b._id, "reject")}
-                        style={{ marginLeft: 8 }}
-                      >
-                        Từ chối
-                      </button>
-                    </>
-                  ) : (
-                    <button onClick={() => { setViewing(b); setShowContract(true); }}>
-                      Xem hợp đồng
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       )}

@@ -12,7 +12,6 @@ const {
   notifyTutorPaymentSuccess,
   notifyTutorBookingCreated,
 } = require("../services/NotificationService");
-const EscrowService = require("../services/EscrowService");
 
 // Tạo link thanh toán
 const createPaymentLink = async (req, res) => {
@@ -307,15 +306,18 @@ const receiveWebhook = async (req, res) => {
       try {
         // PayOS can send either "PAID" or "COMPLETED" for successful payments
         // Check both the status and the response code
-        if (
-          webhookData.code === "00" &&
-          webhookData.data?.status &&
-          (status.toUpperCase() === "PAID" ||
-            status.toUpperCase() === "COMPLETED" ||
-            status.toUpperCase() === "SUCCESS" ||
-            status.toUpperCase() === "PROCESSED" ||
-            status === "00")
-        ) {
+        // IMPORTANT: Some PayOS webhooks only send code='00' without data.status field
+        const isSuccess = 
+          (webhookData.code === "00" && webhookData.success === true) ||
+          (webhookData.code === "00" &&
+            webhookData.data?.status &&
+            (status.toUpperCase() === "PAID" ||
+              status.toUpperCase() === "COMPLETED" ||
+              status.toUpperCase() === "SUCCESS" ||
+              status.toUpperCase() === "PROCESSED" ||
+              status === "00"));
+        
+        if (isSuccess) {
           console.log(`✅ Order ${orderCode} has been paid successfully.`);
 
           // Update payment record first
@@ -338,10 +340,40 @@ const receiveWebhook = async (req, res) => {
             payment ? payment._id : "not found"
           );
 
+          if (!payment) {
+            console.error("❌ Payment record not found for orderCode:", orderCode);
+            return res.status(200).json({ success: true, message: "Payment not found but webhook received" });
+          }
+
+          console.log("🔍 Payment details:", {
+            paymentId: payment._id.toString(),
+            userId: payment.userId?.toString() || 'NULL',
+            slotId: payment.slotId?.toString() || 'NULL',
+            amount: payment.amount,
+            status: payment.status
+          });
+
+          // Extract metadata early so both primary webhook flow and
+          // offline-reconciliation flow can reuse the same variables.
+          // This avoids ReferenceError when incomingContract is used
+          // later in the primary success path.
+          const rawMeta = payment?.metadata || {};
+          const meta = rawMeta?.metadata || rawMeta;
+          const incomingContract = meta?.contractData || null;
+          const incomingStudentSignature = meta?.studentSignature || null;
+
           if (payment && payment.slotId) {
+            console.log("✅ Payment has slotId - will create booking from slot:", payment.slotId.toString());
             // Get the teaching slot
             const slot = await TeachingSlot.findById(payment.slotId);
             if (slot) {
+              console.log("📚 Found slot:", {
+                slotId: slot._id.toString(),
+                tutorProfile: slot.tutorProfile?.toString() || 'NULL',
+                price: slot.price,
+                status: slot.status,
+                courseName: slot.courseName
+              });
               // Update teaching slot status
               slot.status = "booked";
               slot.bookings = slot.bookings || [];
@@ -351,7 +383,7 @@ const receiveWebhook = async (req, res) => {
                 bookedAt: new Date(),
               });
               await slot.save();
-              console.log("📚 Slot update result:", slot._id);
+              console.log("✅ Slot status updated to 'booked':", slot._id.toString());
 
               // Create booking from slot (kiểm tra tránh duplicate)
               try {
@@ -389,17 +421,8 @@ const receiveWebhook = async (req, res) => {
                     );
                   }
                 } else {
-                  // Tính toán escrow amount, platform fee và tutor payout
-                  const payouts = EscrowService.calculatePayouts(slot.price);
-                  console.log("💰 [Payment] Calculated payouts:", payouts);
-
-                  // Extract contract metadata if provided during payment creation
-                  const rawMeta = payment?.metadata || {};
-                  const meta = rawMeta?.metadata || rawMeta; // support nested shape { metadata: { ... } }
-                  const incomingContract = meta?.contractData || null;
-                  const incomingStudentSignature =
-                    meta?.studentSignature || null;
-
+                  console.log("🆕 No existing booking found - creating new booking...");
+                  // Create booking from slot
                   const booking = await Booking.create({
                     tutorProfile: slot.tutorProfile,
                     student: payment.userId,
@@ -410,6 +433,7 @@ const receiveWebhook = async (req, res) => {
                     notes: `Đặt từ slot: ${slot.courseName}`,
                     slotId: slot._id,
                     status: "pending",
+                    paymentStatus: "paid", // Đã thanh toán
                     // Attach contract data if present from payment metadata
                     contractData: incomingContract || undefined,
                     studentSignature: incomingStudentSignature || undefined,
@@ -420,10 +444,18 @@ const receiveWebhook = async (req, res) => {
                       ? `HD-${Date.now()}`
                       : undefined,
                   });
-                  console.log("📝 Booking created (pending):", booking._id);
+                  console.log("✅ Booking created successfully:", {
+                    bookingId: booking._id.toString(),
+                    status: booking.status,
+                    paymentStatus: booking.paymentStatus,
+                    tutorProfile: booking.tutorProfile?.toString() || 'NULL',
+                    student: booking.student?.toString() || 'NULL',
+                    price: booking.price
+                  });
 
                   // Notify tutor about new pending request with payment info (email + in-app)
                   try {
+                    console.log("📧 Sending notifications to tutor...");
                     await notifyTutorBookingCreated(booking);
                     const tProfile = await TutorProfile.findById(
                       slot.tutorProfile
@@ -448,8 +480,11 @@ const receiveWebhook = async (req, res) => {
                         },
                       });
                       console.log(
-                        "✅ In-app notification sent to tutor about payment received"
+                        "✅ In-app notification sent to tutor about payment received - tutorUserId:",
+                        tProfile.user._id.toString()
                       );
+                    } else {
+                      console.warn("⚠️ Could not find tutor user to send notification");
                     }
                   } catch (notificationError) {
                     console.error(
@@ -458,14 +493,19 @@ const receiveWebhook = async (req, res) => {
                     );
                   }
                 }
-              } catch (bookingError) {
+                } catch (bookingError) {
                 console.error(
                   "❌ Error creating booking from slot:",
                   bookingError
                 );
+                console.error("❌ Booking error stack:", bookingError.stack);
                 // Don't fail the payment processing if booking creation fails
               }
+            } else {
+              console.warn("⚠️ Slot not found for payment.slotId:", payment.slotId?.toString());
             }
+          } else {
+            console.warn("⚠️ Payment record has no slotId - cannot create booking. PaymentId:", payment?._id?.toString());
           }
         } else {
           console.log(`❕ Order ${orderCode} status is: ${status}`);
@@ -709,10 +749,7 @@ const verifyPayment = async (req, res) => {
             });
             if (!existingBooking) {
               try {
-                // Tính toán escrow amount, platform fee và tutor payout
-                const payouts = EscrowService.calculatePayouts(slot.price);
-                console.log("💰 [Payment] Calculated payouts:", payouts);
-
+                // Create booking without escrow calculation
                 const booking = await Booking.create({
                   tutorProfile: slot.tutorProfile,
                   student: payment.userId,
@@ -837,7 +874,12 @@ const verifyPayment = async (req, res) => {
                 status: { $in: ["accepted", "pending", "completed"] },
               });
               if (!existingBooking) {
-                const payouts = EscrowService.calculatePayouts(slot.price);
+                // Extract contract metadata if provided during payment creation
+                const rawMeta = payment?.metadata || {};
+                const meta = rawMeta?.metadata || rawMeta;
+                const incomingContract = meta?.contractData || null;
+                const incomingStudentSignature = meta?.studentSignature || null;
+                
                 const booking = await Booking.create({
                   tutorProfile: slot.tutorProfile,
                   student: payment.userId,
@@ -848,6 +890,11 @@ const verifyPayment = async (req, res) => {
                   notes: `Đặt từ slot: ${slot.courseName}`,
                   slotId: slot._id,
                   status: "pending",
+                  paymentStatus: "paid", // Đã thanh toán
+                  contractData: incomingContract || undefined,
+                  studentSignature: incomingStudentSignature || undefined,
+                  studentSignedAt: incomingStudentSignature ? new Date() : undefined,
+                  contractNumber: incomingContract ? `HD-${Date.now()}` : undefined,
                 });
                 await notifyTutorBookingCreated(booking);
                 console.log(

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BookingService from "../../services/BookingService";
+import ReviewModal from "../../components/Review/ReviewModal";
+import { getMyReviews } from "../../services/ReviewService";
 import "./StudentBookings.scss";
 
 const StudentBookings = () => {
@@ -8,6 +10,8 @@ const StudentBookings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all"); // all, pending, accepted, completed, cancelled
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
+  const [reviewedBookings, setReviewedBookings] = useState(new Set());
   const navigate = useNavigate();
 
   const load = async () => {
@@ -16,6 +20,19 @@ const StudentBookings = () => {
     try {
       const bookings = await BookingService.listMyBookings("student");
       setItems(bookings);
+      
+      // Load reviewed bookings (don't fail if this errors)
+      try {
+        const myReviews = await getMyReviews();
+        const reviewedIds = new Set(
+          myReviews.reviews?.map(review => String(review.booking?._id || review.booking)) || []
+        );
+        setReviewedBookings(reviewedIds);
+      } catch (reviewErr) {
+        console.error("Error loading reviews:", reviewErr);
+        // Continue even if reviews fail to load
+        setReviewedBookings(new Set());
+      }
     } catch (err) {
       setError(err?.message || "Lỗi tải danh sách đặt lịch");
       console.error("Load bookings error:", err);
@@ -75,6 +92,19 @@ const StudentBookings = () => {
     } else {
       alert("Chưa có phòng học. Vui lòng đợi gia sư chấp nhận.");
     }
+  };
+
+  const handleOpenReviewModal = (booking) => {
+    setSelectedBookingForReview(booking);
+  };
+
+  const handleCloseReviewModal = () => {
+    setSelectedBookingForReview(null);
+  };
+
+  const handleReviewSuccess = () => {
+    // Reload to update reviewed status
+    load();
   };
 
   const filteredItems =
@@ -213,23 +243,37 @@ const StudentBookings = () => {
                   </button>
                 )}
 
-                {(booking.status === "in_progress" ||
-                  booking.status === "completed") && (
-                  <button
-                    className="btn btn-success btn-sm"
-                    onClick={() => {
-                      // Navigate to review page
-                      navigate(`/tutor/${booking.tutorProfile?._id}`);
-                    }}
-                  >
-                    ⭐ Đánh giá
-                  </button>
+                {booking.status === "completed" && (
+                  <>
+                    {reviewedBookings.has(String(booking._id)) ? (
+                      <button
+                        className="btn btn-success btn-sm"
+                        disabled
+                      >
+                        ✅ Đã đánh giá
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-warning btn-sm"
+                        onClick={() => handleOpenReviewModal(booking)}
+                      >
+                        ⭐ Đánh giá ngay
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <ReviewModal
+        isOpen={!!selectedBookingForReview}
+        onClose={handleCloseReviewModal}
+        booking={selectedBookingForReview}
+        onSuccess={handleReviewSuccess}
+      />
     </div>
   );
 };

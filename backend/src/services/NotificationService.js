@@ -451,10 +451,10 @@ const createEmailTemplate = (type, data) => {
               <h3 style="color: #ffc107; margin-bottom: 15px;">💳 Thông tin thanh toán</h3>
               <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <div style="font-size: 24px; font-weight: bold; color: #ffc107;">
-                  ${formatCurrency(data.escrowAmount)} VNĐ
+                  ${formatCurrency(data.price || 0)} VNĐ
                 </div>
                 <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-                  Số tiền sẽ được chuyển cho gia sư sau buổi học
+                  Đã thanh toán cho buổi học
                 </p>
               </div>
             </div>
@@ -499,10 +499,10 @@ const createEmailTemplate = (type, data) => {
               <h3 style="color: #28a745; margin-bottom: 15px;">💰 Số tiền nhận được</h3>
               <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <div style="font-size: 28px; font-weight: bold; color: #28a745;">
-                  ${formatCurrency(data.tutorPayout)} VNĐ
+                  ${formatCurrency(data.price || 0)} VNĐ
                 </div>
                 <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-                  Đã trừ phí platform (${formatCurrency(data.platformFee)} VNĐ)
+                  Thanh toán cho buổi học hoàn thành
                 </p>
               </div>
             </div>
@@ -592,7 +592,7 @@ const createEmailTemplate = (type, data) => {
               <p><strong>Lý do:</strong> ${data.reason}</p>
               <p><strong>Người mở:</strong> ${data.openedBy}</p>
               <p><strong>Thời gian:</strong> ${formatDateTime(data.openedAt)}</p>
-              <p><strong>Số tiền:</strong> ${formatCurrency(data.escrowAmount)} VNĐ</p>
+              <p><strong>Số tiền:</strong> ${formatCurrency(data.price || 0)} VNĐ</p>
             </div>
             
             <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff6b6b;">
@@ -857,7 +857,7 @@ const notifyStudentPaymentHeld = async (booking) => {
       start: booking.start,
       end: booking.end,
       mode: booking.mode,
-      escrowAmount: booking.escrowAmount
+      price: booking.price
     };
     
     return await sendNotificationEmail(student.email, 'payment_held', data);
@@ -890,8 +890,7 @@ const notifyTutorPaymentReleased = async (booking) => {
       start: booking.start,
       end: booking.end,
       mode: booking.mode,
-      tutorPayout: booking.tutorPayout,
-      platformFee: booking.platformFee
+      price: booking.price
     };
     
     return await sendNotificationEmail(tutorProfile.user.email, 'payment_released', data);
@@ -957,7 +956,7 @@ const notifyAdminDispute = async (booking) => {
       reason: booking.disputeReason,
       openedBy: booking.disputeOpenedAt ? "Học viên" : "Gia sư",
       openedAt: booking.disputeOpenedAt || new Date(),
-      escrowAmount: booking.escrowAmount
+      price: booking.price
     };
     
     // Send to admin email (you can configure this)

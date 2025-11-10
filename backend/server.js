@@ -430,7 +430,6 @@ app.use("/api/v1/profile-completion", profileCompletionRoutes);
 app.use("/api/v1/tutor-verification", tutorVerificationRoutes);
 app.use("/api/v1/admin/verification", adminVerificationRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
-app.use("/api/v1/wallet", require("./src/routes/wallet"));
 app.use("/api/chat", chatRoutes);
 
 // Google OAuth routes

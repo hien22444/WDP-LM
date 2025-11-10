@@ -47,6 +47,7 @@ const ContractPage = () => {
   const [agreed, setAgreed] = useState(false);
   const [signing, setSigning] = useState(false);
   const [signature, setSignature] = useState("");
+  const [realSlotId, setRealSlotId] = useState(null); // THÊM: Lưu slot ID thật từ DB
   const [contractData, setContractData] = useState({
     studentName: "",
     studentPhone: "",
@@ -196,6 +197,9 @@ const ContractPage = () => {
       setTutor(tutorData);
       setContractData(contractDataToSave);
       setLoading(false);
+      
+      // THÊM: Fetch teaching slots ngay cả khi có location.state
+      fetchTeachingSlots(id);
     }
     // Nếu không có location.state, thử đọc từ sessionStorage
     else {
@@ -221,10 +225,38 @@ const ContractPage = () => {
     }
   }, [id, location.state, currentUser]);
 
+  // Helper function để fetch teaching slots
+  const fetchTeachingSlots = async (tutorProfileId) => {
+    try {
+      console.log('🔍 Fetching teaching slots for tutor profile:', tutorProfileId);
+      const slotsResponse = await fetch(`http://localhost:5000/api/v1/bookings/teaching-slots/tutor/${tutorProfileId}`);
+      if (slotsResponse.ok) {
+        const slots = await slotsResponse.json();
+        console.log('📚 Available slots for tutor:', slots);
+        // Lấy slot đầu tiên có status 'open'
+        const openSlot = slots.find(s => s.status === 'open');
+        if (openSlot) {
+          setRealSlotId(openSlot._id);
+          console.log('✅ Using real slot ID:', openSlot._id);
+        } else {
+          console.warn('⚠️ No open slot found, will use fake ID');
+        }
+      } else {
+        console.warn('⚠️ Failed to fetch teaching slots, status:', slotsResponse.status);
+      }
+    } catch (slotError) {
+      console.error('❌ Failed to fetch teaching slots:', slotError);
+    }
+  };
+
   const loadTutorProfile = async () => {
     try {
       const tutorData = await getTutorProfile(id);
       setTutor(tutorData);
+      
+      // Fetch teaching slots using helper function
+      await fetchTeachingSlots(id);
+      
       setContractData((prev) => ({
         ...prev,
         pricePerSession: tutorData.price,
@@ -417,7 +449,7 @@ const ContractPage = () => {
 
     // Truyền thông tin cần thiết cho thanh toán và thông tin giảng viên
     const slot = {
-      _id: "test_" + Date.now(),
+      _id: realSlotId || ("test_" + Date.now()), // SỬ DỤNG REAL SLOT ID nếu có
       courseName: contractData.subject || "Khóa học test",
       price: contractData.totalPrice,
       // --- BẮT ĐẦU THÊM VÀO ---

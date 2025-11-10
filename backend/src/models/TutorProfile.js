@@ -94,22 +94,6 @@ const TutorProfileSchema = new mongoose.Schema(
       preparation: { type: Number, default: 0, min: 0, max: 5 },
       friendliness: { type: Number, default: 0, min: 0, max: 5 },
     },
-
-    // Wallet/Earnings fields
-    earnings: {
-      totalEarnings: { type: Number, default: 0, min: 0 },
-      availableBalance: { type: Number, default: 0, min: 0 },
-      pendingBalance: { type: Number, default: 0, min: 0 },
-    },
-
-    // Bank account for payout (optional)
-    bankAccount: {
-      accountNumber: { type: String, default: null },
-      accountName: { type: String, default: null },
-      bankName: { type: String, default: null },
-      bankCode: { type: String, default: null },
-      branch: { type: String, default: null },
-    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

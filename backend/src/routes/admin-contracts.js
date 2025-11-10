@@ -148,12 +148,12 @@ router.get("/stats/overview", auth(), requireAdmin, async (req, res) => {
       Booking.countDocuments({ status: "completed" }),
       Booking.countDocuments({ status: "disputed" }),
       Booking.aggregate([
-        { $match: { paymentStatus: { $in: ["released", "held"] } } },
-        { $group: { _id: null, total: { $sum: "$escrowAmount" } } }
+        { $match: { paymentStatus: "paid" } },
+        { $group: { _id: null, total: { $sum: "$price" } } }
       ]),
       Booking.aggregate([
-        { $match: { paymentStatus: "released" } },
-        { $group: { _id: null, total: { $sum: "$platformFee" } } }
+        { $match: { paymentStatus: "paid" } },
+        { $group: { _id: null, total: { $sum: { $multiply: ["$price", 0.15] } } } }
       ])
     ]);
 

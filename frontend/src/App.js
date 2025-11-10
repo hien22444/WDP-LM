@@ -28,7 +28,6 @@
 // import TutorOpenCourses from "./pages/Tutor/TutorOpenCourses";
 // import TutorList from "./pages/Tutor/TutorList";
 // import CourseDetail from "./pages/Tutor/CourseDetail";
-// import Wallet from "./pages/Tutor/Wallet";
 // // Layout components
 // import MainLayout from "./components/Layout/MainLayout";
 // // Admin imports
@@ -195,10 +194,6 @@
 //             element={isAuthenticated ? <TutorSchedule /> : <Navigate to="/" />}
 //           />
 //           <Route
-//             path="/tutor/wallet"
-//             element={isAuthenticated ? <Wallet /> : <Navigate to="/" />}
-//           />
-//           <Route
 //             path="/tutor/publish-slot"
 //             element={
 //               isAuthenticated ? <TutorPublishSlot /> : <Navigate to="/" />
@@ -286,7 +281,6 @@ import TutorPublishSlot from "./pages/Tutor/TutorPublishSlot";
 import TutorOpenCourses from "./pages/Tutor/TutorOpenCourses";
 import TutorList from "./pages/Tutor/TutorList";
 import CourseDetail from "./pages/Tutor/CourseDetail";
-import Wallet from "./pages/Tutor/Wallet";
 import ChatLayout from "./components/Layout/ChatLayout";
 import AuthenticatedLayout from "./components/Layout/AuthenticatedLayout";
 import AdminLayout from "./components/Admin/AdminLayout";
@@ -440,10 +434,6 @@ function App() {
           <Route
             path="/tutor/schedule"
             element={isAuthenticated ? <TutorSchedule /> : <Navigate to="/" />}
-          />
-          <Route
-            path="/tutor/wallet"
-            element={isAuthenticated ? <Wallet /> : <Navigate to="/" />}
           />
           <Route
             path="/tutor/publish-slot"

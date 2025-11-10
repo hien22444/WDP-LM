@@ -25,14 +25,17 @@ router.post("/", auth(), async (req, res) => {
 
     // Check if booking exists and belongs to user
     const booking = await Booking.findById(bookingId)
-      .populate("tutorProfile", "user")
-      .populate("student");
+      .populate("tutorProfile", "_id user")
+      .populate("student", "_id");
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    if (String(booking.student) !== String(req.user.id)) {
+    // Extract student ID (handle both populated and non-populated)
+    const studentId = booking.student?._id || booking.student;
+    
+    if (String(studentId) !== String(req.user.id)) {
       return res.status(403).json({ 
         message: "Not authorized to review this booking" 
       });
@@ -53,10 +56,28 @@ router.post("/", auth(), async (req, res) => {
       });
     }
 
+    // Validate categories if provided
+    if (categories) {
+      const categoryKeys = ['teaching', 'punctuality', 'communication', 'preparation', 'friendliness'];
+      for (const key of categoryKeys) {
+        if (categories[key] !== undefined) {
+          const value = Number(categories[key]);
+          if (isNaN(value) || value < 1 || value > 5) {
+            return res.status(400).json({ 
+              message: `Category ${key} must be between 1 and 5` 
+            });
+          }
+        }
+      }
+    }
+
+    // Extract tutorProfile ID (handle both populated and non-populated)
+    const tutorProfileId = booking.tutorProfile?._id || booking.tutorProfile;
+
     // Create review
     const review = await Review.create({
       booking: bookingId,
-      tutorProfile: booking.tutorProfile._id,
+      tutorProfile: tutorProfileId,
       student: req.user.id,
       rating,
       comment: comment || "",
@@ -206,6 +227,31 @@ router.put("/:reviewId", auth(), async (req, res) => {
       return res.status(403).json({ 
         message: "Not authorized to update this review" 
       });
+    }
+
+    // Validate rating if provided
+    if (rating !== undefined) {
+      const ratingNum = Number(rating);
+      if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+        return res.status(400).json({ 
+          message: "Rating must be between 1 and 5" 
+        });
+      }
+    }
+
+    // Validate categories if provided
+    if (categories) {
+      const categoryKeys = ['teaching', 'punctuality', 'communication', 'preparation', 'friendliness'];
+      for (const key of categoryKeys) {
+        if (categories[key] !== undefined) {
+          const value = Number(categories[key]);
+          if (isNaN(value) || value < 1 || value > 5) {
+            return res.status(400).json({ 
+              message: `Category ${key} must be between 1 and 5` 
+            });
+          }
+        }
+      }
     }
 
     // Update review

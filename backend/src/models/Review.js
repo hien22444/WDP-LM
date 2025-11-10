@@ -65,7 +65,7 @@ ReviewSchema.index({ rating: -1, created_at: -1 });
 // Calculate average rating for tutor
 ReviewSchema.statics.calculateTutorRating = async function(tutorProfileId) {
   const stats = await this.aggregate([
-    { $match: { tutorProfile: mongoose.Types.ObjectId(tutorProfileId), isHidden: false } },
+    { $match: { tutorProfile: new mongoose.Types.ObjectId(tutorProfileId), isHidden: false } },
     {
       $group: {
         _id: null,
@@ -122,6 +122,44 @@ ReviewSchema.post('save', async function() {
     );
   } catch (error) {
     console.error('Error updating tutor rating:', error);
+  }
+});
+
+// Update tutor rating when review is deleted
+ReviewSchema.post('findOneAndDelete', async function(doc) {
+  if (doc) {
+    try {
+      const ratingStats = await mongoose.model('Review').calculateTutorRating(doc.tutorProfile);
+      await mongoose.model('TutorProfile').findByIdAndUpdate(
+        doc.tutorProfile,
+        { 
+          rating: ratingStats.rating,
+          totalReviews: ratingStats.totalReviews,
+          ratingCategories: ratingStats.categories
+        }
+      );
+    } catch (error) {
+      console.error('Error updating tutor rating after delete:', error);
+    }
+  }
+});
+
+// Update tutor rating when review is updated
+ReviewSchema.post('findOneAndUpdate', async function(doc) {
+  if (doc) {
+    try {
+      const ratingStats = await mongoose.model('Review').calculateTutorRating(doc.tutorProfile);
+      await mongoose.model('TutorProfile').findByIdAndUpdate(
+        doc.tutorProfile,
+        { 
+          rating: ratingStats.rating,
+          totalReviews: ratingStats.totalReviews,
+          ratingCategories: ratingStats.categories
+        }
+      );
+    } catch (error) {
+      console.error('Error updating tutor rating after update:', error);
+    }
   }
 });
 

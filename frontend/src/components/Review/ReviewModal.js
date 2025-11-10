@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createReview } from '../../services/ReviewService';
 import './ReviewModal.scss';
 
@@ -17,8 +17,33 @@ const ReviewModal = ({ isOpen, onClose, booking, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        rating: 5,
+        comment: '',
+        categories: {
+          teaching: 5,
+          punctuality: 5,
+          communication: 5,
+          preparation: 5,
+          friendliness: 5
+        },
+        isAnonymous: false
+      });
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (!booking || !booking._id) {
+      console.error('Invalid booking data');
+      return;
+    }
+
     setLoading(true);
 
     try {

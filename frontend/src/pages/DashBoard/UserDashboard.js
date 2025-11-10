@@ -251,9 +251,9 @@ const Dashboard = () => {
                     <p className="dashboard-number">
                       ₫{dashboardData.monthlyEarnings?.toLocaleString() || 0}
                     </p>
-                    <button onClick={() => navigate("/tutor/earnings")}>
-                      Xem báo cáo
-                    </button>
+                    <p style={{ fontSize: "0.9em", color: "#666", marginTop: "8px" }}>
+                      Từ các buổi học hoàn thành
+                    </p>
                   </div>
                   <div className="dashboard-card">
                     <h3>⭐ Đánh giá trung bình</h3>
@@ -438,12 +438,6 @@ const Dashboard = () => {
                           onClick={() => navigate("/tutor/students")}
                         >
                           👥 Học viên
-                        </button>
-                        <button
-                          className="action-btn tertiary"
-                          onClick={() => navigate("/tutor/wallet")}
-                        >
-                          💰 Ví của tôi
                         </button>
                         <button
                           className="action-btn quaternary"

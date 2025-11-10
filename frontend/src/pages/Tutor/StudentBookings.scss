@@ -270,6 +270,27 @@
     &:hover {
       background: #218838;
     }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      &:hover {
+        background: #28a745;
+        transform: none;
+      }
+    }
+  }
+
+  &.btn-warning {
+    background: #ffc107;
+    color: #212529;
+    font-weight: 600;
+
+    &:hover {
+      background: #e0a800;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    }
   }
 
   &.btn-sm {

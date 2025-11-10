@@ -1,66 +1,8 @@
+const cron = require("node-cron");
 const Booking = require("../models/Booking");
-const EscrowService = require("./EscrowService");
 const NotificationService = require("./NotificationService");
 
 class CronService {
-  /**
-   * Tự động giải phóng tiền escrow sau 24h kể từ khi buổi học hoàn thành
-   * Chạy mỗi giờ
-   */
-  static async autoReleaseEscrow() {
-    try {
-      console.log("[Cron] Starting auto-release escrow job...");
-
-      // Tìm các booking đã hoàn thành hơn 24 giờ và đang được giữ tiền
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      
-      const bookingsToRelease = await Booking.find({
-        status: "completed",
-        paymentStatus: "held",
-        completedAt: { $lte: twentyFourHoursAgo }
-      });
-
-      console.log(`[Cron] Found ${bookingsToRelease.length} bookings to release escrow`);
-
-      let releasedCount = 0;
-      let errorCount = 0;
-
-      for (const booking of bookingsToRelease) {
-        try {
-          // Giải phóng tiền
-          await EscrowService.releasePayment(booking._id, "auto");
-          releasedCount++;
-          
-          console.log(`[Cron] Released escrow for booking ${booking._id}`);
-          
-          // Gửi thông báo
-          await NotificationService.notifyTutorPaymentReleased(booking);
-          await NotificationService.notifyStudentPaymentReleased(booking);
-          
-        } catch (error) {
-          errorCount++;
-          console.error(`[Cron] Error releasing escrow for booking ${booking._id}:`, error.message);
-        }
-      }
-
-      console.log(`[Cron] Completed: Released ${releasedCount} bookings, ${errorCount} errors`);
-
-      return {
-        success: true,
-        releasedCount,
-        errorCount,
-        total: bookingsToRelease.length
-      };
-
-    } catch (error) {
-      console.error("[Cron] Auto-release escrow error:", error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  }
-
   /**
    * Kiểm tra và cập nhật trạng thái các booking đã bắt đầu học
    * Chạy mỗi 15 phút
@@ -201,6 +143,25 @@ class CronService {
         error: error.message
       };
     }
+  }
+
+  /**
+   * Bắt đầu tất cả cron jobs
+   */
+  static startAllJobs() {
+    console.log("⏰ Starting cron jobs...");
+
+    // Update booking statuses every 15 minutes
+    cron.schedule("*/15 * * * *", async () => {
+      await this.updateBookingStatuses();
+    });
+
+    // Send session reminders every 30 minutes
+    cron.schedule("*/30 * * * *", async () => {
+      await this.sendSessionReminders();
+    });
+
+    console.log("✅ All cron jobs started successfully");
   }
 }
 

@@ -14,7 +14,6 @@ const {
   notifyStudentRefund,
   notifyAdminDispute,
 } = require("../services/NotificationService");
-const EscrowService = require("../services/EscrowService");
 const {
   generateRoomId,
   generateRoomToken,
@@ -171,8 +170,8 @@ router.post("/", auth(), async (req, res) => {
     // Create booking with tutor's session rate if price not provided
     const finalPrice = price || tutor.sessionRate;
 
-    // Create booking with escrow
-    const booking = await EscrowService.createEscrowBooking({
+    // Create booking directly (no escrow)
+    const booking = await Booking.create({
       tutorProfile: tutor._id,
       student: req.user.id,
       start: startTime,
@@ -180,6 +179,8 @@ router.post("/", auth(), async (req, res) => {
       mode,
       price: finalPrice,
       notes,
+      status: "pending",
+      paymentStatus: "none", // Sẽ được cập nhật khi thanh toán
     });
 
     // Send notification email to tutor
@@ -280,9 +281,6 @@ router.post("/:id/decision", auth(), async (req, res) => {
 
     // Update booking status
     if (decision === "accept") {
-      // Hold payment in escrow
-      await EscrowService.holdPayment(booking._id);
-
       // Generate room ID for WebRTC session
       const roomId = generateRoomId();
       booking.roomId = roomId;
@@ -389,9 +387,22 @@ router.get("/me", auth(), async (req, res) => {
       );
       filter.tutorProfile = { $in: tutors.map((t) => t._id) };
     }
-    const items = await Booking.find(filter).sort({ created_at: -1 });
+    
+    const items = await Booking.find(filter)
+      .populate("student", "full_name email avatar phone")
+      .populate({
+        path: "tutorProfile",
+        select: "user subject subjects bio rating totalReviews sessionRate",
+        populate: {
+          path: "user",
+          select: "full_name email avatar phone"
+        }
+      })
+      .sort({ created_at: -1 });
+      
     res.json({ items });
   } catch (e) {
+    console.error("Error loading bookings:", e);
     res.status(500).json({ message: "Failed to load bookings" });
   }
 });
@@ -656,6 +667,23 @@ router.get("/slots/public", async (req, res) => {
   } catch (e) {
     console.error("List public slots error:", e);
     res.status(500).json({ message: "Failed to load public slots" });
+  }
+});
+
+// Public: get teaching slots by tutor profile ID
+router.get("/teaching-slots/tutor/:tutorProfileId", async (req, res) => {
+  try {
+    const { tutorProfileId } = req.params;
+    const slots = await TeachingSlot.find({ 
+      tutorProfile: tutorProfileId,
+      status: "open" 
+    }).sort({ start: 1 });
+    
+    console.log(`📚 Fetched ${slots.length} slots for tutor profile: ${tutorProfileId}`);
+    res.json(slots);
+  } catch (e) {
+    console.error("Get tutor slots error:", e);
+    res.status(500).json({ message: "Failed to load tutor slots" });
   }
 });
 
@@ -1071,15 +1099,14 @@ router.post("/:id/complete", auth(), async (req, res) => {
         .json({ message: "Booking must be accepted to complete" });
     }
 
-    // Release payment from escrow
-    await EscrowService.releasePayment(
-      booking._id,
-      isTutor ? "tutor" : "student"
-    );
+    // Update booking status to completed (no escrow release needed)
+    booking.status = "completed";
+    booking.completedAt = new Date();
+    await booking.save();
 
     res.json({
       success: true,
-      message: "Session completed and payment released",
+      message: "Session completed successfully",
       booking,
     });
   } catch (error) {
@@ -1110,30 +1137,16 @@ router.post("/:id/cancel", auth(), async (req, res) => {
       return res.status(400).json({ message: "Booking cannot be cancelled" });
     }
 
-    // Calculate refund based on cancellation time
-    const now = new Date();
-    const timeDiff = (booking.start - now) / (1000 * 60 * 60); // hours
-
-    let refundAmount = booking.escrowAmount;
-    let cancellationReason = reason || "Hủy bởi người dùng";
-
-    // If cancelled less than 12 hours before start, partial refund
-    if (timeDiff < 12) {
-      refundAmount = Math.round(booking.escrowAmount * 0.5); // 50% refund
-      cancellationReason += " (Hủy muộn - hoàn 50%)";
-    }
-
-    // Process refund
-    await EscrowService.refundPayment(
-      booking._id,
-      refundAmount,
-      cancellationReason
-    );
+    // Update booking status (no refund processing needed - handled manually)
+    booking.status = "cancelled";
+    booking.cancellationReason = reason || "Hủy bởi người dùng";
+    booking.cancelledBy = isTutor ? "tutor" : "student";
+    booking.cancelledAt = new Date();
+    await booking.save();
 
     res.json({
       success: true,
-      message: "Booking cancelled and refund processed",
-      refundAmount,
+      message: "Booking cancelled successfully. Refund will be processed manually if payment was made.",
       booking,
     });
   } catch (error) {
@@ -1142,70 +1155,6 @@ router.post("/:id/cancel", auth(), async (req, res) => {
   }
 });
 
-// Open dispute
-router.post("/:id/dispute", auth(), async (req, res) => {
-  try {
-    const { reason } = req.body;
-    const booking = await Booking.findById(req.params.id);
-
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // Check if user is authorized (tutor or student)
-    const isTutor = String(booking.tutorProfile) === String(req.user.id);
-    const isStudent = String(booking.student) === String(req.user.id);
-
-    if (!isTutor && !isStudent) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    if (booking.status !== "accepted") {
-      return res
-        .status(400)
-        .json({ message: "Can only dispute accepted bookings" });
-    }
-
-    if (!reason) {
-      return res.status(400).json({ message: "Dispute reason is required" });
-    }
-
-    // Open dispute
-    await EscrowService.openDispute(
-      booking._id,
-      reason,
-      isTutor ? "tutor" : "student"
-    );
-
-    res.json({
-      success: true,
-      message: "Dispute opened successfully",
-      booking,
-    });
-  } catch (error) {
-    console.error("Error opening dispute:", error);
-    res.status(500).json({ message: "Failed to open dispute" });
-  }
-});
-
-// Get escrow stats (admin only)
-router.get("/escrow/stats", auth(), async (req, res) => {
-  try {
-    // Check if user is admin (you can implement proper admin check)
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-
-    const stats = await EscrowService.getEscrowStats();
-
-    res.json({
-      success: true,
-      stats,
-    });
-  } catch (error) {
-    console.error("Error getting escrow stats:", error);
-    res.status(500).json({ message: "Failed to get escrow stats" });
-  }
-});
+// ❌ DISPUTE & ESCROW STATS ROUTES REMOVED (No escrow system)
 
 module.exports = router;
