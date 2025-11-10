@@ -23,6 +23,17 @@ const UniversalHeader = () => {
   const [roomCode, setRoomCode] = useState("");
   const dropdownRef = useRef(null);
 
+  const isLearner = useMemo(() => {
+    const roles = [
+      userState?.user?.role,
+      userState?.user?.account?.role,
+      userState?.account?.role,
+      userState?.profile?.role,
+      userState?.role,
+    ].filter(Boolean);
+    return roles.some((r) => r === "learner");
+  }, [userState]);
+
   const isTutor = useMemo(() => {
     const normalize = (v) =>
       typeof v === "string"
@@ -37,8 +48,7 @@ const UniversalHeader = () => {
       const raw = localStorage.getItem("user");
       if (raw) {
         const u = JSON.parse(raw);
-        localRole =
-          u?.role || u?.account?.role || u?.profile?.role || "";
+        localRole = u?.role || u?.account?.role || u?.profile?.role || "";
       }
     } catch (e) {}
     const roles = [
@@ -52,7 +62,9 @@ const UniversalHeader = () => {
     ]
       .filter(Boolean)
       .map(normalize);
-    return roles.some((r) => r === "tutor" || r.includes("giasu") || r.includes("gia su"));
+    return roles.some(
+      (r) => r === "tutor" || r.includes("giasu") || r.includes("gia su")
+    );
   }, [userState]);
   const avatar = useMemo(
     () =>
@@ -182,6 +194,18 @@ const UniversalHeader = () => {
               >
                 Trang cá nhân
               </button>
+              {/* Favorite tutors link - only show for learners */}
+              {!isTutor && isLearner && (
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate("/favorite-tutors");
+                  }}
+                  className="dropdown-item"
+                >
+                  Gia sư yêu thích
+                </button>
+              )}
               <button
                 onClick={() => {
                   setIsMenuOpen(false);

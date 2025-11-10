@@ -24,7 +24,18 @@ const userSlice = createSlice({
     loginSuccess: (state, action) => {
       state.loading = false;
       state.isAuthenticated = true;
-      state.user = action.payload.user;
+      // Chuẩn hóa user data
+      const user = action.payload.user;
+      state.user = {
+        ...user,
+        account: {
+          ...user.account,
+          role: user.role || user.account?.role || "",
+        },
+        role: user.role || user.account?.role || "",
+      };
+      // Lưu vào localStorage để khôi phục sau khi refresh
+      localStorage.setItem("user", JSON.stringify(state.user));
       state.error = null;
     },
     loginFailure: (state, action) => {
