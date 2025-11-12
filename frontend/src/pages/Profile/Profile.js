@@ -8,6 +8,7 @@ import {
   logoutApi,
 } from "../../services/ApiService";
 import TutorService from "../../services/TutorService";
+
 import { toast } from "react-toastify";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -81,6 +82,8 @@ const Profile = () => {
 
     fetchUserProfile();
   }, [isAuthenticated, navigate]);
+
+  // Load favorite tutors for the current user
 
   // (debug removed)
 

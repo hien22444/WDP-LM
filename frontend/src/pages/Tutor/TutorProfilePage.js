@@ -18,6 +18,7 @@ import {
   checkFavoriteTutor,
 } from "../../services/FavoriteTutorService";
 import "./TutorProfilePage.scss";
+import "./tutor-tabs.scss";
 
 // Lazy load components for better performance
 const LazyImage = lazy(() => import("../../components/Common/LazyImage"));
@@ -370,10 +371,10 @@ const TutorProfilePage = () => {
     try {
       if (isFavorite) {
         await removeFavoriteTutor(tutor._id);
-        toast.success("Đã xóa khỏi danh sách yêu thích");
+        // toast.success("Đã xóa khỏi danh sách yêu thích");
       } else {
         await addFavoriteTutor(tutor._id);
-        toast.success("Đã thêm vào danh sách yêu thích");
+        //toast.success("Đã thêm vào danh sách yêu thích");
       }
       setIsFavorite(!isFavorite);
     } catch (error) {
@@ -392,6 +393,31 @@ const TutorProfilePage = () => {
       checkIfFavorite();
     }
   }, [tutor?._id]);
+
+  // When booking form is shown, scroll it into view smoothly.
+  useEffect(() => {
+    if (!showBookingForm) return;
+    // wait a tick for modal to render into DOM
+    const t = setTimeout(() => {
+      const modal = document.querySelector(".booking-modal");
+      if (modal) {
+        modal.scrollIntoView({ behavior: "smooth", block: "center" });
+        // also focus first input inside modal for accessibility
+        const firstInput = modal.querySelector(
+          "input, select, textarea, button"
+        );
+        if (firstInput) firstInput.focus({ preventScroll: true });
+      } else {
+        // fallback: scroll to bottom of page
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    }, 60);
+
+    return () => clearTimeout(t);
+  }, [showBookingForm]);
 
   const loadTutorCourses = async () => {
     try {
@@ -1007,58 +1033,62 @@ const TutorProfilePage = () => {
             <div className="tutor-main-content">
               {/* Navigation Tabs */}
               <div className="tutor-tabs">
-                <button
-                  className={`tab-btn ${activeTab === "about" ? "active" : ""}`}
-                  onClick={() => setActiveTab("about")}
-                >
-                  <span>Giới thiệu</span>
-                </button>
-                <button
-                  className={`tab-btn ${
-                    activeTab === "subjects" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveTab("subjects")}
-                >
-                  <span>Môn dạy</span>
-                </button>
-                <button
-                  className={`tab-btn ${
-                    activeTab === "reviews" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveTab("reviews")}
-                >
-                  <span>Đánh giá</span>
-                </button>
-                <button
-                  className={`tab-btn ${
-                    activeTab === "courses" ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    setActiveTab("courses");
-                    if (courses.length === 0) loadTutorCourses();
-                  }}
-                >
-                  <span>Khóa học ({courses.length})</span>
-                </button>
-                <button
-                  className={`tab-btn ${
-                    activeTab === "schedule" ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    setActiveTab("schedule");
-                    if (availability.slots.length === 0) loadAvailability();
-                  }}
-                >
-                  <span>Lịch dạy</span>
-                </button>
-                <button
-                  className={`tab-btn ${
-                    activeTab === "certifications" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveTab("certifications")}
-                >
-                  <span>Chứng chỉ</span>
-                </button>
+                <div className="tab-list">
+                  <span
+                    className={activeTab === "about" ? "active" : ""}
+                    onClick={() => setActiveTab("about")}
+                  >
+                    <i className="fas fa-info-circle"></i>
+                    Giới thiệu
+                  </span>
+
+                  <span
+                    className={activeTab === "subjects" ? "active" : ""}
+                    onClick={() => setActiveTab("subjects")}
+                  >
+                    <i className="fas fa-book"></i>
+                    Môn dạy
+                  </span>
+
+                  <span
+                    className={activeTab === "reviews" ? "active" : ""}
+                    onClick={() => setActiveTab("reviews")}
+                  >
+                    <i className="fas fa-star"></i>
+                    Đánh giá
+                  </span>
+
+                  <span
+                    className={activeTab === "courses" ? "active" : ""}
+                    onClick={() => {
+                      setActiveTab("courses");
+                      if (courses.length === 0) loadTutorCourses();
+                    }}
+                    data-count={courses.length}
+                  >
+                    <i className="fas fa-graduation-cap"></i>
+                    Khóa học
+                  </span>
+
+                  <span
+                    className={activeTab === "schedule" ? "active" : ""}
+                    onClick={() => {
+                      setActiveTab("schedule");
+                      if (availability.slots.length === 0) loadAvailability();
+                    }}
+                  >
+                    <i className="fas fa-calendar-alt"></i>
+                    Lịch dạy
+                  </span>
+
+                  <span
+                    className={activeTab === "certifications" ? "active" : ""}
+                    onClick={() => setActiveTab("certifications")}
+                  >
+                    <i className="fas fa-certificate"></i>
+                    Chứng chỉ
+                  </span>
+                </div>
               </div>
 
               {/* Tab Content */}
@@ -1143,18 +1173,44 @@ const TutorProfilePage = () => {
                             tutor.availability.length > 0
                               ? tutor.availability
                                   .map((slot) => {
-                                    const daysVN = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // 0..6
+                                    const daysVN = [
+                                      "CN",
+                                      "T2",
+                                      "T3",
+                                      "T4",
+                                      "T5",
+                                      "T6",
+                                      "T7",
+                                    ]; // 0..6
                                     const mapStr = {
-                                      sunday: 0, sun: 0,
-                                      monday: 1, mon: 1, "t2": 1,
-                                      tuesday: 2, tue: 2, "t3": 2,
-                                      wednesday: 3, wed: 3, "t4": 3,
-                                      thursday: 4, thu: 4, "t5": 4,
-                                      friday: 5, fri: 5, "t6": 5,
-                                      saturday: 6, sat: 6, "t7": 6,
+                                      sunday: 0,
+                                      sun: 0,
+                                      monday: 1,
+                                      mon: 1,
+                                      t2: 1,
+                                      tuesday: 2,
+                                      tue: 2,
+                                      t3: 2,
+                                      wednesday: 3,
+                                      wed: 3,
+                                      t4: 3,
+                                      thursday: 4,
+                                      thu: 4,
+                                      t5: 4,
+                                      friday: 5,
+                                      fri: 5,
+                                      t6: 5,
+                                      saturday: 6,
+                                      sat: 6,
+                                      t7: 6,
                                     };
-                                    let d = slot.dayOfWeek ?? slot.day ?? slot.weekday ?? slot.dow;
-                                    if (typeof d === "string") d = mapStr[d.toLowerCase()] ?? 0;
+                                    let d =
+                                      slot.dayOfWeek ??
+                                      slot.day ??
+                                      slot.weekday ??
+                                      slot.dow;
+                                    if (typeof d === "string")
+                                      d = mapStr[d.toLowerCase()] ?? 0;
                                     if (typeof d === "number") {
                                       // Accept 1..7 or 0..6
                                       d = d === 7 ? 0 : d;
@@ -1162,8 +1218,13 @@ const TutorProfilePage = () => {
                                       d = 0;
                                     }
                                     const label = daysVN[d] || "CN";
-                                    const start = slot.start || slot.startTime || slot.from || "";
-                                    const end = slot.end || slot.endTime || slot.to || "";
+                                    const start =
+                                      slot.start ||
+                                      slot.startTime ||
+                                      slot.from ||
+                                      "";
+                                    const end =
+                                      slot.end || slot.endTime || slot.to || "";
                                     return `${label}: ${start}-${end}`;
                                   })
                                   .join(", ")
@@ -1516,7 +1577,9 @@ const TutorProfilePage = () => {
                     <h3>Lịch của gia sư</h3>
 
                     {availabilityLoading ? (
-                      <div className="loading-spinner">Đang tải lịch trống...</div>
+                      <div className="loading-spinner">
+                        Đang tải lịch trống...
+                      </div>
                     ) : (
                       <Timetable
                         available={availability.slots || []}
@@ -1682,7 +1745,7 @@ const TutorProfilePage = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="tutor-sidebar">
+            {/* <div className="tutor-sidebar">
               <div className="sidebar-card">
                 <h3>Thông tin liên hệ</h3>
                 <div className="contact-info">
@@ -1759,25 +1822,57 @@ const TutorProfilePage = () => {
                     <div>
                       <span className="info-label">Thời gian rảnh</span>
                       <span className="info-value">
-                        {Array.isArray(tutor.availability) && tutor.availability.length > 0
+                        {Array.isArray(tutor.availability) &&
+                        tutor.availability.length > 0
                           ? tutor.availability
                               .map((slot) => {
-                                const daysVN = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // 0..6
+                                const daysVN = [
+                                  "CN",
+                                  "T2",
+                                  "T3",
+                                  "T4",
+                                  "T5",
+                                  "T6",
+                                  "T7",
+                                ]; // 0..6
                                 const mapStr = {
-                                  sunday: 0, sun: 0,
-                                  monday: 1, mon: 1, "t2": 1,
-                                  tuesday: 2, tue: 2, "t3": 2,
-                                  wednesday: 3, wed: 3, "t4": 3,
-                                  thursday: 4, thu: 4, "t5": 4,
-                                  friday: 5, fri: 5, "t6": 5,
-                                  saturday: 6, sat: 6, "t7": 6,
+                                  sunday: 0,
+                                  sun: 0,
+                                  monday: 1,
+                                  mon: 1,
+                                  t2: 1,
+                                  tuesday: 2,
+                                  tue: 2,
+                                  t3: 2,
+                                  wednesday: 3,
+                                  wed: 3,
+                                  t4: 3,
+                                  thursday: 4,
+                                  thu: 4,
+                                  t5: 4,
+                                  friday: 5,
+                                  fri: 5,
+                                  t6: 5,
+                                  saturday: 6,
+                                  sat: 6,
+                                  t7: 6,
                                 };
-                                let d = slot.dayOfWeek ?? slot.day ?? slot.weekday ?? slot.dow;
-                                if (typeof d === "string") d = mapStr[d.toLowerCase()] ?? 0;
+                                let d =
+                                  slot.dayOfWeek ??
+                                  slot.day ??
+                                  slot.weekday ??
+                                  slot.dow;
+                                if (typeof d === "string")
+                                  d = mapStr[d.toLowerCase()] ?? 0;
                                 if (typeof d === "number") d = d === 7 ? 0 : d;
                                 const label = daysVN[d] || "CN";
-                                const start = slot.start || slot.startTime || slot.from || "";
-                                const end = slot.end || slot.endTime || slot.to || "";
+                                const start =
+                                  slot.start ||
+                                  slot.startTime ||
+                                  slot.from ||
+                                  "";
+                                const end =
+                                  slot.end || slot.endTime || slot.to || "";
                                 return `${label}: ${start}-${end}`;
                               })
                               .join(", ")
@@ -1837,7 +1932,7 @@ const TutorProfilePage = () => {
                   )}
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -2925,7 +3020,11 @@ function Timetable({ available = [], booked = [], onPick }) {
   };
 
   // Week window
-  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const addDays = (d, n) => {
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
+  };
   const startOfWeekMon = (d) => {
     const x = new Date(d);
     const day = x.getDay();
@@ -2940,8 +3039,12 @@ function Timetable({ available = [], booked = [], onPick }) {
     return t >= windowStart && t < windowEnd;
   };
 
-  available.filter((s) => inWindow(s.date)).forEach((s) => addToGrid(s.date, s.start, s.end, "available"));
-  booked.filter((s) => inWindow(s.date)).forEach((s) => addToGrid(s.date, s.start, s.end, "booked"));
+  available
+    .filter((s) => inWindow(s.date))
+    .forEach((s) => addToGrid(s.date, s.start, s.end, "available"));
+  booked
+    .filter((s) => inWindow(s.date))
+    .forEach((s) => addToGrid(s.date, s.start, s.end, "booked"));
 
   const periods = [
     { key: "morning", label: "Sáng" },
@@ -2976,9 +3079,15 @@ function Timetable({ available = [], booked = [], onPick }) {
           Tuần trước
         </button>
         <div className="tt-range">
-          {windowStart.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+          {windowStart.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+          })}
           {" - "}
-          {addDays(windowStart, 6).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+          {addDays(windowStart, 6).toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+          })}
         </div>
         <button className="tt-nav" onClick={() => setWeekOffset((v) => v + 1)}>
           Tuần sau
@@ -2987,7 +3096,9 @@ function Timetable({ available = [], booked = [], onPick }) {
       <div className="tt-head">
         <div className="tt-cell tt-corner"></div>
         {days.map((d, i) => (
-          <div key={i} className="tt-cell tt-day">{d}</div>
+          <div key={i} className="tt-cell tt-day">
+            {d}
+          </div>
         ))}
       </div>
       {periods.map((p) => (
@@ -3004,11 +3115,15 @@ function Timetable({ available = [], booked = [], onPick }) {
                 {items.map((s, idx) => (
                   <div
                     key={idx}
-                    className={`tt-slot ${s.type === "available" ? "tt-available" : "tt-booked"}`}
+                    className={`tt-slot ${
+                      s.type === "available" ? "tt-available" : "tt-booked"
+                    }`}
                     onClick={() => handleClick(s)}
                     role={s.type === "available" ? "button" : undefined}
                   >
-                    <span className="tt-time">{s.start} – {s.end}</span>
+                    <span className="tt-time">
+                      {s.start} – {s.end}
+                    </span>
                   </div>
                 ))}
               </div>
