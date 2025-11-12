@@ -427,11 +427,20 @@ const banUser = async (req, res) => {
 // Tutor management
 const getTutors = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, search, role } = req.query;
+    const { page = 1, limit = 1000, status = 'all', search } = req.query; // Tăng limit lên 1000 để lấy tất cả
     const skip = (page - 1) * limit;
 
+    console.log('=== ADMIN GET TUTORS (FULL DEBUG) ===');
+    console.log('Query params:', { page, limit, status, search });
+
     let query = {};
-    if (status) query.status = status;
+    
+    // Filter theo status - LẤY TẤT CẢ nếu status = 'all'
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    // Không filter gì cả nếu status = 'all' để lấy TẤT CẢ đơn kể cả draft, null, undefined
+    
     if (search) {
       query.$or = [
         { bio: { $regex: search, $options: "i" } },
@@ -440,43 +449,73 @@ const getTutors = async (req, res) => {
       ];
     }
 
-    // Populate tutors với thông tin user đầy đủ
-    let tutors = await TutorProfile.find(query)
-      .populate("user", "full_name email phone_number status role")
-      .sort({ created_at: -1 })
+    console.log("🔍 MongoDB Query:", JSON.stringify(query, null, 2));
+
+    // Lấy TẤT CẢ đơn, không loại bỏ đơn nào
+    const tutors = await TutorProfile.find(query)
+      .populate("user", "fullName email phone role isVerified") // Sửa field names
+      .sort({ createdAt: -1 }) // Sửa field name
+      .skip(skip)
+      .limit(parseInt(limit))
       .lean();
 
-    // Filter theo role của user
-    // Default: chỉ hiển thị đơn của learner (đơn chờ duyệt CV)
-    // role=tutor: hiển thị đơn đã duyệt (người đã là tutor)
-    // role=all: hiển thị tất cả
-    const roleFilter = role || "learner";
+    const total = await TutorProfile.countDocuments(query);
 
-    if (roleFilter !== "all") {
-      tutors = tutors.filter((tutor) => {
-        if (!tutor.user) return false;
-        return tutor.user.role === roleFilter;
-      });
-    }
+    console.log(`📈 Found ${tutors.length} tutors out of ${total} total`);
 
-    // Pagination sau khi filter
-    const total = tutors.length;
-    const paginatedTutors = tutors.slice(skip, skip + parseInt(limit));
+    // Debug: Thống kê tất cả status có trong DB
+    const allStatusStats = await TutorProfile.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    console.log("📊 All statuses in DB:", allStatusStats);
+
+    // Debug: Status breakdown của kết quả trả về
+    const statusBreakdown = {};
+    tutors.forEach(tutor => {
+      const tutorStatus = tutor.status || 'null/undefined';
+      statusBreakdown[tutorStatus] = (statusBreakdown[tutorStatus] || 0) + 1;
+    });
+    console.log("📋 Status breakdown in result:", statusBreakdown);
+
+    // Debug: User info
+    const userStats = {
+      hasUser: tutors.filter(t => t.user).length,
+      noUser: tutors.filter(t => !t.user).length
+    };
+    console.log("👥 User stats:", userStats);
+
+    // Debug: Detailed info của 10 đơn đầu
+    console.log("🔍 Detailed info (first 10):");
+    tutors.slice(0, 10).forEach((t, index) => {
+      console.log(`  ${index + 1}. ID: ${t._id.toString().slice(-8)}`);
+      console.log(`     Status: ${t.status || 'NO STATUS'}`);
+      console.log(`     User: ${t.user ? t.user.fullName || 'NO NAME' : 'NO USER'}`);
+      console.log(`     Created: ${t.createdAt}`);
+    });
 
     res.json({
-      tutors: paginatedTutors,
+      success: true,
+      data: tutors, // Đổi từ tutors thành data để match frontend
       pagination: {
-        current: parseInt(page),
-        pages: Math.ceil(total / limit),
+        page: parseInt(page),
+        limit: parseInt(limit),
         total,
+        totalPages: Math.ceil(total / parseInt(limit))
       },
-      filter: {
-        role: roleFilter,
-      },
+      debug: {
+        allStatusStats,
+        statusBreakdown,
+        userStats,
+        totalInDB: total
+      }
     });
   } catch (error) {
-    console.error("Error getting tutors:", error);
-    res.status(500).json({ message: "Error fetching tutors" });
+    console.error("❌ Error getting tutors:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching tutors",
+      error: error.message 
+    });
   }
 };
 
@@ -533,6 +572,7 @@ const updateTutorStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    // Cập nhật status của tutor profile
     const tutor = await TutorProfile.findByIdAndUpdate(
       id,
       { status },
@@ -543,65 +583,53 @@ const updateTutorStatus = async (req, res) => {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
-    // QUAN TRỌNG: Khi approve, tự động chuyển role từ learner sang tutor
+    // Gửi email thông báo khi approve
     if (status === "approved" && tutor.user) {
-      const user = await User.findById(tutor.user._id);
-
-      if (user && user.role === "learner") {
-        user.role = "tutor";
-        await user.save();
-
-        console.log(`✅ User ${user.email} role changed from learner to tutor`);
-
-        // Gửi email thông báo đơn được duyệt
-        const emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Chúc mừng! Đơn đăng ký gia sư đã được duyệt</h1>
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Chúc mừng! Đơn đăng ký gia sư đã được duyệt</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${tutor.user.full_name}</strong>,</p>
+            <p style="font-size: 16px; color: #1f2937;">Đơn đăng ký làm gia sư của bạn trên <strong>EduMatch</strong> đã được phê duyệt!</p>
+            
+            <div style="background: white; padding: 20px; border-left: 4px solid #10b981; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #10b981; font-size: 14px; font-weight: 600;">✅ Trạng thái:</p>
+              <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px;">Đơn đăng ký đã được duyệt - ID: ${tutor._id}</p>
             </div>
-            <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${
-                user.full_name
-              }</strong>,</p>
-              <p style="font-size: 16px; color: #1f2937;">Đơn đăng ký làm gia sư của bạn trên <strong>EduMatch</strong> đã được phê duyệt!</p>
-              
-              <div style="background: white; padding: 20px; border-left: 4px solid #10b981; margin: 20px 0; border-radius: 4px;">
-                <p style="margin: 0; color: #10b981; font-size: 14px; font-weight: 600;">✅ Trạng thái:</p>
-                <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px;">Đã duyệt - Bạn giờ là gia sư chính thức của EduMatch</p>
-              </div>
-              
-              <div style="background: #d1fae5; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                <p style="font-size: 14px; color: #065f46; margin: 0; font-weight: 600;">🚀 Bước tiếp theo:</p>
-                <ul style="margin: 10px 0; padding-left: 20px; color: #065f46;">
-                  <li>Hoàn thiện hồ sơ gia sư của bạn</li>
-                  <li>Cập nhật lịch rảnh để học viên có thể đặt lịch</li>
-                  <li>Bắt đầu nhận đơn đặt lịch từ học viên</li>
-                </ul>
-              </div>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${
-                  process.env.FRONTEND_URL || "http://localhost:3000"
-                }/profile" 
-                   style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
-                  Xem hồ sơ gia sư của tôi
-                </a>
-              </div>
-              
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                <p style="font-size: 14px; color: #6b7280; margin: 0;">Chúc bạn thành công với vai trò gia sư mới!</p>
-                <p style="font-size: 14px; color: #6b7280; margin: 5px 0 0 0;"><strong>Đội ngũ EduMatch</strong></p>
-              </div>
+            
+            <div style="background: #d1fae5; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="font-size: 14px; color: #065f46; margin: 0; font-weight: 600;">🚀 Bước tiếp theo:</p>
+              <ul style="margin: 10px 0; padding-left: 20px; color: #065f46;">
+                <li>Hoàn thiện hồ sơ gia sư của bạn</li>
+                <li>Cập nhật lịch rảnh để học viên có thể đặt lịch</li>
+                <li>Bắt đầu nhận đơn đặt lịch từ học viên</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/profile" 
+                 style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
+                Xem hồ sơ gia sư
+              </a>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+              <p style="font-size: 14px; color: #6b7280; margin: 0;">Chúc bạn thành công với vai trò gia sư!</p>
+              <p style="font-size: 14px; color: #6b7280; margin: 5px 0 0 0;"><strong>Đội ngũ EduMatch</strong></p>
             </div>
           </div>
-        `;
+        </div>
+      `;
 
-        await sendEmail(
-          user.email,
-          "🎉 Đơn đăng ký gia sư đã được duyệt - EduMatch",
-          emailHtml
-        );
-      }
+      await sendEmail(
+        tutor.user.email,
+        "🎉 Đơn đăng ký gia sư đã được duyệt - EduMatch",
+        emailHtml
+      );
+
+      console.log(`✅ Tutor profile ${tutor._id} approved for user ${tutor.user.email}`);
     }
 
     // Gửi email nếu bị từ chối
