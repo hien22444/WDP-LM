@@ -41,13 +41,88 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Global button system for Tutor profile page (consistent, colorful)
+   These styles are intentionally general so existing .btn, .btn-primary, etc.
+   will pick them up and look visually unified across the page. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #111827;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease, opacity 0.12s ease;
+  box-shadow: 0 2px 8px rgba(16,24,40,0.04);
+  text-decoration: none;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 4px 18px rgba(99,102,241,0.12);
+}
+.btn:active { transform: translateY(1px); }
+.btn[disabled], .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Primary - bold gradient */
+.btn-primary {
+  background: linear-gradient(90deg, #6366f1 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.12);
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(99,102,241,0.16); }
+
+/* Secondary - soft neutral */
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e6e9ef;
+}
+.btn-secondary:hover:not(:disabled) { background: #e9eefb; transform: translateY(-1px); }
+
+/* Outline - colored border with transparent fill */
+.btn-outline {
+  background: transparent;
+  color: #6366f1;
+  border: 1px solid rgba(99,102,241,0.16);
+}
+.btn-outline:hover:not(:disabled) { background: rgba(99,102,241,0.06); color: #3730a3; }
+
+/* Danger */
+.btn-danger {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(220,38,38,0.14); }
+
+/* Success */
+.btn-success {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  color: #fff;
+}
+.btn-success:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(16,185,129,0.14); }
+
+/* Small and large variants */
+.btn-sm { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+.btn-lg { padding: 14px 22px; font-size: 16px; border-radius: 12px; }
+
+/* Utility color-only variant */
+.btn-ghost { background: transparent; color: #6b7280; border: none; }
+
+
 .tutor-profile-page {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0;
+  padding: 8px 0 40px 0;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
 
   // Page Title - Modern Design
   .page-title {
@@ -94,7 +169,7 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
-  min-height: 200px;
+  min-height: 160px;
 
   &::before {
     content: '';
@@ -116,8 +191,8 @@
   .tutor-header-content {
     display: flex;
     align-items: center;
-    gap: 40px;
-    padding: 40px;
+    gap: 28px;
+    padding: 28px 20px;
     animation: contentFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     z-index: 2;
@@ -139,9 +214,9 @@
 
     .tutor-avatar {
       position: relative;
-      width: 180px;
-      height: 180px;
-      margin-bottom: 24px;
+      width: 200px;
+      height: 200px;
+      margin-bottom: 18px;
         
       img {
         width: 100%;
@@ -172,7 +247,7 @@
         backdrop-filter: blur(10px);
 
         i {
-          font-size: 50px;
+          font-size: 46px;
           color: white;
           text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
@@ -205,9 +280,9 @@
 
         .contact-label {
           font-weight: 600;
-          color: rgba(255, 255, 255, 0.9);
-          min-width: 120px;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+          color: rgba(255, 255, 255, 0.95);
+          min-width: 110px;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
         }
         
         span:not(.contact-label) {
@@ -228,12 +303,12 @@
     color: white;
 
     .tutor-name {
-      font-size: 2.5rem;
+      font-size: 2.4rem;
       font-weight: 800;
-      margin: 0 0 20px 0;
+      margin: 0 0 14px 0;
       color: white;
-      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      letter-spacing: -0.025em;
+      text-shadow: 0 3px 6px rgba(0, 0, 0, 0.18);
+      letter-spacing: -0.02em;
     }
 
     .tutor-location {
@@ -258,17 +333,17 @@
       gap: 8px;
       margin-bottom: 16px;
 
-      .subject-tag {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 600;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  .subject-tag {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  transition: all 0.22s ease;
+  backdrop-filter: blur(8px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 
         &:hover {
           background: rgba(255, 255, 255, 0.3);
@@ -342,7 +417,7 @@
     .tutor-actions {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
       min-width: 160px;
 
       .btn {
@@ -362,7 +437,7 @@
           
         &.btn-primary {
           background: white;
-            color: #667eea;
+            color: #5058d4;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
         &:hover {
@@ -373,7 +448,7 @@
         }
 
         &.btn-outline {
-          background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
     color: white;
           border: 1px solid rgba(255, 255, 255, 0.3);
 
@@ -662,7 +737,7 @@
     .tutor-tabs,
     .contact-card {
       background: #2d3748;
-      color: #e2e8f0;
+      color: #0769e9;
     }
   }
 
@@ -1016,7 +1091,7 @@
 
 // Content Section – cleaned and balanced
 .tutor-profile-content {
-  padding: 80px 0;
+  padding: 48px 0;
   background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   border-top: 1px solid #e2e8f0;
   border-bottom: 1px solid #e2e8f0;
@@ -1026,16 +1101,16 @@
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 28px;
     width: 100%;
   }
 
   /* Layout chính giữa phần nội dung và sidebar */
   .tutor-content-layout {
-    display: grid;
-    grid-template-columns: 3fr 1.1fr;
-    align-items: start;
-    gap: 32px;
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  align-items: start;
+  gap: 24px;
     animation: contentSlideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
 
     /* Make sidebar sticky for better UX on long pages */
@@ -1043,13 +1118,12 @@
 
     > * {
       background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 20px;
+      border: 1px solid #edf2f7;
+      border-radius: 16px;
       box-shadow:
-        0 4px 10px rgba(0, 0, 0, 0.04),
-        0 10px 30px rgba(0, 0, 0, 0.03);
-      padding: 36px;
-      transition: all 0.35s ease;
+        0 6px 18px rgba(15, 23, 42, 0.04);
+      padding: 28px;
+      transition: all 0.28s ease;
     }
 
     > *:hover {
@@ -1181,8 +1255,8 @@
 
   .tab-navigation button.active {
     color: #1e3a8a;
-    background: #e0e7ff;
-    border-bottom: 3px solid #2563eb;
+    background: #eef2ff;
+    border-bottom: 3px solid #3b82f6;
   }
 
   .tab-navigation button:hover {
@@ -1204,65 +1278,50 @@
 // Main Content - Modern Design
 .tutor-main-content {
   .tutor-tabs {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    gap: 10px;
+    padding: 6px 8px;
     margin: 0 auto 28px auto;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 9999px; /* full pill */
-    box-shadow: 0 8px 30px rgba(17, 24, 39, 0.08);
-    transition: box-shadow .2s ease, transform .2s ease;
-    position: sticky;
-    top: 10px;
-    z-index: 5;
-    backdrop-filter: saturate(130%) blur(6px);
+    background: rgba(255,255,255,0.92);
+    border-radius: 9999px;
+    box-shadow: 0 2px 12px rgba(99,102,241,0.07);
+    position: relative;
+    max-width: 100%;
     overflow-x: auto;
-    max-width: calc(100% - 32px);
-
-          &:hover {
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.12);
-      transform: translateY(-4px);
+    border: none;
+    z-index: 10;
+    min-height: 48px;
+    @media (max-width: 600px) {
+      gap: 4px;
+      padding: 4px 2px;
     }
 
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
-        z-index: -1;
-      }
-
-    &:hover { box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08); }
-
     .tab-btn {
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      border: none !important;
-      background: transparent !important;
-      padding: 10px 18px;
+      border: none;
+      background: none;
+      padding: 10px 22px;
       font-size: 15px;
       font-weight: 600;
-      color: #475569;
-      cursor: pointer;
-      outline: none !important;
-      box-shadow: none !important;
+      color: #6366f1;
       border-radius: 9999px;
-      transition: color .2s ease, border-color .2s ease, background .2s ease, transform .12s ease;
-
-      &:hover { color: #111827; background: #f1f5ff !important; transform: translateY(-1px); }
-
-      &:focus-visible { box-shadow: 0 0 0 3px rgba(99,102,241,0.25) !important; }
-
+      transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+      cursor: pointer;
+      outline: none;
+      box-shadow: none;
+      margin: 0;
+      position: relative;
+      z-index: 1;
+      letter-spacing: 0.01em;
+      &:hover, &:focus {
+        background: #eef2ff;
+        color: #3730a3;
+      }
       &.active {
-        color: #ffffff;
-        background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%) !important;
-        box-shadow: 0 10px 18px rgba(99,102,241,0.28);
+        background: linear-gradient(90deg, #6366f1 0%, #7c3aed 100%);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.13);
+        font-weight: 700;
       }
     }
 
@@ -1337,7 +1396,7 @@
       }
 
     .tab-content {
-      padding: 48px 60px;
+      padding: 32px 40px;
       position: relative;
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%);
       border-radius: 0 0 24px 24px;
@@ -1409,10 +1468,12 @@
         }
 
         .tutor-details-grid {
-          display: flex;
-          flex-direction: column;
+          // display: flex;
+          // flex-direction: column;
           gap: 20px;
           margin-bottom: 32px;
+          display: grid;  /* THÊM DÒNG NÀY */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* THÊM DÒNG NÀY */
 
           .detail-item {
             background: #ffffff;
@@ -2438,21 +2499,163 @@
     }
 
     .tutor-main-content {
-    .tutor-tabs {
-        .tab-nav {
-          flex-wrap: wrap;
+    // .tutor-tabs {
+    //     .tab-nav {
+    //       flex-wrap: wrap;
           
-          .tab-item {
-            flex: 1 1 calc(50% - 8px);
-            padding: 16px 12px;
-            font-size: 14px;
-          }
-        }
+    //       .tab-item {
+    //         flex: 1 1 calc(50% - 8px);
+    //         padding: 16px 12px;
+    //         font-size: 14px;
+    //       }
+    //     }
         
-        .tab-content {
-          padding: 24px;
-        }
-      }
+    //     .tab-content {
+    //       padding: 24px;
+    //     }
+    //   }
+    /* --- GIAO DIỆN TAB HIỆN ĐẠI (CSS THUẦN) --- */
+
+/* Khung viền ngoài cho toàn bộ component */
+.tutor-tabs {
+  /* 1. KHUNG CARD BÊN NGOÀI */
+  /* Giao diện này không cần khung viền ngoài, 
+     vì các tab sẽ nằm "lơ lửng" trên nền. 
+     Bạn có thể giữ lại nếu muốn. */
+  // border: 1px solid #e0e0e0;
+  // border-radius: 8px;
+  // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff; // Giữ lại nền trắng
+  overflow: hidden; // Giữ lại
+  border-radius: 8px; // Giữ lại bo góc cho khung
+
+  /* 2. THANH CHỨA CÁC TAB */
+  .tab-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    
+    /* * THAY ĐỔI: Thêm padding cho thanh nav
+     * để các tab bo tròn không bị dính sát mép.
+     */
+    padding: 8px; 
+    
+    background-color: #f0f2f5; // Màu nền xám nhẹ
+    border-bottom: 1px solid #e0e0e0; // Vẫn giữ đường kẻ
+    overflow-x: auto;
+
+    /* Ẩn thanh cuộn */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  /* --- 3. TỪNG MỤC TAB (THAY ĐỔI LỚN) --- */
+  .tab-item {
+    flex: 0 0 auto;
+    
+    /* * THAY ĐỔI: Padding cho kiểu "Pill" */
+    padding: 8px 20px; 
+    font-size: 15px; // Giảm 1px cho gọn
+    font-weight: 600; // Đậm hơn
+    color: #555;
+    text-align: center;
+    cursor: pointer;
+    background: none;
+    border: none;
+    
+    /* * THAY ĐỔI: Thêm bo góc */
+    border-radius: 30px; // Bo tròn để tạo hình viên thuốc
+    
+    /* Bỏ các thuộc tính cũ */
+    // border-bottom: 3px solid transparent;
+    // margin-bottom: -1px; 
+    
+    transition: all 0.2s ease-in-out;
+
+    /* Khi di chuột qua */
+    &:hover {
+      color: #000;
+      background-color: #e4e6e8; // Màu xám nhạt khi hover
+    }
+
+    /* * THAY ĐỔI: Trạng thái ACTIVE */
+    &.active {
+      color: #fff; // Chữ trắng
+      background-color: #007bff; // Nền xanh (màu chủ đạo)
+      
+      /* Bỏ các thuộc tính active cũ */
+      // border-bottom-color: #007bff; 
+    }
+  }
+
+  /* 4. KHUNG CHỨA NỘI DUNG (Giữ nguyên) */
+  .tab-content {
+    padding: 24px;
+    line-height: 1.6;
+  }
+}
+
+/* 1. Thanh điều hướng (chứa các tab) */
+.tutor-tabs .tab-nav {
+  display: flex;
+  flex-wrap: nowrap; /* QUAN TRỌNG: Giữ các tab trên 1 hàng */
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f9f9f9;
+  
+  /* Cho phép cuộn ngang trên di động */
+  overflow-x: auto;
+  
+  /* Ẩn thanh cuộn */
+  -ms-overflow-style: none; /* IE, Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Ẩn thanh cuộn cho Chrome, Safari */
+.tutor-tabs .tab-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* 2. Từng mục tab (Tab Item) */
+.tutor-tabs .tab-item {
+  flex: 0 0 auto;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #555;
+  text-align: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  
+  /* Đường viền "ảo" bên dưới */
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  
+  /* Hiệu ứng mượt mà */
+  transition: all 0.3s ease;
+}
+
+/* 3. Hiệu ứng khi HOVER */
+.tutor-tabs .tab-item:hover {
+  color: #000;
+  background-color: #f0f0f0;
+}
+
+/* 4. Trạng thái ACTIVE (Tab đang được chọn) */
+.tutor-tabs .tab-item.active {
+  color: #007bff; /* Màu chủ đạo */
+  font-weight: 700;
+  border-bottom-color: #007bff;
+  background-color: #fff;
+}
+
+/* 5. Phần Nội dung Tab */
+.tutor-tabs .tab-content {
+  padding: 24px;
+  line-height: 1.6;
+}
     }
     
     .certifications-section {
@@ -2596,3 +2799,4 @@
       }
     }
   }
+  

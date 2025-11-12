@@ -259,7 +259,7 @@
 // export default App;
 
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import SignIn from "./components/Auth/Sign in/SignIn";
 import SignUp from "./components/Auth/Sign up/SignUp";
 import VerifyAccount from "./components/Auth/VerifyAccount";
@@ -309,6 +309,7 @@ import { ChatProvider } from "./contexts/ChatContext";
 import ChatManager from "./components/Chat/ChatManager";
 import MessagesPage from "./pages/Messages";
 import ChatWidget from "./components/ChatBot/ChatWidget";
+import FavoriteTutors from "./pages/Tutor/FavoriteTutors";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -325,6 +326,13 @@ function App() {
   const [showProfileCompletion, setShowProfileCompletion] = useState(false);
   const [profileCompletion, setProfileCompletion] = useState(null);
 
+  const dispatch = useDispatch();
+
+  // Effect để khôi phục user state khi app khởi động
+  useEffect(() => {
+    dispatch({ type: "user/restoreUser" });
+  }, [dispatch]);
+
   useEffect(() => {
     if (isAuthenticated) {
       const needsCompletion = authService.needsProfileCompletion();
@@ -336,7 +344,6 @@ function App() {
       }
     }
   }, [isAuthenticated]);
-
   const handleProfileCompletion = (result) => {
     if (result.profileCompleted) {
       const updatedCompletion = { ...profileCompletion, completed: true };
@@ -415,7 +422,6 @@ function App() {
           <Route path="/help" element={<div>Help Page</div>} />
           <Route path="/faq" element={<div>FAQ Page</div>} />
         </Route>
-
         {/* Protected routes - Dashboard and other features */}
         <Route element={<ChatLayout />}>
           <Route
@@ -486,6 +492,28 @@ function App() {
               )
             }
           />
+          <Route
+            path="/favorite-tutors"
+            element={
+              isAuthenticated ? (
+                userRole === "learner" ? (
+                  <FavoriteTutors />
+                ) : (
+                  <Navigate
+                    to="/dashboard"
+                    replace
+                    state={{ from: "favorite-tutors" }}
+                  />
+                )
+              ) : (
+                <Navigate
+                  to="/signin"
+                  replace
+                  state={{ from: "favorite-tutors" }}
+                />
+              )
+            }
+          />
           <Route path="/room/:roomId" element={<GoogleMeetStyle />} />
         </Route>
 
@@ -506,7 +534,6 @@ function App() {
 
       {/* Chat Manager - Hiển thị các cửa sổ chat với gia sư */}
       <ChatManager />
-
       {/* Floating AI chat widget */}
       <ChatWidget />
     </ChatProvider>

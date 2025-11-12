@@ -144,8 +144,33 @@ class ChatSocket {
 
           // Nếu có conversationId (kiến trúc mới)
           if (conversationId) {
-            // Verify user has access to this conversation
-            const conversation = await Conversation.findById(conversationId);
+            // ConversationId may be either an ObjectId (new architecture)
+            // or a legacy roomId string like "chat_<id1>_<id2>". Be defensive
+            // to avoid passing a non-ObjectId string to findById which throws.
+            const mongoose = require("mongoose");
+            let conversation = null;
+
+            if (mongoose.Types.ObjectId.isValid(conversationId)) {
+              conversation = await Conversation.findById(conversationId);
+            } else if (
+              typeof conversationId === "string" &&
+              conversationId.startsWith("chat_")
+            ) {
+              // Parse participant ids from legacy roomId and find/create conversation
+              const [id1, id2] = conversationId
+                .replace("chat_", "")
+                .split("_")
+                .sort();
+              conversation = await Conversation.findOrCreate(id1, id2);
+              // Keep actualConversationId as the real conversation _id
+              actualConversationId = conversation._id;
+            } else {
+              socket.emit("error", {
+                message: "Conversation not found or invalid id",
+              });
+              return;
+            }
+
             if (!conversation) {
               socket.emit("error", { message: "Conversation not found" });
               return;
@@ -155,25 +180,34 @@ class ChatSocket {
               (p) => String(p._id || p) === String(socket.userId)
             );
             if (!isParticipant) {
-              socket.emit("error", { message: "Access denied to conversation" });
+              socket.emit("error", {
+                message: "Access denied to conversation",
+              });
               return;
             }
 
-            // Generate roomId từ conversationId để backward compatibility
-            const [id1, id2] = conversation.participants.map(p => String(p._id || p)).sort();
-            actualRoomId = `chat_${id1}_${id2}`;
-          } 
+            // Generate roomId từ conversation participants để backward compatibility
+            const [aid1, aid2] = conversation.participants
+              .map((p) => String(p._id || p))
+              .sort();
+            actualRoomId = `chat_${aid1}_${aid2}`;
+          }
           // Nếu chỉ có roomId (backward compatibility)
           else if (roomId) {
             // Verify user has access to this room
-            const hasAccess = await this.verifyRoomAccess(socket.userId, roomId);
+            const hasAccess = await this.verifyRoomAccess(
+              socket.userId,
+              roomId
+            );
             if (!hasAccess) {
               socket.emit("error", { message: "Access denied to chat room" });
               return;
             }
             actualRoomId = roomId;
           } else {
-            socket.emit("error", { message: "conversationId or roomId is required" });
+            socket.emit("error", {
+              message: "conversationId or roomId is required",
+            });
             return;
           }
 
@@ -186,15 +220,20 @@ class ChatSocket {
           // Join socket room - join cả conversationId và roomId để đảm bảo nhận được messages
           if (actualConversationId) {
             socket.join(String(actualConversationId));
-            console.log(`✅ Joined conversationId room: ${actualConversationId}`);
+            console.log(
+              `✅ Joined conversationId room: ${actualConversationId}`
+            );
           }
           if (actualRoomId) {
             socket.join(actualRoomId);
             console.log(`✅ Joined roomId room: ${actualRoomId}`);
           }
-          
+
           // Store room mapping
-          this.userRooms.set(socket.userId, actualRoomId || String(actualConversationId));
+          this.userRooms.set(
+            socket.userId,
+            actualRoomId || String(actualConversationId)
+          );
 
           // Load chat history
           let messages = [];
@@ -270,7 +309,33 @@ class ChatSocket {
 
           // Nếu có conversationId (kiến trúc mới)
           if (conversationId) {
-            conversation = await Conversation.findById(conversationId);
+            // Defensive handling: conversationId might be an ObjectId or a legacy roomId string
+            const mongoose = require("mongoose");
+            if (mongoose.Types.ObjectId.isValid(conversationId)) {
+              conversation = await Conversation.findById(conversationId);
+            } else if (
+              typeof conversationId === "string" &&
+              conversationId.startsWith("chat_")
+            ) {
+              const [id1, id2] = conversationId
+                .replace("chat_", "")
+                .split("_")
+                .sort();
+              conversation = await Conversation.findOrCreate(id1, id2);
+              actualConversationId = conversation._id;
+            } else {
+              socket.emit("error", {
+                message: "Conversation not found or invalid id",
+              });
+              if (typeof ack === "function") {
+                ack({
+                  status: "error",
+                  error: "Conversation not found or invalid id",
+                });
+              }
+              return;
+            }
+
             if (!conversation) {
               socket.emit("error", { message: "Conversation not found" });
               if (typeof ack === "function") {
@@ -293,7 +358,9 @@ class ChatSocket {
 
             // Get receiverId from conversation if not provided
             if (!receiverId) {
-              const otherParticipant = conversation.getOtherParticipant(socket.userId);
+              const otherParticipant = conversation.getOtherParticipant(
+                socket.userId
+              );
               if (!otherParticipant) {
                 socket.emit("error", { message: "Invalid conversation" });
                 if (typeof ack === "function") {
@@ -301,26 +368,36 @@ class ChatSocket {
                 }
                 return;
               }
-              actualReceiverId = String(otherParticipant._id || otherParticipant);
+              actualReceiverId = String(
+                otherParticipant._id || otherParticipant
+              );
             } else {
               actualReceiverId = String(receiverId);
             }
 
             // Generate roomId từ conversation participants để đảm bảo consistency
-            const participants = conversation.participants.map(p => String(p._id || p)).sort();
+            const participants = conversation.participants
+              .map((p) => String(p._id || p))
+              .sort();
             if (participants.length === 2) {
               actualRoomId = `chat_${participants[0]}_${participants[1]}`;
             } else {
               // Fallback nếu không có đủ participants
-              actualRoomId = conversationId.toString();
+              actualRoomId = (
+                actualConversationId || conversationId
+              ).toString();
             }
-            
-            console.log(`🔍 send_message: conversationId=${actualConversationId}, roomId=${actualRoomId}, senderId=${socket.userId}, receiverId=${actualReceiverId}`);
-          } 
+
+            console.log(
+              `🔍 send_message: conversationId=${actualConversationId}, roomId=${actualRoomId}, senderId=${socket.userId}, receiverId=${actualReceiverId}`
+            );
+          }
           // Nếu chỉ có roomId (backward compatibility) - tạo conversation mới
           else if (roomId) {
             if (!receiverId) {
-              socket.emit("error", { message: "receiverId is required when using roomId" });
+              socket.emit("error", {
+                message: "receiverId is required when using roomId",
+              });
               if (typeof ack === "function") {
                 ack({ status: "error", error: "receiverId is required" });
               }
@@ -328,7 +405,10 @@ class ChatSocket {
             }
 
             // Verify access
-            const hasAccess = await this.verifyRoomAccess(socket.userId, roomId);
+            const hasAccess = await this.verifyRoomAccess(
+              socket.userId,
+              roomId
+            );
             if (!hasAccess) {
               socket.emit("error", { message: "Access denied" });
               if (typeof ack === "function") {
@@ -344,9 +424,14 @@ class ChatSocket {
             actualReceiverId = String(receiverId);
             actualRoomId = roomId;
           } else {
-            socket.emit("error", { message: "conversationId or roomId is required" });
+            socket.emit("error", {
+              message: "conversationId or roomId is required",
+            });
             if (typeof ack === "function") {
-              ack({ status: "error", error: "conversationId or roomId is required" });
+              ack({
+                status: "error",
+                error: "conversationId or roomId is required",
+              });
             }
             return;
           }
@@ -359,7 +444,8 @@ class ChatSocket {
           const senderRole = socket.userRole;
           if (senderRole === receiverRole) {
             socket.emit("error", {
-              message: "Invalid communication: tutors can only message learners and vice versa",
+              message:
+                "Invalid communication: tutors can only message learners and vice versa",
             });
             if (typeof ack === "function") {
               ack({ status: "error", error: "Invalid communication" });
@@ -383,7 +469,8 @@ class ChatSocket {
           console.log("💾 Preparing to save message:", {
             conversationId: actualConversationId,
             conversationIdType: typeof actualConversationId,
-            conversationIdValid: mongoose.Types.ObjectId.isValid(actualConversationId),
+            conversationIdValid:
+              mongoose.Types.ObjectId.isValid(actualConversationId),
             roomId: actualRoomId,
             senderId: socket.userId,
             senderIdType: typeof socket.userId,
@@ -403,15 +490,19 @@ class ChatSocket {
           while (retryCount < maxRetries && !savedMessage) {
             try {
               // Convert IDs to ObjectId nếu cần
-              const conversationIdObj = mongoose.Types.ObjectId.isValid(actualConversationId)
+              const conversationIdObj = mongoose.Types.ObjectId.isValid(
+                actualConversationId
+              )
                 ? new mongoose.Types.ObjectId(actualConversationId)
                 : actualConversationId;
-              
+
               const senderIdObj = mongoose.Types.ObjectId.isValid(socket.userId)
                 ? new mongoose.Types.ObjectId(socket.userId)
                 : socket.userId;
-              
-              const receiverIdObj = mongoose.Types.ObjectId.isValid(actualReceiverId)
+
+              const receiverIdObj = mongoose.Types.ObjectId.isValid(
+                actualReceiverId
+              )
                 ? new mongoose.Types.ObjectId(actualReceiverId)
                 : actualReceiverId;
 
@@ -428,39 +519,54 @@ class ChatSocket {
                 messageType: "text",
               });
 
-              console.log(`💾 Attempting to save message (attempt ${retryCount + 1}/${maxRetries})...`);
+              console.log(
+                `💾 Attempting to save message (attempt ${
+                  retryCount + 1
+                }/${maxRetries})...`
+              );
               savedMessage = await newMessage.save();
-              console.log(`✅ Message saved successfully! messageId: ${savedMessage._id}, conversationId: ${savedMessage.conversationId}, senderId: ${savedMessage.senderId}, receiverId: ${savedMessage.receiverId}`);
+              console.log(
+                `✅ Message saved successfully! messageId: ${savedMessage._id}, conversationId: ${savedMessage.conversationId}, senderId: ${savedMessage.senderId}, receiverId: ${savedMessage.receiverId}`
+              );
             } catch (err) {
               retryCount++;
-              console.error(`❌ Failed to save message, attempt ${retryCount}/${maxRetries}:`, err);
+              console.error(
+                `❌ Failed to save message, attempt ${retryCount}/${maxRetries}:`,
+                err
+              );
               console.error("❌ Error details:", {
                 conversationId: actualConversationId,
-                conversationIdValid: mongoose.Types.ObjectId.isValid(actualConversationId),
+                conversationIdValid:
+                  mongoose.Types.ObjectId.isValid(actualConversationId),
                 senderId: socket.userId,
                 senderIdValid: mongoose.Types.ObjectId.isValid(socket.userId),
                 receiverId: actualReceiverId,
-                receiverIdValid: mongoose.Types.ObjectId.isValid(actualReceiverId),
+                receiverIdValid:
+                  mongoose.Types.ObjectId.isValid(actualReceiverId),
                 errorMessage: err.message,
                 errorName: err.name,
                 errorCode: err.code,
                 errorStack: err.stack,
               });
-              
+
               if (retryCount === maxRetries) {
                 // Không throw error để tránh crash server, chỉ log và báo lỗi
-                console.error("❌ CRITICAL: Failed to persist message after multiple attempts");
+                console.error(
+                  "❌ CRITICAL: Failed to persist message after multiple attempts"
+                );
                 console.error("❌ Final error:", err);
-                socket.emit("error", { 
+                socket.emit("error", {
                   message: "Failed to save message. Please try again.",
-                  error: err.message 
+                  error: err.message,
                 });
                 if (typeof ack === "function") {
                   ack({ status: "error", error: "Failed to save message" });
                 }
                 return; // Return thay vì throw
               }
-              await new Promise((resolve) => setTimeout(resolve, 1000 * retryCount));
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * retryCount)
+              );
             }
           }
 
@@ -472,13 +578,18 @@ class ChatSocket {
             });
             console.log("✅ Conversation lastMessage updated");
           } catch (err) {
-            console.error("⚠️ Failed to update conversation lastMessage (non-critical):", err);
+            console.error(
+              "⚠️ Failed to update conversation lastMessage (non-critical):",
+              err
+            );
             // Không throw, tiếp tục xử lý
           }
 
           // Kiểm tra savedMessage có tồn tại không
           if (!savedMessage) {
-            console.error("❌ CRITICAL: savedMessage is null after save attempts");
+            console.error(
+              "❌ CRITICAL: savedMessage is null after save attempts"
+            );
             socket.emit("error", { message: "Failed to save message" });
             if (typeof ack === "function") {
               ack({ status: "error", error: "Failed to save message" });
@@ -506,14 +617,20 @@ class ChatSocket {
           try {
             // Emit đến room bằng conversationId (nếu có)
             if (actualConversationId) {
-              chatNamespace.to(String(actualConversationId)).emit("chat_message", messageData);
-              console.log(`📤 Message broadcasted to conversationId room: ${actualConversationId}`);
+              chatNamespace
+                .to(String(actualConversationId))
+                .emit("chat_message", messageData);
+              console.log(
+                `📤 Message broadcasted to conversationId room: ${actualConversationId}`
+              );
             }
-            
+
             // Emit đến room bằng roomId (backward compatibility)
             if (actualRoomId) {
               chatNamespace.to(actualRoomId).emit("chat_message", messageData);
-              console.log(`📤 Message broadcasted to roomId room: ${actualRoomId}`);
+              console.log(
+                `📤 Message broadcasted to roomId room: ${actualRoomId}`
+              );
             }
           } catch (emitError) {
             console.error("❌ Error emitting to room:", emitError);
@@ -521,7 +638,9 @@ class ChatSocket {
 
           // Find receiver's active sockets
           try {
-            const receiverSockets = Array.from(chatNamespace.sockets.values()).filter(
+            const receiverSockets = Array.from(
+              chatNamespace.sockets.values()
+            ).filter(
               (s) => s.userId && String(s.userId) === String(actualReceiverId)
             );
 
@@ -532,7 +651,10 @@ class ChatSocket {
                   receiverSocket.emit("new_chat_message", messageData);
                   receiverSocket.emit("chat_message", messageData);
                 } catch (emitError) {
-                  console.error("❌ Error emitting to receiver socket:", emitError);
+                  console.error(
+                    "❌ Error emitting to receiver socket:",
+                    emitError
+                  );
                 }
               });
 
@@ -547,7 +669,10 @@ class ChatSocket {
                     try {
                       receiverSocket.emit("unread_count_updated", { count });
                     } catch (emitError) {
-                      console.error("❌ Error emitting unread count:", emitError);
+                      console.error(
+                        "❌ Error emitting unread count:",
+                        emitError
+                      );
                     }
                   })
                   .catch((err) => {
@@ -560,9 +685,14 @@ class ChatSocket {
                 try {
                   // Emit cho cả tutor và student để refresh chat list
                   receiverSocket.emit("chat_list_updated");
-                  console.log(`📢 Notified ${receiverSocket.userRole} to refresh chat list`);
+                  console.log(
+                    `📢 Notified ${receiverSocket.userRole} to refresh chat list`
+                  );
                 } catch (emitError) {
-                  console.error("❌ Error emitting chat_list_updated:", emitError);
+                  console.error(
+                    "❌ Error emitting chat_list_updated:",
+                    emitError
+                  );
                 }
               });
             } else {
@@ -590,15 +720,18 @@ class ChatSocket {
         } catch (error) {
           console.error("❌ CRITICAL Error in send_message handler:", error);
           console.error("❌ Error stack:", error.stack);
-          
+
           // Không throw error để tránh crash server
           try {
-            socket.emit("error", { 
+            socket.emit("error", {
               message: "Failed to send message",
-              error: error.message 
+              error: error.message,
             });
             if (typeof ack === "function") {
-              ack({ status: "error", error: error.message || "Failed to send message" });
+              ack({
+                status: "error",
+                error: error.message || "Failed to send message",
+              });
             }
           } catch (emitError) {
             console.error("❌ Error emitting error message:", emitError);
@@ -703,10 +836,10 @@ class ChatSocket {
 
         try {
           const tutorId = String(socket.userId);
-          
+
           // Kiến trúc mới: Query conversations từ Conversation model
           const conversations = await Conversation.find({
-            participants: tutorId
+            participants: tutorId,
           })
             .populate("participants", "full_name email profile")
             .sort({ lastMessageAt: -1 })
@@ -722,12 +855,14 @@ class ChatSocket {
 
               if (!otherParticipant) return null;
 
-              const learnerId = String(otherParticipant._id || otherParticipant);
+              const learnerId = String(
+                otherParticipant._id || otherParticipant
+              );
 
               // Get last message in this conversation
-              const lastMessage = await Message.findOne({ 
+              const lastMessage = await Message.findOne({
                 conversationId: conv._id,
-                isDeleted: false 
+                isDeleted: false,
               })
                 .sort({ timestamp: -1 })
                 .lean();
@@ -741,7 +876,7 @@ class ChatSocket {
                 conversationId: conv._id,
                 receiverId: tutorId,
                 isRead: false,
-                isDeleted: false
+                isDeleted: false,
               });
 
               // Check if learner is online
@@ -751,8 +886,13 @@ class ChatSocket {
                 conversationId: conv._id,
                 roomId, // Backward compatibility
                 userId: learnerId,
-                name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
-                avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
+                name:
+                  otherParticipant?.full_name ||
+                  otherParticipant?.email ||
+                  "Unknown Student",
+                avatar:
+                  otherParticipant?.profile?.avatar ||
+                  "https://via.placeholder.com/40",
                 isOnline: !!learnerInfo,
                 lastSeen: learnerInfo?.lastSeen || null,
                 lastMessage: lastMessage
@@ -768,9 +908,11 @@ class ChatSocket {
           );
 
           // Filter out null entries
-          const validChats = chatList.filter(chat => chat !== null);
+          const validChats = chatList.filter((chat) => chat !== null);
 
-          console.log(`✅ get_chat_list: Found ${validChats.length} conversations for tutor ${tutorId}`);
+          console.log(
+            `✅ get_chat_list: Found ${validChats.length} conversations for tutor ${tutorId}`
+          );
           socket.emit("chat_list", { chats: validChats });
         } catch (error) {
           console.error("❌ Error getting chat list:", error);
@@ -781,7 +923,7 @@ class ChatSocket {
       // Handle getting tutor chats (alternative endpoint)
       socket.on("get_tutor_chats", async (data) => {
         const tutorId = data?.tutorId || socket.userId;
-        
+
         if (!tutorId || socket.userRole !== "tutor") {
           socket.emit("error", { message: "Unauthorized" });
           return;
@@ -789,10 +931,10 @@ class ChatSocket {
 
         try {
           const tutorIdStr = String(tutorId);
-          
+
           // Kiến trúc mới: Query conversations từ Conversation model (giống get_chat_list)
           const conversations = await Conversation.find({
-            participants: tutorIdStr
+            participants: tutorIdStr,
           })
             .populate("participants", "full_name email profile")
             .sort({ lastMessageAt: -1 })
@@ -808,12 +950,14 @@ class ChatSocket {
 
               if (!otherParticipant) return null;
 
-              const learnerId = String(otherParticipant._id || otherParticipant);
+              const learnerId = String(
+                otherParticipant._id || otherParticipant
+              );
 
               // Get last message in this conversation
-              const lastMessage = await Message.findOne({ 
+              const lastMessage = await Message.findOne({
                 conversationId: conv._id,
-                isDeleted: false 
+                isDeleted: false,
               })
                 .sort({ timestamp: -1 })
                 .lean();
@@ -827,7 +971,7 @@ class ChatSocket {
                 conversationId: conv._id,
                 receiverId: tutorIdStr,
                 isRead: false,
-                isDeleted: false
+                isDeleted: false,
               });
 
               // Check if learner is online
@@ -837,8 +981,13 @@ class ChatSocket {
                 conversationId: conv._id,
                 roomId, // Backward compatibility
                 userId: learnerId,
-                name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
-                avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
+                name:
+                  otherParticipant?.full_name ||
+                  otherParticipant?.email ||
+                  "Unknown Student",
+                avatar:
+                  otherParticipant?.profile?.avatar ||
+                  "https://via.placeholder.com/40",
                 isOnline: !!learnerInfo,
                 lastSeen: learnerInfo?.lastSeen || null,
                 lastMessage: lastMessage
@@ -854,9 +1003,11 @@ class ChatSocket {
           );
 
           // Filter out null entries
-          const validChats = chatList.filter(chat => chat !== null);
+          const validChats = chatList.filter((chat) => chat !== null);
 
-          console.log(`✅ get_tutor_chats: Found ${validChats.length} conversations for tutor ${tutorIdStr}`);
+          console.log(
+            `✅ get_tutor_chats: Found ${validChats.length} conversations for tutor ${tutorIdStr}`
+          );
           socket.emit("tutor_chats", { chats: validChats });
           socket.emit("chat_list", { chats: validChats });
         } catch (error) {

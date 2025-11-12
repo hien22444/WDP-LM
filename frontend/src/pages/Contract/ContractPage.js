@@ -143,7 +143,6 @@ const ContractPage = () => {
       const derivedPricePerSession = Number(
         bookingData.sessionPrice ||
           bookingData.sessionDetails?.price ||
-          bookingData.price ||
           tutorData.price ||
           tutorData.sessionRate ||
           0
