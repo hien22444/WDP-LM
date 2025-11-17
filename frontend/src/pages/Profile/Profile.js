@@ -9,6 +9,7 @@ import {
 } from "../../services/ApiService";
 import TutorService from "../../services/TutorService";
 import { listMyBookings } from "../../services/BookingService";
+
 import { toast } from "react-toastify";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -101,6 +102,8 @@ const Profile = () => {
 
     fetchUserProfile();
   }, [isAuthenticated, navigate]);
+
+  // Load favorite tutors for the current user
 
   // (debug removed)
 
@@ -483,18 +486,18 @@ const Profile = () => {
                   <path
                     d="M11.5084 14.4917C13.0594 14.4917 14.3167 13.2343 14.3167 11.6833C14.3167 10.1323 13.0594 8.87501 11.5084 8.87501C9.95741 8.87501 8.70007 10.1323 8.70007 11.6833C8.70007 13.2343 9.95741 14.4917 11.5084 14.4917Z"
                     stroke="#292D32"
-                    stroke-width="1.40417"
-                    stroke-miterlimit="10"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeWidth="1.40417"
+                    strokeMiterlimit="10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                   <path
                     d="M2.14722 12.5071V10.8596C2.14722 9.88601 2.94291 9.08096 3.92583 9.08096C5.62019 9.08096 6.31291 7.88273 5.46105 6.41304C4.97427 5.57054 5.26447 4.47529 6.11633 3.98851L7.7358 3.06176C8.47533 2.62179 9.43016 2.8839 9.87013 3.62343L9.97311 3.80129C10.8156 5.27098 12.201 5.27098 13.0529 3.80129L13.1559 3.62343C13.5959 2.8839 14.5507 2.62179 15.2902 3.06176L16.9097 3.98851C17.7616 4.47529 18.0517 5.57054 17.565 6.41304C16.7131 7.88273 17.4058 9.08096 19.1002 9.08096C20.0737 9.08096 20.8788 9.87665 20.8788 10.8596V12.5071C20.8788 13.4807 20.0831 14.2857 19.1002 14.2857C17.4058 14.2857 16.7131 15.484 17.565 16.9537C18.0517 17.8055 17.7616 18.8914 16.9097 19.3782L15.2902 20.3049C14.5507 20.7449 13.5959 20.4828 13.1559 19.7433L13.0529 19.5654C12.2104 18.0957 10.825 18.0957 9.97311 19.5654L9.87013 19.7433C9.43016 20.4828 8.47533 20.7449 7.7358 20.3049L6.11633 19.3782C5.26447 18.8914 4.97427 17.7962 5.46105 16.9537C6.31291 15.484 5.62019 14.2857 3.92583 14.2857C2.94291 14.2857 2.14722 13.4807 2.14722 12.5071Z"
                     stroke="#292D32"
-                    stroke-width="1.40417"
-                    stroke-miterlimit="10"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeWidth="1.40417"
+                    strokeMiterlimit="10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                 </g>
               </svg>
@@ -749,32 +752,75 @@ const Profile = () => {
           {/* Teaching Schedule Section - Only for Tutors */}
           {role === "tutor" && (
             <div className="profile-card" style={{ marginTop: "24px" }}>
-              <div className="profile-info" style={{ borderBottom: "2px solid #E5E7EB", paddingBottom: "16px", marginBottom: "24px" }}>
-                <h3 style={{ margin: 0, fontSize: "24px", fontWeight: "700", color: "#111827", display: "flex", alignItems: "center", gap: "12px" }}>
+              <div
+                className="profile-info"
+                style={{
+                  borderBottom: "2px solid #E5E7EB",
+                  paddingBottom: "16px",
+                  marginBottom: "24px",
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "24px",
+                    fontWeight: "700",
+                    color: "#111827",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                  }}
+                >
                   📅 Lịch dạy của tôi
                 </h3>
-                <p style={{ margin: "8px 0 0 0", color: "#6B7280", fontSize: "14px" }}>
+                <p
+                  style={{
+                    margin: "8px 0 0 0",
+                    color: "#6B7280",
+                    fontSize: "14px",
+                  }}
+                >
                   Các buổi học đã được chấp nhận và thanh toán
                 </p>
               </div>
 
               <div className="teaching-schedule">
                 {loadingBookings ? (
-                  <div style={{ textAlign: "center", padding: "40px", color: "#9CA3AF" }}>
-                    <div className="loading-spinner" style={{ margin: "0 auto 12px" }}></div>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "40px",
+                      color: "#9CA3AF",
+                    }}
+                  >
+                    <div
+                      className="loading-spinner"
+                      style={{ margin: "0 auto 12px" }}
+                    ></div>
                     <p>Đang tải lịch dạy...</p>
                   </div>
                 ) : acceptedBookings.length === 0 ? (
-                  <div style={{
-                    background: "#F9FAFB",
-                    border: "2px dashed #D1D5DB",
-                    borderRadius: "12px",
-                    padding: "48px 24px",
-                    textAlign: "center",
-                    color: "#6B7280"
-                  }}>
-                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>📚</div>
-                    <h4 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "600", color: "#374151" }}>
+                  <div
+                    style={{
+                      background: "#F9FAFB",
+                      border: "2px dashed #D1D5DB",
+                      borderRadius: "12px",
+                      padding: "48px 24px",
+                      textAlign: "center",
+                      color: "#6B7280",
+                    }}
+                  >
+                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>
+                      📚
+                    </div>
+                    <h4
+                      style={{
+                        margin: "0 0 8px 0",
+                        fontSize: "18px",
+                        fontWeight: "600",
+                        color: "#374151",
+                      }}
+                    >
                       Chưa có lịch dạy
                     </h4>
                     <p style={{ margin: 0, fontSize: "14px" }}>
@@ -787,27 +833,46 @@ const Profile = () => {
                       <div
                         key={booking._id}
                         style={{
-                          background: "linear-gradient(135deg, #667EEA 0%, #764BA2 100%)",
+                          background:
+                            "linear-gradient(135deg, #667EEA 0%, #764BA2 100%)",
                           borderRadius: "16px",
                           padding: "24px",
                           color: "white",
                           boxShadow: "0 10px 25px rgba(102, 126, 234, 0.3)",
                           transition: "all 0.3s",
-                          cursor: "pointer"
+                          cursor: "pointer",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = "translateY(-4px)";
-                          e.currentTarget.style.boxShadow = "0 15px 35px rgba(102, 126, 234, 0.4)";
+                          e.currentTarget.style.boxShadow =
+                            "0 15px 35px rgba(102, 126, 234, 0.4)";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "0 10px 25px rgba(102, 126, 234, 0.3)";
+                          e.currentTarget.style.boxShadow =
+                            "0 10px 25px rgba(102, 126, 234, 0.3)";
                         }}
                       >
                         {/* Header */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            marginBottom: "20px",
+                          }}
+                        >
                           <div>
-                            <h4 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                            <h4
+                              style={{
+                                margin: "0 0 8px 0",
+                                fontSize: "20px",
+                                fontWeight: "700",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                              }}
+                            >
                               <span>👨‍🎓</span>
                               {booking.student?.full_name || "Học viên"}
                             </h4>
@@ -815,110 +880,266 @@ const Profile = () => {
                               📚 {booking.subject || "Chưa có môn học"}
                             </div>
                           </div>
-                          <div style={{
-                            background: "rgba(255,255,255,0.25)",
-                            padding: "8px 16px",
-                            borderRadius: "20px",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            backdropFilter: "blur(10px)"
-                          }}>
-                            {booking.type === "recurring" ? "🔄 Định kỳ" : "📌 Đơn lẻ"}
+                          <div
+                            style={{
+                              background: "rgba(255,255,255,0.25)",
+                              padding: "8px 16px",
+                              borderRadius: "20px",
+                              fontSize: "13px",
+                              fontWeight: "600",
+                              backdropFilter: "blur(10px)",
+                            }}
+                          >
+                            {booking.type === "recurring"
+                              ? "🔄 Định kỳ"
+                              : "📌 Đơn lẻ"}
                           </div>
                         </div>
 
                         {/* Recurring Schedule */}
-                        {booking.type === "recurring" && booking.recurrencePattern?.selectedSlots && (
-                          <div style={{
-                            background: "rgba(255,255,255,0.15)",
-                            borderRadius: "12px",
-                            padding: "16px",
-                            marginBottom: "16px",
-                            backdropFilter: "blur(10px)"
-                          }}>
-                            <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "12px", opacity: 0.9 }}>
-                              ⏰ Lịch trong tuần:
-                            </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                              {booking.recurrencePattern.selectedSlots.map((slot, idx) => (
-                                <div key={idx} style={{
-                                  background: "rgba(255,255,255,0.3)",
-                                  padding: "8px 14px",
-                                  borderRadius: "8px",
+                        {booking.type === "recurring" &&
+                          booking.recurrencePattern?.selectedSlots && (
+                            <div
+                              style={{
+                                background: "rgba(255,255,255,0.15)",
+                                borderRadius: "12px",
+                                padding: "16px",
+                                marginBottom: "16px",
+                                backdropFilter: "blur(10px)",
+                              }}
+                            >
+                              <div
+                                style={{
                                   fontSize: "13px",
                                   fontWeight: "600",
-                                  backdropFilter: "blur(5px)",
-                                  border: "1px solid rgba(255,255,255,0.4)"
-                                }}>
-                                  {["CN", "T2", "T3", "T4", "T5", "T6", "T7"][slot.dayOfWeek]} • {slot.start}-{slot.end}
-                                </div>
-                              ))}
+                                  marginBottom: "12px",
+                                  opacity: 0.9,
+                                }}
+                              >
+                                ⏰ Lịch trong tuần:
+                              </div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: "8px",
+                                }}
+                              >
+                                {booking.recurrencePattern.selectedSlots.map(
+                                  (slot, idx) => (
+                                    <div
+                                      key={idx}
+                                      style={{
+                                        background: "rgba(255,255,255,0.3)",
+                                        padding: "8px 14px",
+                                        borderRadius: "8px",
+                                        fontSize: "13px",
+                                        fontWeight: "600",
+                                        backdropFilter: "blur(5px)",
+                                        border:
+                                          "1px solid rgba(255,255,255,0.4)",
+                                      }}
+                                    >
+                                      {
+                                        [
+                                          "CN",
+                                          "T2",
+                                          "T3",
+                                          "T4",
+                                          "T5",
+                                          "T6",
+                                          "T7",
+                                        ][slot.dayOfWeek]
+                                      }{" "}
+                                      • {slot.start}-{slot.end}
+                                    </div>
+                                  )
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
                         {/* Info Grid */}
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                          <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
-                            <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📍 Hình thức</div>
-                            <div style={{ fontSize: "15px", fontWeight: "600" }}>
-                              {booking.mode === "offline" ? "Trực tiếp" : "Online"}
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(200px, 1fr))",
+                            gap: "16px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              background: "rgba(255,255,255,0.15)",
+                              padding: "12px",
+                              borderRadius: "10px",
+                              backdropFilter: "blur(10px)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                opacity: 0.85,
+                                marginBottom: "6px",
+                              }}
+                            >
+                              📍 Hình thức
+                            </div>
+                            <div
+                              style={{ fontSize: "15px", fontWeight: "600" }}
+                            >
+                              {booking.mode === "offline"
+                                ? "Trực tiếp"
+                                : "Online"}
                             </div>
                           </div>
-                          
-                          {booking.type === "recurring" && booking.recurrencePattern ? (
+
+                          {booking.type === "recurring" &&
+                          booking.recurrencePattern ? (
                             <>
-                              <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
-                                <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📆 Thời gian</div>
-                                <div style={{ fontSize: "14px", fontWeight: "600" }}>
-                                  {new Date(booking.recurrencePattern.startDate).toLocaleDateString('vi-VN')} - {new Date(booking.recurrencePattern.endDate).toLocaleDateString('vi-VN')}
+                              <div
+                                style={{
+                                  background: "rgba(255,255,255,0.15)",
+                                  padding: "12px",
+                                  borderRadius: "10px",
+                                  backdropFilter: "blur(10px)",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    opacity: 0.85,
+                                    marginBottom: "6px",
+                                  }}
+                                >
+                                  📆 Thời gian
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: "14px",
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  {new Date(
+                                    booking.recurrencePattern.startDate
+                                  ).toLocaleDateString("vi-VN")}{" "}
+                                  -{" "}
+                                  {new Date(
+                                    booking.recurrencePattern.endDate
+                                  ).toLocaleDateString("vi-VN")}
                                 </div>
                               </div>
-                              <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
-                                <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📊 Tiến độ</div>
-                                <div style={{ fontSize: "15px", fontWeight: "600" }}>
-                                  {booking.completedSessions || 0}/{booking.totalSessionsPlanned || 0} buổi
+                              <div
+                                style={{
+                                  background: "rgba(255,255,255,0.15)",
+                                  padding: "12px",
+                                  borderRadius: "10px",
+                                  backdropFilter: "blur(10px)",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    opacity: 0.85,
+                                    marginBottom: "6px",
+                                  }}
+                                >
+                                  📊 Tiến độ
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: "15px",
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  {booking.completedSessions || 0}/
+                                  {booking.totalSessionsPlanned || 0} buổi
                                 </div>
                               </div>
                             </>
                           ) : (
-                            <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
-                              <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📆 Ngày học</div>
-                              <div style={{ fontSize: "14px", fontWeight: "600" }}>
-                                {new Date(booking.start).toLocaleDateString('vi-VN')}
+                            <div
+                              style={{
+                                background: "rgba(255,255,255,0.15)",
+                                padding: "12px",
+                                borderRadius: "10px",
+                                backdropFilter: "blur(10px)",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  opacity: 0.85,
+                                  marginBottom: "6px",
+                                }}
+                              >
+                                📆 Ngày học
+                              </div>
+                              <div
+                                style={{ fontSize: "14px", fontWeight: "600" }}
+                              >
+                                {new Date(booking.start).toLocaleDateString(
+                                  "vi-VN"
+                                )}
                               </div>
                             </div>
                           )}
-                          
-                          <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
-                            <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>💰 Tổng thu nhập</div>
-                            <div style={{ fontSize: "16px", fontWeight: "700" }}>
-                              {(booking.totalPrice || booking.price || 0).toLocaleString()} đ
+
+                          <div
+                            style={{
+                              background: "rgba(255,255,255,0.15)",
+                              padding: "12px",
+                              borderRadius: "10px",
+                              backdropFilter: "blur(10px)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                opacity: 0.85,
+                                marginBottom: "6px",
+                              }}
+                            >
+                              💰 Tổng thu nhập
+                            </div>
+                            <div
+                              style={{ fontSize: "16px", fontWeight: "700" }}
+                            >
+                              {(
+                                booking.totalPrice ||
+                                booking.price ||
+                                0
+                              ).toLocaleString()}{" "}
+                              đ
                             </div>
                           </div>
                         </div>
 
                         {/* Footer */}
-                        <div style={{
-                          marginTop: "16px",
-                          paddingTop: "16px",
-                          borderTop: "1px solid rgba(255,255,255,0.2)",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center"
-                        }}>
+                        <div
+                          style={{
+                            marginTop: "16px",
+                            paddingTop: "16px",
+                            borderTop: "1px solid rgba(255,255,255,0.2)",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
                           <div style={{ fontSize: "13px", opacity: 0.85 }}>
                             📧 {booking.student?.email || "Chưa có email"}
                           </div>
-                          <div style={{
-                            background: "rgba(16, 185, 129, 0.3)",
-                            color: "#D1FAE5",
-                            padding: "6px 14px",
-                            borderRadius: "20px",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            border: "1px solid rgba(16, 185, 129, 0.5)"
-                          }}>
+                          <div
+                            style={{
+                              background: "rgba(16, 185, 129, 0.3)",
+                              color: "#D1FAE5",
+                              padding: "6px 14px",
+                              borderRadius: "20px",
+                              fontSize: "12px",
+                              fontWeight: "600",
+                              border: "1px solid rgba(16, 185, 129, 0.5)",
+                            }}
+                          >
                             ✅ Đã thanh toán
                           </div>
                         </div>

@@ -29,10 +29,14 @@ const ProfileDropdown = ({ user, onClose }) => {
           Trang cá nhân
         </Link>
 
-        <Link to="/favorite-tutors" onClick={onClose}>
-          <i className="fas fa-heart"></i>
-          Gia sư yêu thích
-        </Link>
+        {(user?.role === "learner" ||
+          user?.account?.role === "learner" ||
+          user?.user?.role === "learner") && (
+          <Link to="/favorite-tutors" onClick={onClose}>
+            <i className="fas fa-heart"></i>
+            Gia sư yêu thích
+          </Link>
+        )}
 
         <Link to="/payments" onClick={onClose}>
           <i className="fas fa-wallet"></i>

@@ -153,152 +153,202 @@ const AdminContracts = () => {
 
   return (
     <div className="admin-contracts">
+      {/* Modern Header */}
       <div className="admin-contracts-header">
         <div className="header-content">
-          <h1>📋 Quản lý Hợp đồng</h1>
-          <p className="header-description">
-            Quản lý tất cả các hợp đồng giữa học viên và gia sư
-          </p>
+          <div className="header-title-section">
+            <div className="header-icon-wrapper">
+              <i className="fas fa-file-contract"></i>
+            </div>
+            <div>
+              <h1>Quản lý Hợp đồng</h1>
+              <p className="header-description">
+                Quản lý tất cả các hợp đồng giữa học viên và gia sư
+              </p>
+            </div>
+          </div>
         </div>
         <div className="header-actions">
           <button className="btn-export" onClick={handleExportCSV}>
             <i className="fas fa-download"></i>
-            Xuất CSV
+            <span>Xuất CSV</span>
           </button>
         </div>
       </div>
 
-      {/* Statistics */}
+      {/* Modern Statistics Cards */}
       {stats && (
         <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon total">
-              <i className="fas fa-file-contract"></i>
+          <div className="stat-card stat-card-total">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper total">
+                <i className="fas fa-file-contract"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{stats.totalContracts}</div>
+                <div className="stat-label">Tổng hợp đồng</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.totalContracts}</div>
-              <div className="stat-label">Tổng hợp đồng</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon signed">
-              <i className="fas fa-signature"></i>
+          <div className="stat-card stat-card-signed">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper signed">
+                <i className="fas fa-signature"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{stats.signedContracts}</div>
+                <div className="stat-label">Đã ký</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.signedContracts}</div>
-              <div className="stat-label">Đã ký</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon pending">
-              <i className="fas fa-clock"></i>
+          <div className="stat-card stat-card-pending">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper pending">
+                <i className="fas fa-clock"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{stats.pendingContracts}</div>
+                <div className="stat-label">Chờ xác nhận</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.pendingContracts}</div>
-              <div className="stat-label">Chờ xác nhận</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon active">
-              <i className="fas fa-play-circle"></i>
+          <div className="stat-card stat-card-active">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper active">
+                <i className="fas fa-play-circle"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{stats.activeContracts}</div>
+                <div className="stat-label">Đang hoạt động</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.activeContracts}</div>
-              <div className="stat-label">Đang hoạt động</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon completed">
-              <i className="fas fa-check-circle"></i>
+          <div className="stat-card stat-card-completed">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper completed">
+                <i className="fas fa-check-circle"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{stats.completedContracts}</div>
+                <div className="stat-label">Hoàn thành</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.completedContracts}</div>
-              <div className="stat-label">Hoàn thành</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon disputed">
-              <i className="fas fa-exclamation-triangle"></i>
+          <div className="stat-card stat-card-disputed">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper disputed">
+                <i className="fas fa-exclamation-triangle"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{stats.disputedContracts}</div>
+                <div className="stat-label">Tranh chấp</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.disputedContracts}</div>
-              <div className="stat-label">Tranh chấp</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon revenue">
-              <i className="fas fa-dollar-sign"></i>
+          <div className="stat-card stat-card-revenue">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper revenue">
+                <i className="fas fa-dollar-sign"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{formatCurrency(stats.totalRevenue)}</div>
+                <div className="stat-label">Tổng doanh thu</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{formatCurrency(stats.totalRevenue)}</div>
-              <div className="stat-label">Tổng doanh thu</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon platform">
-              <i className="fas fa-hand-holding-usd"></i>
+          <div className="stat-card stat-card-platform">
+            <div className="stat-card-inner">
+              <div className="stat-icon-wrapper platform">
+                <i className="fas fa-hand-holding-usd"></i>
+              </div>
+              <div className="stat-content">
+                <div className="stat-value">{formatCurrency(stats.platformRevenue)}</div>
+                <div className="stat-label">Doanh thu platform</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-value">{formatCurrency(stats.platformRevenue)}</div>
-              <div className="stat-label">Doanh thu platform</div>
-            </div>
+            <div className="stat-card-decoration"></div>
           </div>
         </div>
       )}
 
-      {/* Filters */}
+      {/* Modern Filters Section */}
       <div className="filters-section">
         <div className="filter-controls">
-          <div className="search-box">
-            <i className="fas fa-search"></i>
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo số hợp đồng, tên học viên, email..."
-              value={filters.search}
-              onChange={handleSearch}
-            />
+          <div className="search-box-wrapper">
+            <div className="search-box">
+              <i className="fas fa-search"></i>
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo số hợp đồng, tên học viên, email..."
+                value={filters.search}
+                onChange={handleSearch}
+              />
+            </div>
           </div>
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Chờ xác nhận</option>
-            <option value="accepted">Đã chấp nhận</option>
-            <option value="rejected">Đã từ chối</option>
-            <option value="cancelled">Đã hủy</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="in_progress">Đang học</option>
-            <option value="disputed">Tranh chấp</option>
-          </select>
-          <select
-            value={filters.contractSigned === undefined ? 'all' : filters.contractSigned}
-            onChange={(e) => handleFilterChange('contractSigned', e.target.value === 'all' ? undefined : e.target.value === 'true')}
-          >
-            <option value="all">Tất cả hợp đồng</option>
-            <option value="true">Đã ký</option>
-            <option value="false">Chưa ký</option>
-          </select>
-          <select
-            value={filters.sortBy}
-            onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-          >
-            <option value="created_at">Ngày tạo</option>
-            <option value="start">Ngày bắt đầu</option>
-            <option value="price">Giá</option>
-            <option value="status">Trạng thái</option>
-          </select>
-          <select
-            value={filters.sortOrder}
-            onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
-          >
-            <option value="desc">Giảm dần</option>
-            <option value="asc">Tăng dần</option>
-          </select>
+          <div className="filter-group">
+            <label className="filter-label">Trạng thái</label>
+            <select
+              className="filter-select"
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="pending">Chờ xác nhận</option>
+              <option value="accepted">Đã chấp nhận</option>
+              <option value="rejected">Đã từ chối</option>
+              <option value="cancelled">Đã hủy</option>
+              <option value="completed">Hoàn thành</option>
+              <option value="in_progress">Đang học</option>
+              <option value="disputed">Tranh chấp</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">Tình trạng ký</label>
+            <select
+              className="filter-select"
+              value={filters.contractSigned === undefined ? 'all' : filters.contractSigned}
+              onChange={(e) => handleFilterChange('contractSigned', e.target.value === 'all' ? undefined : e.target.value === 'true')}
+            >
+              <option value="all">Tất cả hợp đồng</option>
+              <option value="true">Đã ký</option>
+              <option value="false">Chưa ký</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">Sắp xếp theo</label>
+            <select
+              className="filter-select"
+              value={filters.sortBy}
+              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+            >
+              <option value="created_at">Ngày tạo</option>
+              <option value="start">Ngày bắt đầu</option>
+              <option value="price">Giá</option>
+              <option value="status">Trạng thái</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">Thứ tự</label>
+            <select
+              className="filter-select"
+              value={filters.sortOrder}
+              onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
+            >
+              <option value="desc">Giảm dần</option>
+              <option value="asc">Tăng dần</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Contracts Table */}
+      {/* Modern Contracts Table */}
       <div className="contracts-table-container">
         {loading ? (
           <div className="loading-container">
@@ -307,83 +357,116 @@ const AdminContracts = () => {
           </div>
         ) : contracts.length === 0 ? (
           <div className="empty-state">
-            <i className="fas fa-inbox"></i>
+            <div className="empty-state-icon">
+              <i className="fas fa-inbox"></i>
+            </div>
             <h3>Không có hợp đồng nào</h3>
             <p>Chưa có hợp đồng nào trong hệ thống</p>
           </div>
         ) : (
-          <table className="contracts-table">
-            <thead>
-              <tr>
-                <th>Học viên</th>
-                <th>Gia sư</th>
-                <th>Thời gian</th>
-                <th>Giá</th>
-                <th>Trạng thái</th>
-                <th>Thanh toán</th>
-                <th>Đã ký</th>
-                <th>Ngày tạo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contracts.map((contract) => (
-                <tr 
-                  key={contract._id}
-                  onClick={() => handleViewContract(contract)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td>
-                    <div className="user-info">
-                      <div className="user-name">
-                        {contract.contractData?.studentName || 
-                         contract.student?.profile?.full_name || 
-                         'N/A'}
-                      </div>
-                      <div className="user-email">
-                        {contract.contractData?.studentEmail || 
-                         contract.student?.email || 
-                         'N/A'}
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="user-info">
-                      <div className="user-name">
-                        {contract.tutorProfile?.user?.profile?.full_name || 
-                         contract.tutorProfile?.user?.email || 
-                         'N/A'}
-                      </div>
-                      <div className="user-email">
-                        {contract.tutorProfile?.user?.email || 'N/A'}
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="time-info">
-                      <div>{formatDate(contract.start)}</div>
-                      <div className="time-separator">đến</div>
-                      <div>{formatDate(contract.end)}</div>
-                    </div>
-                  </td>
-                  <td className="price-cell">{formatCurrency(contract.price)}</td>
-                  <td>{getStatusBadge(contract.status)}</td>
-                  <td>{getPaymentStatusBadge(contract.paymentStatus)}</td>
-                  <td className="signed-cell">
-                    {contract.contractSigned ? (
-                      <span className="signed-yes">
-                        <i className="fas fa-check-circle"></i> Đã ký
-                      </span>
-                    ) : (
-                      <span className="signed-no">
-                        <i className="fas fa-times-circle"></i> Chưa ký
-                      </span>
-                    )}
-                  </td>
-                  <td>{formatDate(contract.created_at)}</td>
+          <div className="table-wrapper">
+            <table className="contracts-table">
+              <thead>
+                <tr>
+                  <th>Học viên</th>
+                  <th>Gia sư</th>
+                  <th>Thời gian</th>
+                  <th>Giá</th>
+                  <th>Trạng thái</th>
+                  <th>Thanh toán</th>
+                  <th>Đã ký</th>
+                  <th>Ngày tạo</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {contracts.map((contract) => (
+                  <tr 
+                    key={contract._id}
+                    className="contract-row"
+                    onClick={() => handleViewContract(contract)}
+                  >
+                    <td>
+                      <div className="user-info">
+                        <div className="user-avatar">
+                          <i className="fas fa-user-graduate"></i>
+                        </div>
+                        <div className="user-details">
+                          <div className="user-name">
+                            {contract.contractData?.studentName || 
+                             contract.student?.profile?.full_name || 
+                             'N/A'}
+                          </div>
+                          <div className="user-email">
+                            {contract.contractData?.studentEmail || 
+                             contract.student?.email || 
+                             'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="user-info">
+                        <div className="user-avatar tutor-avatar">
+                          <i className="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div className="user-details">
+                          <div className="user-name">
+                            {contract.tutorProfile?.user?.profile?.full_name || 
+                             contract.tutorProfile?.user?.email || 
+                             'N/A'}
+                          </div>
+                          <div className="user-email">
+                            {contract.tutorProfile?.user?.email || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="time-info">
+                        <div className="time-item">
+                          <i className="fas fa-calendar-alt"></i>
+                          <span>{formatDate(contract.start)}</span>
+                        </div>
+                        <div className="time-separator">
+                          <i className="fas fa-arrow-right"></i>
+                        </div>
+                        <div className="time-item">
+                          <i className="fas fa-calendar-check"></i>
+                          <span>{formatDate(contract.end)}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="price-cell">
+                      <div className="price-wrapper">
+                        <span className="price-value">{formatCurrency(contract.price)}</span>
+                      </div>
+                    </td>
+                    <td>{getStatusBadge(contract.status)}</td>
+                    <td>{getPaymentStatusBadge(contract.paymentStatus)}</td>
+                    <td className="signed-cell">
+                      {contract.contractSigned ? (
+                        <span className="signed-badge signed-yes">
+                          <i className="fas fa-check-circle"></i>
+                          <span>Đã ký</span>
+                        </span>
+                      ) : (
+                        <span className="signed-badge signed-no">
+                          <i className="fas fa-times-circle"></i>
+                          <span>Chưa ký</span>
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="date-cell">
+                        <i className="fas fa-clock"></i>
+                        <span>{formatDate(contract.created_at)}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

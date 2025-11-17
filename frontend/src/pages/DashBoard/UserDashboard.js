@@ -182,7 +182,7 @@ const Dashboard = () => {
                     <p className="dashboard-number">
                       {dashboardData.activeCourses || 0}
                     </p>
-                    <button onClick={() => navigate("/learner/courses")}>
+                    <button onClick={() => navigate("/bookings/me")}>
                       Xem chi tiết
                     </button>
                   </div>
@@ -191,7 +191,7 @@ const Dashboard = () => {
                     <p className="dashboard-number">
                       {dashboardData.weeklyLessons || 0}
                     </p>
-                    <button onClick={() => navigate("/learner/schedule")}>
+                    <button onClick={() => navigate("/bookings/me")}>
                       Xem lịch học
                     </button>
                   </div>
@@ -200,9 +200,7 @@ const Dashboard = () => {
                     <p className="dashboard-number">
                       {dashboardData.favoriteTutors || 0}
                     </p>
-                    <button
-                      onClick={() => navigate("/learner/favorite-tutors")}
-                    >
+                    <button onClick={() => navigate("/favorite-tutors")}>
                       Xem danh sách
                     </button>
                   </div>
@@ -211,7 +209,7 @@ const Dashboard = () => {
                     <p className="dashboard-number">
                       {dashboardData.learningProgress || 0}%
                     </p>
-                    <button onClick={() => navigate("/learner/progress")}>
+                    <button onClick={() => navigate("/dashboard")}>
                       Xem tiến độ
                     </button>
                   </div>

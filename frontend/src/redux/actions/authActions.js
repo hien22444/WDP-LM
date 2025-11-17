@@ -10,6 +10,7 @@ import {
   registerFailure,
   logout,
 } from "../slices/userSlice";
+import { fetchFavorites } from "../favoriteSlice";
 import { googleAuthApi, getCurrentUserApi } from "../../services/ApiService";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -46,8 +47,13 @@ export const doLogin = (email, password) => async (dispatch) => {
     // Optional: sync latest user (in case backend changed format)
     const serverUser = await fetchMe();
     dispatch(loginSuccess({ user: serverUser || user }));
-    toast.success("Login successful!");
 
+    // Load favorites after successful login
+    if ((serverUser || user)?.account?.role === "learner") {
+      dispatch(fetchFavorites());
+    }
+
+    toast.success("Login successful!");
     return { success: true };
   } catch (error) {
     const errorMessage =

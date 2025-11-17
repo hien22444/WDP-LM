@@ -1,4 +1,11 @@
-const cron = require("node-cron");
+let cron = null;
+try {
+  cron = require("node-cron");
+} catch (e) {
+  console.warn(
+    "[CronService] optional dependency 'node-cron' not found; falling back to no-op scheduler."
+  );
+}
 const Booking = require("../models/Booking");
 const TutorProfile = require("../models/TutorProfile");
 const NotificationService = require("./NotificationService");
@@ -18,7 +25,7 @@ class CronService {
       const acceptedBookings = await Booking.find({
         status: "accepted",
         start: { $lte: now },
-        end: { $gte: now }
+        end: { $gte: now },
       });
 
       for (const booking of acceptedBookings) {
@@ -30,7 +37,7 @@ class CronService {
       // Cập nhật các booking in_progress và đã qua giờ học → completed
       const inProgressBookings = await Booking.find({
         status: "in_progress",
-        end: { $lt: now }
+        end: { $lt: now },
       });
 
       for (const booking of inProgressBookings) {
@@ -40,19 +47,20 @@ class CronService {
         console.log(`[Cron] Updated booking ${booking._id} to completed`);
       }
 
-      console.log(`[Cron] Status update completed: ${acceptedBookings.length} to in_progress, ${inProgressBookings.length} to completed`);
+      console.log(
+        `[Cron] Status update completed: ${acceptedBookings.length} to in_progress, ${inProgressBookings.length} to completed`
+      );
 
       return {
         success: true,
         toInProgress: acceptedBookings.length,
-        toCompleted: inProgressBookings.length
+        toCompleted: inProgressBookings.length,
       };
-
     } catch (error) {
       console.error("[Cron] Booking status update error:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -73,9 +81,9 @@ class CronService {
         status: "accepted",
         start: {
           $gte: now,
-          $lte: thirtyMinutesFromNow
+          $lte: thirtyMinutesFromNow,
         },
-        reminderSent: { $ne: true }
+        reminderSent: { $ne: true },
       }).populate("student tutorProfile");
 
       console.log(`[Cron] Found ${upcomingBookings.length} bookings to remind`);
@@ -86,15 +94,17 @@ class CronService {
         try {
           // Gửi reminder
           await NotificationService.sendBookingReminder(booking);
-          
+
           booking.reminderSent = true;
           await booking.save();
           remindedCount++;
 
           console.log(`[Cron] Sent reminder for booking ${booking._id}`);
-
         } catch (error) {
-          console.error(`[Cron] Error sending reminder for booking ${booking._id}:`, error.message);
+          console.error(
+            `[Cron] Error sending reminder for booking ${booking._id}:`,
+            error.message
+          );
         }
       }
 
@@ -103,14 +113,13 @@ class CronService {
       return {
         success: true,
         remindedCount,
-        total: upcomingBookings.length
+        total: upcomingBookings.length,
       };
-
     } catch (error) {
       console.error("[Cron] Booking reminders error:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -127,21 +136,20 @@ class CronService {
 
       const result = await Booking.deleteMany({
         status: "completed",
-        completedAt: { $lte: ninetyDaysAgo }
+        completedAt: { $lte: ninetyDaysAgo },
       });
 
       console.log(`[Cron] Cleaned up ${result.deletedCount} old bookings`);
 
       return {
         success: true,
-        deletedCount: result.deletedCount
+        deletedCount: result.deletedCount,
       };
-
     } catch (error) {
       console.error("[Cron] Cleanup error:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -160,40 +168,47 @@ class CronService {
 
       // Tìm profiles bị reject từ 30 ngày trước
       const rejectedProfiles = await TutorProfile.find({
-        status: 'rejected',
-        updatedAt: { $lt: thirtyDaysAgo }
-      }).populate('user', 'email full_name');
+        status: "rejected",
+        updatedAt: { $lt: thirtyDaysAgo },
+      }).populate("user", "email full_name");
 
       if (rejectedProfiles.length === 0) {
         console.log("[Cron] No rejected profiles to cleanup");
         return { success: true, deletedCount: 0 };
       }
 
-      console.log(`[Cron] Found ${rejectedProfiles.length} rejected profiles to cleanup:`);
-      
+      console.log(
+        `[Cron] Found ${rejectedProfiles.length} rejected profiles to cleanup:`
+      );
+
       // Log thông tin profiles sẽ bị xóa
       rejectedProfiles.forEach((profile) => {
-        console.log(`  - ${profile.user?.email || 'N/A'} (ID: ${profile._id}, Rejected: ${profile.updatedAt})`);
+        console.log(
+          `  - ${profile.user?.email || "N/A"} (ID: ${profile._id}, Rejected: ${
+            profile.updatedAt
+          })`
+        );
       });
 
       // Xóa profiles
       const result = await TutorProfile.deleteMany({
-        status: 'rejected',
-        updatedAt: { $lt: thirtyDaysAgo }
+        status: "rejected",
+        updatedAt: { $lt: thirtyDaysAgo },
       });
 
-      console.log(`[Cron] Deleted ${result.deletedCount} rejected profiles (>30 days old)`);
+      console.log(
+        `[Cron] Deleted ${result.deletedCount} rejected profiles (>30 days old)`
+      );
 
       return {
         success: true,
         deletedCount: result.deletedCount,
-        deletedProfiles: rejectedProfiles.map(p => ({
+        deletedProfiles: rejectedProfiles.map((p) => ({
           id: p._id.toString(),
           userEmail: p.user?.email,
-          rejectedAt: p.updatedAt
-        }))
+          rejectedAt: p.updatedAt,
+        })),
       };
-
     } catch (error) {
       console.error("[Cron] Error cleaning up rejected profiles:", error);
       return { success: false, error: error.message };
@@ -215,23 +230,26 @@ class CronService {
       const expiredBookings = await Booking.find({
         status: "pending",
         paymentStatus: { $in: ["none", "pending"] },
-        createdAt: { $lt: thirtyMinutesAgo }
+        createdAt: { $lt: thirtyMinutesAgo },
       });
 
       let deletedCount = 0;
       for (const booking of expiredBookings) {
-        console.log(`[Cron] Deleting expired unpaid booking ${booking._id} (created ${booking.createdAt})`);
+        console.log(
+          `[Cron] Deleting expired unpaid booking ${booking._id} (created ${booking.createdAt})`
+        );
         await booking.deleteOne();
         deletedCount++;
       }
 
-      console.log(`[Cron] Cleanup completed: ${deletedCount} unpaid bookings deleted`);
+      console.log(
+        `[Cron] Cleanup completed: ${deletedCount} unpaid bookings deleted`
+      );
 
       return {
         success: true,
-        deletedCount
+        deletedCount,
       };
-
     } catch (error) {
       console.error("[Cron] Error in cleanupUnpaidBookings:", error);
       return { success: false, error: error.message };
@@ -249,14 +267,20 @@ class CronService {
       await this.updateBookingStatuses();
     });
 
-    // Send session reminders every 30 minutes
-    cron.schedule("*/30 * * * *", async () => {
-      await this.sendSessionReminders();
-    });
+    // Send booking reminders every 30 minutes
+    // Note: function name is `sendBookingReminders` (not sendSessionReminders)
+    if (cron) {
+      cron.schedule("*/30 * * * *", async () => {
+        await this.sendBookingReminders();
+      });
+    } else {
+      console.warn(
+        "[CronService] node-cron not available; sendBookingReminders will not be scheduled via cron."
+      );
+    }
 
     console.log("✅ All cron jobs started successfully");
   }
 }
 
 module.exports = CronService;
-

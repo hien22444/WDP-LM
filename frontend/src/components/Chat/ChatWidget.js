@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
-import { useChat } from "../../contexts/ChatContext";
+// import { useChat } from "../../contexts/ChatContext"; // Removed - not used
 import io from "socket.io-client";
 import Cookies from "js-cookie";
 import { getMessagesApi } from "../../services/ApiService";
@@ -14,6 +14,9 @@ const ChatWidget = ({
   style = {},
   embedded = false,
   conversationId, // Kiến trúc mới: conversationId từ ChatContext
+  isMinimized: propIsMinimized, // Nhận isMinimized từ props
+  onMinimize, // Nhận onMinimize từ props
+  onMaximize, // Nhận onMaximize từ props
 }) => {
   // Get chat partner info based on role
   const chatPartner = tutor || student;
@@ -24,7 +27,11 @@ const ChatWidget = ({
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [socketAuthenticated, setSocketAuthenticated] = useState(false);
+  // Sử dụng prop isMinimized nếu có, nếu không thì dùng state local
+  const [localIsMinimized, setLocalIsMinimized] = useState(false);
+  const isMinimized =
+    propIsMinimized !== undefined ? propIsMinimized : localIsMinimized;
   const [unreadCount, setUnreadCount] = useState(0);
   const [previousUserId, setPreviousUserId] = useState(null);
   const messagesEndRef = useRef(null);
@@ -84,21 +91,26 @@ const ChatWidget = ({
         if (token) {
           console.log("🔍 getUserId: Attempting to decode JWT token...");
           // Decode JWT token để lấy userId (sub field chứa userId)
-          const base64Url = token.split('.')[1];
+          const base64Url = token.split(".")[1];
           if (base64Url) {
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
             const jsonPayload = decodeURIComponent(
               atob(base64)
-                .split('')
-                .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
+                .split("")
+                .map(
+                  (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                )
+                .join("")
             );
             const decoded = JSON.parse(jsonPayload);
             userId = decoded.sub || decoded.userId || decoded.id;
             if (userId) {
               console.log("✅ getUserId: Got userId from JWT token:", userId);
             } else {
-              console.warn("⚠️ getUserId: JWT decoded but no userId found:", decoded);
+              console.warn(
+                "⚠️ getUserId: JWT decoded but no userId found:",
+                decoded
+              );
             }
           }
         } else {
@@ -167,7 +179,9 @@ const ChatWidget = ({
 
     // Nếu socket tồn tại nhưng không connected, disconnect và tạo mới
     if (socket && !socket.connected) {
-      console.log("ChatWidget: Socket exists but not connected, disconnecting and recreating...");
+      console.log(
+        "ChatWidget: Socket exists but not connected, disconnecting and recreating..."
+      );
       socket.disconnect();
       setSocket(null);
       setIsConnected(false);
@@ -180,12 +194,12 @@ const ChatWidget = ({
       // Fetch user data directly from API if not available
       const fetchUserAndConnect = async () => {
         // Create new socket connection to chat namespace
-        const socketUrl = process.env.REACT_APP_API_URL 
-          ? process.env.REACT_APP_API_URL.replace('/api/v1', '/chat')
+        const socketUrl = process.env.REACT_APP_API_URL
+          ? process.env.REACT_APP_API_URL.replace("/api/v1", "/chat")
           : "http://localhost:5000/chat";
-        
+
         console.log("🔌 ChatWidget: Connecting to socket:", socketUrl);
-        
+
         chatSocket = io(socketUrl, {
           transports: ["websocket", "polling"],
           reconnection: true, // Enable reconnection
@@ -197,7 +211,10 @@ const ChatWidget = ({
         setSocket(chatSocket);
 
         chatSocket.on("connect", async () => {
-          console.log("✅ ChatWidget: Connected to chat server, socket.connected:", chatSocket.connected);
+          console.log(
+            "✅ ChatWidget: Connected to chat server, socket.connected:",
+            chatSocket.connected
+          );
           setIsConnected(true);
 
           // Get user ID using helper function
@@ -281,6 +298,7 @@ const ChatWidget = ({
 
         chatSocket.on("authenticated", async () => {
           console.log("ChatWidget: Authentication successful");
+          setSocketAuthenticated(true);
 
           // Get user ID using helper function
           const userId = getUserId();
@@ -289,14 +307,21 @@ const ChatWidget = ({
           if (conversationId) {
             console.log("ChatWidget: Joining conversation:", conversationId);
             chatSocket.emit("join_chat_room", { conversationId });
-            
+
             // Note: Messages sẽ được load bởi useEffect riêng để đảm bảo load lại khi mở lại
             // Không load ở đây để tránh duplicate
           } else {
             // Fallback: dùng roomId cũ
-            const partnerId = chatPartner?.userId || chatPartner?.id || chatPartner?._id || tutor?.userId || student?.userId;
+            const partnerId =
+              chatPartner?.userId ||
+              chatPartner?.id ||
+              chatPartner?._id ||
+              tutor?.userId ||
+              student?.userId;
             if (!partnerId) {
-              console.error("❌ ChatWidget: Cannot join room - no partner ID found");
+              console.error(
+                "❌ ChatWidget: Cannot join room - no partner ID found"
+              );
               return;
             }
             const roomId = generateRoomId(userId, partnerId);
@@ -306,14 +331,23 @@ const ChatWidget = ({
               "with partner:",
               partnerId
             );
-            chatSocket.emit("join_chat_room", { roomId, tutorId: tutor?.userId });
+            chatSocket.emit("join_chat_room", {
+              roomId,
+              tutorId: tutor?.userId,
+            });
           }
         });
 
         // Listen for chat-specific events
         const handleChatMessage = (data) => {
-          // Use cached userId or socket.userId first
-          const userId = chatSocket?.userId || cachedUserId || getUserId();
+          // Use cached userId or socket.userId first. Fall back to Redux currentUser id
+          // which is typically the most reliable source when the socket is not yet
+          // authenticated (this prevents mis-classifying messages after close/open).
+          const userId =
+            chatSocket?.userId ||
+            cachedUserId ||
+            (currentUser && (currentUser._id || currentUser.id)) ||
+            getUserId();
           // Convert to string and compare strictly
           const isOwnMessage = String(data.senderId) === String(userId);
 
@@ -377,7 +411,11 @@ const ChatWidget = ({
         };
 
         const handleUserTyping = (data) => {
-          const userId = chatSocket?.userId || cachedUserId || getUserId();
+          const userId =
+            chatSocket?.userId ||
+            cachedUserId ||
+            (currentUser && (currentUser._id || currentUser.id)) ||
+            getUserId();
           if (String(data.userId) !== String(userId)) {
             setOtherUserTyping(data.isTyping);
           }
@@ -389,7 +427,11 @@ const ChatWidget = ({
             return;
           }
 
-          const userId = chatSocket?.userId || cachedUserId || getUserId();
+          const userId =
+            chatSocket?.userId ||
+            cachedUserId ||
+            (currentUser && (currentUser._id || currentUser.id)) ||
+            getUserId();
 
           // Sort messages by timestamp to ensure correct order
           const sortedHistory = [...history].sort(
@@ -409,29 +451,43 @@ const ChatWidget = ({
           setMessages(formattedMessages);
 
           // Mark messages as read - sử dụng chatPartner thay vì tutor để tránh null
-          const partnerId = chatPartner?.userId || chatPartner?.id || chatPartner?._id || tutor?.userId || student?.userId;
+          const partnerId =
+            chatPartner?.userId ||
+            chatPartner?.id ||
+            chatPartner?._id ||
+            tutor?.userId ||
+            student?.userId;
           if (partnerId && userId) {
             const roomId = generateRoomId(userId, partnerId);
             chatSocket.emit("mark_messages_read", { roomId });
             console.log("✅ Marked messages as read for room:", roomId);
           } else {
-            console.warn("⚠️ Cannot mark messages as read: Missing partnerId or userId", {
-              partnerId,
-              userId,
-              chatPartner,
-              tutor,
-              student,
-            });
+            console.warn(
+              "⚠️ Cannot mark messages as read: Missing partnerId or userId",
+              {
+                partnerId,
+                userId,
+                chatPartner,
+                tutor,
+                student,
+              }
+            );
           }
         };
 
         const handleDisconnect = (reason) => {
           console.log("⚠️ ChatWidget: Socket disconnected, reason:", reason);
           setIsConnected(false);
-          
+          setSocketAuthenticated(false);
+
           // Nếu disconnect do lỗi, thử reconnect sau 2 giây
-          if (reason === "io server disconnect" || reason === "transport close") {
-            console.log("🔄 ChatWidget: Attempting to reconnect in 2 seconds...");
+          if (
+            reason === "io server disconnect" ||
+            reason === "transport close"
+          ) {
+            console.log(
+              "🔄 ChatWidget: Attempting to reconnect in 2 seconds..."
+            );
             setTimeout(() => {
               if (isOpen && chatSocket && !chatSocket.connected) {
                 console.log("🔄 ChatWidget: Reconnecting socket...");
@@ -440,11 +496,13 @@ const ChatWidget = ({
             }, 2000);
           }
         };
-        
+
         const handleReconnect = async (attemptNumber) => {
-          console.log(`✅ ChatWidget: Socket reconnected after ${attemptNumber} attempts`);
+          console.log(
+            `✅ ChatWidget: Socket reconnected after ${attemptNumber} attempts`
+          );
           setIsConnected(true);
-          
+
           // Re-authenticate sau khi reconnect
           const userId = getUserId();
           if (userId) {
@@ -456,27 +514,33 @@ const ChatWidget = ({
               "User";
             const userRole =
               currentUser?.account?.role || currentUser?.role || "student";
-            
+
             console.log("🔄 ChatWidget: Re-authenticating after reconnect...");
             chatSocket.emit("authenticate", {
               userId: userId,
               userName: userName,
               userRole: userRole,
             });
-            
+
             // Rejoin room sau khi authenticated
             chatSocket.once("authenticated", async () => {
               console.log("✅ ChatWidget: Re-authenticated, rejoining room...");
               if (conversationId) {
                 chatSocket.emit("join_chat_room", { conversationId });
               } else if (tutor?.userId || chatPartner?.userId) {
-                const roomId = generateRoomId(userId, tutor?.userId || chatPartner?.userId);
-                chatSocket.emit("join_chat_room", { roomId, tutorId: tutor?.userId });
+                const roomId = generateRoomId(
+                  userId,
+                  tutor?.userId || chatPartner?.userId
+                );
+                chatSocket.emit("join_chat_room", {
+                  roomId,
+                  tutorId: tutor?.userId,
+                });
               }
             });
           }
         };
-        
+
         const handleReconnectError = (error) => {
           console.error("❌ ChatWidget: Socket reconnection error:", error);
           setIsConnected(false);
@@ -494,6 +558,7 @@ const ChatWidget = ({
         chatSocket.on("reconnect", handleReconnect);
         chatSocket.on("reconnect_error", handleReconnectError);
         chatSocket.on("error", handleError);
+        chatSocket.on("authenticated", () => setSocketAuthenticated(true));
 
         // Return cleanup function
         return () => {
@@ -522,34 +587,53 @@ const ChatWidget = ({
 
   // Load messages khi conversationId thay đổi hoặc khi mở lại chat
   useEffect(() => {
+    // Only load messages if chat is open and we have a conversationId and socket is authenticated
     if (!isOpen || !conversationId) {
-      // Khi đóng chat, KHÔNG xóa messages - giữ lại để khi mở lại vẫn thấy
-      console.log("🔒 ChatWidget: Chat closed, keeping messages in memory");
+      console.log(
+        "🔒 ChatWidget: Chat closed or no conversationId, keeping messages in memory"
+      );
+      return;
+    }
+
+    if (!socketAuthenticated) {
+      console.log(
+        "🔒 ChatWidget: Waiting for socket authentication before loading history"
+      );
       return;
     }
 
     const loadMessages = async () => {
       try {
-        console.log("🔄 ChatWidget: Loading messages for conversation:", conversationId, "isOpen:", isOpen);
+        console.log(
+          "🔄 ChatWidget: Loading messages for conversation:",
+          conversationId
+        );
         const response = await getMessagesApi(conversationId);
-        console.log("📨 ChatWidget: Messages loaded from API:", response.messages?.length || 0);
-        
+        console.log(
+          "📨 ChatWidget: Messages loaded from API:",
+          response.messages?.length || 0
+        );
+
         if (response.messages && response.messages.length > 0) {
-          const userId = getUserId();
-          console.log("🔍 ChatWidget: Loading messages with userId:", userId);
-          
-          if (!userId) {
-            console.error("❌ ChatWidget: CRITICAL - userId is undefined when loading messages!");
-          }
-          
+          // Prefer Redux currentUser._id as the authoritative local user id
+          const userId =
+            (currentUser && (currentUser._id || currentUser.id)) ||
+            (socket && socket.userId) ||
+            getUserId();
+          console.log(
+            "🔍 ChatWidget: Loading messages with resolved userId:",
+            userId
+          );
+
           const formattedMessages = response.messages.map((msg) => {
-            // Handle senderId có thể là object hoặc string
-            const senderIdValue = msg.senderId?._id || msg.senderId?.id || msg.senderId;
-            const senderNameValue = msg.senderId?.full_name || msg.senderName || msg.senderName || "User";
-            
-            // So sánh chính xác: convert cả 2 về string để so sánh
-            const isOwn = userId ? String(senderIdValue) === String(userId) : false;
-            
+            const senderIdValue =
+              msg.senderId?._id || msg.senderId?.id || msg.senderId;
+            const senderNameValue =
+              msg.senderId?.full_name || msg.senderName || "User";
+            const isOwn = userId
+              ? String(senderIdValue) === String(userId)
+              : false;
+
             return {
               id: msg._id || msg.id,
               text: msg.content || msg.message,
@@ -557,52 +641,31 @@ const ChatWidget = ({
               senderName: senderNameValue,
               timestamp: msg.timestamp || msg.createdAt,
               isRead: msg.isRead !== false,
-              isOwn: isOwn, // Đảm bảo so sánh đúng
+              isOwn,
             };
           });
-          
-          // Sort by timestamp (từ cũ đến mới)
-          formattedMessages.sort((a, b) => {
-            const timeA = new Date(a.timestamp).getTime();
-            const timeB = new Date(b.timestamp).getTime();
-            return timeA - timeB;
-          });
-          
-          // ALWAYS set messages - đảm bảo load lại từ API mỗi khi mở
+
+          formattedMessages.sort(
+            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+          );
           setMessages(formattedMessages);
-          console.log("✅ ChatWidget: Messages set, total:", formattedMessages.length);
-          
-          // Scroll to bottom sau khi load messages
-          setTimeout(() => {
-            scrollToBottom();
-          }, 100);
+          console.log(
+            "✅ ChatWidget: Messages set, total:",
+            formattedMessages.length
+          );
+          setTimeout(scrollToBottom, 100);
         } else {
           console.log("📭 ChatWidget: No messages found for this conversation");
-          // Chỉ clear nếu chưa có messages nào trong state
-          setMessages((prev) => {
-            if (prev.length === 0) {
-              return [];
-            }
-            // Giữ lại messages cũ nếu API không trả về (có thể là lỗi tạm thời)
-            console.log("⚠️ ChatWidget: Keeping existing messages as API returned empty");
-            return prev;
-          });
+          setMessages((prev) => (prev.length === 0 ? [] : prev));
         }
       } catch (error) {
         console.error("❌ ChatWidget: Error loading messages:", error);
-        // KHÔNG set messages = [] - giữ lại messages hiện tại nếu có
-        console.log("⚠️ ChatWidget: Keeping existing messages due to error");
       }
     };
 
-    // Load messages khi mở chat hoặc conversationId thay đổi
-    // Đợi một chút để đảm bảo socket đã connect
-    const timer = setTimeout(() => {
-      loadMessages();
-    }, 200); // Tăng delay để đảm bảo socket đã ready
-
-    return () => clearTimeout(timer);
-  }, [conversationId, isOpen]); // Reload khi conversationId thay đổi hoặc mở lại
+    // Load messages once (socketAuthenticated ensures userId is available)
+    loadMessages();
+  }, [conversationId, isOpen, socketAuthenticated]);
 
   useEffect(() => {
     if (!isMinimized) {
@@ -626,38 +689,58 @@ const ChatWidget = ({
 
       console.log("🔍 ChatWidget: Preparing to send message:", {
         conversationId,
-        chatPartner: chatPartner ? {
-          userId: chatPartner.userId,
-          id: chatPartner.id,
-          _id: chatPartner._id,
-        } : null,
-        tutor: tutor ? {
-          userId: tutor.userId,
-          id: tutor.id,
-          _id: tutor._id,
-        } : null,
-        student: student ? {
-          userId: student.userId,
-          id: student.id,
-          _id: student._id,
-        } : null,
+        chatPartner: chatPartner
+          ? {
+              userId: chatPartner.userId,
+              id: chatPartner.id,
+              _id: chatPartner._id,
+            }
+          : null,
+        tutor: tutor
+          ? {
+              userId: tutor.userId,
+              id: tutor.id,
+              _id: tutor._id,
+            }
+          : null,
+        student: student
+          ? {
+              userId: student.userId,
+              id: student.id,
+              _id: student._id,
+            }
+          : null,
       });
 
       if (conversationId) {
         messageData.conversationId = conversationId;
         // receiverId không bắt buộc nếu có conversationId, nhưng thêm vào để đảm bảo
-        const receiverId = chatPartner?.userId || chatPartner?.id || chatPartner?._id || tutor?.userId || student?.userId;
+        const receiverId =
+          chatPartner?.userId ||
+          chatPartner?.id ||
+          chatPartner?._id ||
+          tutor?.userId ||
+          student?.userId;
         if (receiverId) {
           messageData.receiverId = receiverId;
           console.log("✅ Added receiverId to messageData:", receiverId);
         } else {
-          console.warn("⚠️ No receiverId found, backend will extract from conversation");
+          console.warn(
+            "⚠️ No receiverId found, backend will extract from conversation"
+          );
         }
       } else {
         // Fallback: dùng roomId
-        const receiverId = chatPartner?.userId || chatPartner?.id || chatPartner?._id || tutor?.userId || student?.userId;
+        const receiverId =
+          chatPartner?.userId ||
+          chatPartner?.id ||
+          chatPartner?._id ||
+          tutor?.userId ||
+          student?.userId;
         if (!receiverId) {
-          console.error("❌ Cannot send message: No receiverId and no conversationId");
+          console.error(
+            "❌ Cannot send message: No receiverId and no conversationId"
+          );
           alert("Không thể gửi tin nhắn: Thiếu thông tin người nhận");
           return;
         }
@@ -701,7 +784,7 @@ const ChatWidget = ({
             socketConnected: socket?.connected,
             isConnected,
           });
-          
+
           // Thử reconnect nếu socket tồn tại nhưng chưa connect
           if (socket && !socket.connected) {
             console.log("🔄 Attempting to reconnect socket...");
@@ -709,13 +792,17 @@ const ChatWidget = ({
             // Đợi một chút để socket connect
             await new Promise((resolve) => setTimeout(resolve, 1000));
           }
-          
+
           if (retryCount < 5) {
             console.log(`Retry attempt ${retryCount + 1}/5...`);
-            await new Promise((resolve) => setTimeout(resolve, 1000 * (retryCount + 1)));
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * (retryCount + 1))
+            );
             return sendMessageWithRetry(retryCount + 1);
           }
-          throw new Error("Socket không kết nối sau 5 lần thử. Vui lòng tắt và mở lại chat.");
+          throw new Error(
+            "Socket không kết nối sau 5 lần thử. Vui lòng tắt và mở lại chat."
+          );
         }
 
         return new Promise((resolve, reject) => {
@@ -789,7 +876,12 @@ const ChatWidget = ({
 
     if (!isTyping && socket && isConnected) {
       const userId = getUserId();
-      const partnerId = chatPartner?.userId || chatPartner?.id || chatPartner?._id || tutor?.userId || student?.userId;
+      const partnerId =
+        chatPartner?.userId ||
+        chatPartner?.id ||
+        chatPartner?._id ||
+        tutor?.userId ||
+        student?.userId;
       if (!partnerId) {
         console.warn("⚠️ Cannot send typing indicator: No partner ID");
         return;
@@ -804,27 +896,32 @@ const ChatWidget = ({
       clearTimeout(typingTimeoutRef.current);
     }
 
-        // Set new timeout to stop typing indicator
-        typingTimeoutRef.current = setTimeout(() => {
-          if (socket && isConnected) {
-            const userId = getUserId();
-            const typingData = { isTyping: false };
-            if (conversationId) {
-              typingData.roomId = conversationId.toString();
-            } else {
-              const partnerId = chatPartner?.userId || chatPartner?.id || chatPartner?._id || tutor?.userId || student?.userId;
-              if (partnerId) {
-                const roomId = generateRoomId(userId, partnerId);
-                typingData.roomId = roomId;
-              } else {
-                console.warn("⚠️ Cannot send typing indicator: No partner ID");
-                return;
-              }
-            }
-            socket.emit("typing", typingData);
-            setIsTyping(false);
+    // Set new timeout to stop typing indicator
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket && isConnected) {
+        const userId = getUserId();
+        const typingData = { isTyping: false };
+        if (conversationId) {
+          typingData.roomId = conversationId.toString();
+        } else {
+          const partnerId =
+            chatPartner?.userId ||
+            chatPartner?.id ||
+            chatPartner?._id ||
+            tutor?.userId ||
+            student?.userId;
+          if (partnerId) {
+            const roomId = generateRoomId(userId, partnerId);
+            typingData.roomId = roomId;
+          } else {
+            console.warn("⚠️ Cannot send typing indicator: No partner ID");
+            return;
           }
-        }, 1000);
+        }
+        socket.emit("typing", typingData);
+        setIsTyping(false);
+      }
+    }, 1000);
   };
 
   const formatTime = (timestamp) => {
@@ -846,9 +943,19 @@ const ChatWidget = ({
       <div className="chat-header">
         <div className="chat-user-info">
           <img
-            src={chatPartner.avatar || "https://via.placeholder.com/40"}
+            src={
+              chatPartner.avatar ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                chatPartner.name || "User"
+              )}&background=667eea&color=fff&bold=true&length=1`
+            }
             alt={chatPartner.name}
             className="user-avatar"
+            onError={(e) => {
+              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                chatPartner.name || "User"
+              )}&background=667eea&color=fff&bold=true&length=1`;
+            }}
           />
           <div className="user-details">
             <h4>{chatPartner.name}</h4>
@@ -863,7 +970,19 @@ const ChatWidget = ({
         <div className="chat-controls">
           <button
             className="minimize-btn"
-            onClick={() => setIsMinimized(!isMinimized)}
+            onClick={() => {
+              if (propIsMinimized !== undefined) {
+                // Nếu nhận từ props, gọi callback từ props
+                if (isMinimized && onMaximize) {
+                  onMaximize();
+                } else if (!isMinimized && onMinimize) {
+                  onMinimize();
+                }
+              } else {
+                // Nếu không có props, dùng local state
+                setLocalIsMinimized(!isMinimized);
+              }
+            }}
             aria-label={isMinimized ? "Mở rộng" : "Thu nhỏ"}
           >
             <i className={`fas fa-${isMinimized ? "expand" : "minus"}`}></i>

@@ -167,6 +167,13 @@ const userSchema = new mongoose.Schema(
           "Tôi cam kết các thông tin và giấy tờ cung cấp là trung thực. Nếu phát hiện gian lận, tôi chịu trách nhiệm và chấp nhận khóa tài khoản vĩnh viễn.",
       },
     },
+    // Favorite tutors saved by the user
+    favoriteTutors: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "TutorProfile",
+      },
+    ],
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

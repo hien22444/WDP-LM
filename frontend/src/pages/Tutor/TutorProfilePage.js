@@ -425,13 +425,13 @@ const TutorProfilePage = () => {
       setReviews(response.reviews || []);
       setRatingStats(response.ratingStats || null);
       console.log("📊 Loaded reviews:", response);
-      
+
       // Cập nhật rating và reviewCount của tutor từ ratingStats
       if (response.ratingStats && tutor) {
-        setTutor(prev => ({
+        setTutor((prev) => ({
           ...prev,
           rating: response.ratingStats.rating || 0,
-          reviewCount: response.ratingStats.totalReviews || 0
+          reviewCount: response.ratingStats.totalReviews || 0,
         }));
       }
     } catch (error) {
@@ -875,581 +875,924 @@ const TutorProfilePage = () => {
 
   return (
     <>
-    <div className="tutor-profile-page-v2">
-      {/* Top Navigation Bar */}
-      <div className="top-nav">
-        <button className="back-button" onClick={() => navigate(-1)}>
-          <i className="fas fa-arrow-left"></i> Quay lại
-        </button>
-        <div className="nav-actions">
-          <button 
-            className={`favorite-toggle ${isFavorite ? "active" : ""}`}
-            onClick={handleToggleFavorite}
-          >
-            <i className={`${isFavorite ? "fas" : "far"} fa-heart`}></i>
-            {isFavorite ? " Đã lưu" : " Lưu"}
+      <div className="tutor-profile-page-v2">
+        {/* Top Navigation Bar */}
+        <div className="top-nav">
+          <button className="back-button" onClick={() => navigate(-1)}>
+            <i className="fas fa-arrow-left"></i> Quay lại
           </button>
-          <button className="share-button" onClick={handleShareProfile}>
-            <i className="fas fa-share-alt"></i> Chia sẻ
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content - 2 Column Layout */}
-      <div className="profile-container">
-        {/* Left Sidebar - Tutor Info Card */}
-        <aside className="tutor-sidebar">
-          <div className="tutor-card-sticky">
-            {/* Avatar */}
-            <div className="tutor-avatar-section">
-              <div className="avatar-frame">
-                <Suspense fallback={<div className="avatar-loader"></div>}>
-                  {tutor.avatar ? (
-                    <img src={tutor.avatar} alt={tutor.name} className="avatar-img" />
-                  ) : (
-                    <div className="avatar-placeholder">
-                      <i className="fas fa-user"></i>
-                    </div>
-                  )}
-                </Suspense>
-                {tutor.verified && (
-                  <div className="verified-badge">
-                    <i className="fas fa-check-circle"></i>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Basic Info */}
-            <div className="tutor-basic-info">
-              <h1 className="tutor-name">{tutor.name}</h1>
-              <p className="tutor-title">{tutor.bio || "Gia sư nhiệt huyết"}</p>
-              
-              <div className="location-badge">
-                <i className="fas fa-map-marker-alt"></i>
-                {tutor.location}
-              </div>
-
-              {/* Rating */}
-              <div className="rating-section">
-                <div className="stars">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <i 
-                      key={star}
-                      className={`fas fa-star ${star <= Math.floor(tutor.rating) ? 'filled' : 'empty'}`}
-                    ></i>
-                  ))}
-                </div>
-                <span className="rating-text">
-                  <strong>{tutor.rating}</strong> ({tutor.reviewCount} đánh giá)
-                </span>
-              </div>
-
-              {/* Price */}
-              <div className="price-section">
-                <div className="price-label">Học phí</div>
-                <div className="price-value">{tutor.price?.toLocaleString() || 0}đ<span>/buổi</span></div>
-              </div>
-
-              {/* Subjects */}
-              <div className="subjects-section">
-                <div className="section-title">
-                  <i className="fas fa-book"></i> Môn dạy
-                </div>
-                <div className="subjects-tags">
-                  {Array.isArray(tutor.subjects) && tutor.subjects.length > 0 ? (
-                    tutor.subjects.slice(0, 5).map((subject, index) => (
-                      <span key={index} className="subject-tag">
-                        {typeof subject === "string" ? subject : subject.name}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="no-data">Chưa cập nhật</span>
-                  )}
-                  {tutor.subjects?.length > 5 && (
-                    <span className="more-subjects">+{tutor.subjects.length - 5} môn</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="quick-stats">
-                <div className="stat-item">
-                  <i className="fas fa-graduation-cap"></i>
-                  <div>
-                    <div className="stat-label">Kinh nghiệm</div>
-                    <div className="stat-value">{tutor.experience || "N/A"}</div>
-                  </div>
-                </div>
-                <div className="stat-item">
-                  <i className="fas fa-chalkboard-teacher"></i>
-                  <div>
-                    <div className="stat-label">Hình thức</div>
-                    <div className="stat-value">
-                      {tutor.teachModes?.includes("online") && tutor.teachModes?.includes("offline") 
-                        ? "Online & Offline" 
-                        : tutor.teachModes?.includes("online") 
-                        ? "Online" 
-                        : "Offline"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="action-buttons">
-              <button className="btn-primary-large" onClick={handleBookSession}>
-                <i className="fas fa-calendar-check"></i>
-                Đặt lịch học ngay
-              </button>
-              <button className="btn-secondary-large" onClick={handleContactTutor}>
-                <i className="fas fa-comments"></i>
-                Nhắn tin với gia sư
-              </button>
-            </div>
+          <div className="nav-actions">
+            <button
+              className={`favorite-toggle ${isFavorite ? "active" : ""}`}
+              onClick={handleToggleFavorite}
+            >
+              <i className={`${isFavorite ? "fas" : "far"} fa-heart`}></i>
+              {isFavorite ? " Đã lưu" : " Lưu"}
+            </button>
+            <button className="share-button" onClick={handleShareProfile}>
+              <i className="fas fa-share-alt"></i> Chia sẻ
+            </button>
           </div>
-        </aside>
+        </div>
 
-        {/* Right Content Area */}
-        <main className="tutor-content-area">
-          {/* Tabs Navigation */}
-          <nav className="content-tabs">
-            <button
-              className={`tab-item ${activeTab === "about" ? "active" : ""}`}
-              onClick={() => setActiveTab("about")}
-            >
-              <i className="fas fa-info-circle"></i>
-              <span>Giới thiệu</span>
-            </button>
-            <button
-              className={`tab-item ${activeTab === "schedule" ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab("schedule");
-                if (availability.slots.length === 0) loadAvailability();
-              }}
-            >
-              <i className="fas fa-calendar-alt"></i>
-              <span>Lịch</span>
-            </button>
-            <button
-              className={`tab-item ${activeTab === "reviews" ? "active" : ""}`}
-              onClick={() => setActiveTab("reviews")}
-            >
-              <i className="fas fa-star"></i>
-              <span>Đánh giá ({tutor.reviewCount || 0})</span>
-            </button>
-            <button
-              className={`tab-item ${activeTab === "certifications" ? "active" : ""}`}
-              onClick={() => setActiveTab("certifications")}
-            >
-              <i className="fas fa-certificate"></i>
-              <span>Chứng chỉ</span>
-            </button>
-            <button
-              className={`tab-item ${activeTab === "courses" ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab("courses");
-                if (courses.length === 0) loadTutorCourses();
-              }}
-            >
-              <i className="fas fa-book-open"></i>
-              <span>Khóa học ({courses.length})</span>
-            </button>
-          </nav>
-
-          {/* Tab Content */}
-          <div className="tab-content-area">
-            {/* About Tab */}
-            {activeTab === "about" && (
-              <div>
-                <h2><i className="fas fa-user-circle"></i> Giới thiệu về gia sư</h2>
-                <div className="bio-content">
-                  <p>{tutor.bio || "Gia sư chưa cập nhật thông tin giới thiệu."}</p>
-                </div>
-
-                <div className="tutor-details-grid">
-                  <div className="detail-item">
-                    <div className="icon-wrapper">
-                      <i className="fas fa-graduation-cap"></i>
-                    </div>
-                    <div>
-                      <h4>Kinh nghiệm</h4>
-                      <p>{tutor.experience || "Chưa cập nhật"}</p>
-                    </div>
-                  </div>
-
-                  <div className="detail-item">
-                    <div className="icon-wrapper">
-                      <i className="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    <div>
-                      <h4>Hình thức dạy</h4>
-                      <p>
-                        {tutor.teachModes?.includes("online") && tutor.teachModes?.includes("offline") 
-                          ? "Online & Offline" 
-                          : tutor.teachModes?.includes("online") 
-                          ? "Online" 
-                          : tutor.teachModes?.includes("offline")
-                          ? "Offline"
-                          : "Chưa cập nhật"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="detail-item">
-                    <div className="icon-wrapper">
-                      <i className="fas fa-language"></i>
-                    </div>
-                    <div>
-                      <h4>Ngôn ngữ</h4>
-                      <p>{tutor.languages?.join(", ") || "Tiếng Việt"}</p>
-                    </div>
-                  </div>
-
-                  <div className="detail-item">
-                    <div className="icon-wrapper">
-                      <i className="fas fa-university"></i>
-                    </div>
-                    <div>
-                      <h4>Học vấn</h4>
-                      <p>{tutor.education || "Chưa cập nhật"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="verification-section">
-                  <h3><i className="fas fa-shield-alt"></i> Xác minh</h3>
-                  <div className="verification-badges">
-                    <div className={`verify-badge ${tutor.verified ? "verified" : "pending"}`}>
-                      <i className={`fas ${tutor.verified ? "fa-check-circle" : "fa-hourglass-half"}`}></i>
-                      <span>{tutor.verified ? "Đã xác minh" : "Chờ xác minh"}</span>
-                    </div>
-                    {tutor.degreeStatus && (
-                      <div className={`verify-badge ${tutor.degreeStatus === "verified" ? "verified" : "pending"}`}>
-                        <i className={`fas ${tutor.degreeStatus === "verified" ? "fa-check-circle" : "fa-hourglass-half"}`}></i>
-                        <span>Bằng cấp: {tutor.degreeStatus === "verified" ? "Đã xác minh" : "Chờ xác minh"}</span>
+        {/* Main Content - 2 Column Layout */}
+        <div className="profile-container">
+          {/* Left Sidebar - Tutor Info Card */}
+          <aside className="tutor-sidebar">
+            <div className="tutor-card-sticky">
+              {/* Avatar */}
+              <div className="tutor-avatar-section">
+                <div className="avatar-frame">
+                  <Suspense fallback={<div className="avatar-loader"></div>}>
+                    {tutor.avatar ? (
+                      <img
+                        src={tutor.avatar}
+                        alt={tutor.name}
+                        className="avatar-img"
+                      />
+                    ) : (
+                      <div className="avatar-placeholder">
+                        <i className="fas fa-user"></i>
                       </div>
+                    )}
+                  </Suspense>
+                  {tutor.verified && (
+                    <div className="verified-badge">
+                      <i className="fas fa-check-circle"></i>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Basic Info */}
+              <div className="tutor-basic-info">
+                <h1 className="tutor-name">{tutor.name}</h1>
+                <p className="tutor-title">
+                  {tutor.bio || "Gia sư nhiệt huyết"}
+                </p>
+
+                <div className="location-badge">
+                  <i className="fas fa-map-marker-alt"></i>
+                  {tutor.location}
+                </div>
+
+                {/* Rating */}
+                <div className="rating-section">
+                  <div className="stars">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <i
+                        key={star}
+                        className={`fas fa-star ${
+                          star <= Math.floor(tutor.rating) ? "filled" : "empty"
+                        }`}
+                      ></i>
+                    ))}
+                  </div>
+                  <span className="rating-text">
+                    <strong>{tutor.rating}</strong> ({tutor.reviewCount} đánh
+                    giá)
+                  </span>
+                </div>
+
+                {/* Price */}
+                <div className="price-section">
+                  <div className="price-label">Học phí</div>
+                  <div className="price-value">
+                    {tutor.price?.toLocaleString() || 0}đ<span>/buổi</span>
+                  </div>
+                </div>
+
+                {/* Subjects */}
+                <div className="subjects-section">
+                  <div className="section-title">
+                    <i className="fas fa-book"></i> Môn dạy
+                  </div>
+                  <div className="subjects-tags">
+                    {Array.isArray(tutor.subjects) &&
+                    tutor.subjects.length > 0 ? (
+                      tutor.subjects.slice(0, 5).map((subject, index) => (
+                        <span key={index} className="subject-tag">
+                          {typeof subject === "string" ? subject : subject.name}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="no-data">Chưa cập nhật</span>
+                    )}
+                    {tutor.subjects?.length > 5 && (
+                      <span className="more-subjects">
+                        +{tutor.subjects.length - 5} môn
+                      </span>
                     )}
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Schedule Tab */}
-            {activeTab === "schedule" && (
-              <div>
-                <h2><i className="fas fa-calendar-alt"></i> Lịch của gia sư</h2>
-                {availabilityLoading ? (
-                  <div style={{ textAlign: 'center', padding: '40px' }}>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '32px', color: '#3b82f6' }}></i>
-                    <p>Đang tải lịch...</p>
-                  </div>
-                ) : (
-                  <div className="availability-calendar">
-                    <div className="calendar-header">
-                      <h3>Lịch trong tuần</h3>
-                      <div className="legend">
-                        <div className="legend-item">
-                          <div className="color-box available"></div>
-                          <span>Rảnh</span>
-                        </div>
-                        <div className="legend-item">
-                          <div className="color-box unavailable"></div>
-                          <span>Không rảnh</span>
-                        </div>
+                {/* Quick Stats */}
+                <div className="quick-stats">
+                  <div className="stat-item">
+                    <i className="fas fa-graduation-cap"></i>
+                    <div>
+                      <div className="stat-label">Kinh nghiệm</div>
+                      <div className="stat-value">
+                        {tutor.experience || "N/A"}
                       </div>
                     </div>
-                    <div className="availability-grid">
-                      <div className="grid-cell header">Thời gian</div>
-                      {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((day, i) => (
-                        <div key={i} className="grid-cell header">{day}</div>
-                      ))}
-                      
-                      {/* Morning */}
-                      <div className="grid-cell time-label">
-                        <div style={{ fontWeight: 700, fontSize: '14px' }}>Buổi sáng</div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>07:00 - 11:30</div>
+                  </div>
+                  <div className="stat-item">
+                    <i className="fas fa-chalkboard-teacher"></i>
+                    <div>
+                      <div className="stat-label">Hình thức</div>
+                      <div className="stat-value">
+                        {tutor.teachModes?.includes("online") &&
+                        tutor.teachModes?.includes("offline")
+                          ? "Online & Offline"
+                          : tutor.teachModes?.includes("online")
+                          ? "Online"
+                          : "Offline"}
                       </div>
-                      {[0,1,2,3,4,5,6].map(dayIndex => {
-                        const available = tutor.availability?.some(
-                          slot => (slot.dayOfWeek === dayIndex || slot.day === dayIndex) && 
-                          parseInt((slot.start || '').split(':')[0]) < 12
-                        );
-                        return (
-                          <div key={dayIndex} className={`grid-cell ${available ? 'available' : 'unavailable'}`}>
-                            {available ? (
-                              <span className="check-icon">✓</span>
-                            ) : (
-                              <span className="x-icon">−</span>
-                            )}
-                          </div>
-                        );
-                      })}
-
-                      {/* Afternoon */}
-                      <div className="grid-cell time-label">
-                        <div style={{ fontWeight: 700, fontSize: '14px' }}>Buổi chiều</div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>13:00 - 17:30</div>
-                      </div>
-                      {[0,1,2,3,4,5,6].map(dayIndex => {
-                        const available = tutor.availability?.some(
-                          slot => (slot.dayOfWeek === dayIndex || slot.day === dayIndex) && 
-                          parseInt((slot.start || '').split(':')[0]) >= 12
-                        );
-                        return (
-                          <div key={dayIndex} className={`grid-cell ${available ? 'available' : 'unavailable'}`}>
-                            {available ? (
-                              <span className="check-icon">✓</span>
-                            ) : (
-                              <span className="x-icon">−</span>
-                            )}
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
-            )}
 
-            {/* Reviews Tab */}
-            {activeTab === "reviews" && (
-              <div>
-                <h2><i className="fas fa-star"></i> Đánh giá từ học viên</h2>
-                
-                {reviewsLoading ? (
-                  <div style={{ textAlign: 'center', padding: '40px' }}>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '32px', color: '#3b82f6' }}></i>
-                    <p>Đang tải đánh giá...</p>
+              {/* Action Buttons */}
+              <div className="action-buttons">
+                <button
+                  className="btn-primary-large"
+                  onClick={handleBookSession}
+                >
+                  <i className="fas fa-calendar-check"></i>
+                  Đặt lịch học ngay
+                </button>
+                <button
+                  className="btn-secondary-large"
+                  onClick={handleContactTutor}
+                >
+                  <i className="fas fa-comments"></i>
+                  Nhắn tin với gia sư
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right Content Area */}
+          <main className="tutor-content-area">
+            {/* Tabs Navigation */}
+            <nav className="content-tabs">
+              <button
+                className={`tab-item ${activeTab === "about" ? "active" : ""}`}
+                onClick={() => setActiveTab("about")}
+              >
+                <i className="fas fa-info-circle"></i>
+                <span>Giới thiệu</span>
+              </button>
+              <button
+                className={`tab-item ${
+                  activeTab === "schedule" ? "active" : ""
+                }`}
+                onClick={() => {
+                  setActiveTab("schedule");
+                  if (availability.slots.length === 0) loadAvailability();
+                }}
+              >
+                <i className="fas fa-calendar-alt"></i>
+                <span>Lịch</span>
+              </button>
+              <button
+                className={`tab-item ${
+                  activeTab === "reviews" ? "active" : ""
+                }`}
+                onClick={() => setActiveTab("reviews")}
+              >
+                <i className="fas fa-star"></i>
+                <span>Đánh giá ({tutor.reviewCount || 0})</span>
+              </button>
+              <button
+                className={`tab-item ${
+                  activeTab === "certifications" ? "active" : ""
+                }`}
+                onClick={() => setActiveTab("certifications")}
+              >
+                <i className="fas fa-certificate"></i>
+                <span>Chứng chỉ</span>
+              </button>
+              <button
+                className={`tab-item ${
+                  activeTab === "courses" ? "active" : ""
+                }`}
+                onClick={() => {
+                  setActiveTab("courses");
+                  if (courses.length === 0) loadTutorCourses();
+                }}
+              >
+                <i className="fas fa-book-open"></i>
+                <span>Khóa học ({courses.length})</span>
+              </button>
+            </nav>
+
+            {/* Tab Content */}
+            <div className="tab-content-area">
+              {/* About Tab */}
+              {activeTab === "about" && (
+                <div>
+                  <h2>
+                    <i className="fas fa-user-circle"></i> Giới thiệu về gia sư
+                  </h2>
+                  <div className="bio-content">
+                    <p>
+                      {tutor.bio ||
+                        "Gia sư chưa cập nhật thông tin giới thiệu."}
+                    </p>
                   </div>
-                ) : (
-                  <>
-                    {ratingStats && ratingStats.totalReviews > 0 && (
-                      <div className="rating-summary" style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        padding: '24px',
-                        borderRadius: '12px',
-                        color: 'white',
-                        marginBottom: '24px'
-                      }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', alignItems: 'center' }}>
-                          <div style={{ textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.3)', paddingRight: '24px' }}>
-                            <div style={{ fontSize: '48px', fontWeight: 'bold' }}>
-                              {ratingStats.rating?.toFixed(1) || '0.0'}
-                            </div>
-                            <div style={{ fontSize: '18px', marginTop: '8px' }}>
-                              {ratingStats.totalReviews || 0} đánh giá
-                            </div>
-                          </div>
-                          <div style={{ display: 'grid', gap: '8px' }}>
-                            {ratingStats.categories && (
-                              <>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>📚 Chất lượng giảng dạy:</span>
-                                  <span style={{ fontWeight: 'bold' }}>{ratingStats.categories.teaching?.toFixed(1) || '0.0'}/5</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>⏰ Đúng giờ:</span>
-                                  <span style={{ fontWeight: 'bold' }}>{ratingStats.categories.punctuality?.toFixed(1) || '0.0'}/5</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>💬 Giao tiếp:</span>
-                                  <span style={{ fontWeight: 'bold' }}>{ratingStats.categories.communication?.toFixed(1) || '0.0'}/5</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>📖 Chuẩn bị bài học:</span>
-                                  <span style={{ fontWeight: 'bold' }}>{ratingStats.categories.preparation?.toFixed(1) || '0.0'}/5</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>😊 Thân thiện:</span>
-                                  <span style={{ fontWeight: 'bold' }}>{ratingStats.categories.friendliness?.toFixed(1) || '0.0'}/5</span>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
+
+                  <div className="tutor-details-grid">
+                    <div className="detail-item">
+                      <div className="icon-wrapper">
+                        <i className="fas fa-graduation-cap"></i>
                       </div>
-                    )}
-                    
-                    <div className="reviews-list">
-                      {reviews && reviews.length > 0 ? (
-                        reviews.map((review) => (
-                          <div key={review._id} className="review-item" style={{
-                            background: '#f8f9fa',
-                            padding: '20px',
-                            borderRadius: '12px',
-                            marginBottom: '16px',
-                            border: '1px solid #e9ecef'
-                          }}>
-                            <div className="review-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                              <div className="reviewer-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div className="reviewer-avatar" style={{
-                                  width: '48px',
-                                  height: '48px',
-                                  borderRadius: '50%',
-                                  background: '#667eea',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'white',
-                                  fontSize: '20px',
-                                  overflow: 'hidden'
-                                }}>
-                                  {review.student?.avatar ? (
-                                    <img src={review.student.avatar} alt={review.student.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  ) : (
-                                    <i className="fas fa-user"></i>
-                                  )}
-                                </div>
-                                <div>
-                                  <div className="reviewer-name" style={{ fontWeight: '600', color: '#1e293b' }}>
-                                    {review.isAnonymous ? "Học viên ẩn danh" : (review.student?.full_name || "Học viên")}
-                                  </div>
-                                  <div className="review-rating" style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                                    {[1,2,3,4,5].map(star => (
-                                      <i key={star} className={`fas fa-star`} style={{ color: star <= review.rating ? '#fbbf24' : '#d1d5db', fontSize: '14px' }}></i>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="review-date" style={{ fontSize: '13px', color: '#64748b' }}>
-                                {new Date(review.created_at).toLocaleDateString('vi-VN')}
-                              </div>
-                            </div>
-                            
-                            {review.categories && (
-                              <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-                                gap: '8px', 
-                                marginBottom: '12px',
-                                padding: '12px',
-                                background: 'white',
-                                borderRadius: '8px'
-                              }}>
-                                <div style={{ fontSize: '12px' }}>
-                                  <span style={{ color: '#64748b' }}>Giảng dạy:</span>
-                                  <span style={{ fontWeight: '600', color: '#667eea', marginLeft: '4px' }}>{review.categories.teaching}/5</span>
-                                </div>
-                                <div style={{ fontSize: '12px' }}>
-                                  <span style={{ color: '#64748b' }}>Đúng giờ:</span>
-                                  <span style={{ fontWeight: '600', color: '#667eea', marginLeft: '4px' }}>{review.categories.punctuality}/5</span>
-                                </div>
-                                <div style={{ fontSize: '12px' }}>
-                                  <span style={{ color: '#64748b' }}>Giao tiếp:</span>
-                                  <span style={{ fontWeight: '600', color: '#667eea', marginLeft: '4px' }}>{review.categories.communication}/5</span>
-                                </div>
-                                <div style={{ fontSize: '12px' }}>
-                                  <span style={{ color: '#64748b' }}>Chuẩn bị:</span>
-                                  <span style={{ fontWeight: '600', color: '#667eea', marginLeft: '4px' }}>{review.categories.preparation}/5</span>
-                                </div>
-                                <div style={{ fontSize: '12px' }}>
-                                  <span style={{ color: '#64748b' }}>Thân thiện:</span>
-                                  <span style={{ fontWeight: '600', color: '#667eea', marginLeft: '4px' }}>{review.categories.friendliness}/5</span>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {review.comment && (
-                              <div className="review-content" style={{ 
-                                color: '#475569', 
-                                lineHeight: '1.6',
-                                fontSize: '14px'
-                              }}>
-                                {review.comment}
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="no-reviews" style={{ textAlign: 'center', padding: '60px 20px' }}>
-                          <i className="fas fa-comment-slash" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '16px' }}></i>
-                          <p style={{ color: '#64748b', fontSize: '16px' }}>Chưa có đánh giá nào</p>
+                      <div>
+                        <h4>Kinh nghiệm</h4>
+                        <p>{tutor.experience || "Chưa cập nhật"}</p>
+                      </div>
+                    </div>
+
+                    <div className="detail-item">
+                      <div className="icon-wrapper">
+                        <i className="fas fa-chalkboard-teacher"></i>
+                      </div>
+                      <div>
+                        <h4>Hình thức dạy</h4>
+                        <p>
+                          {tutor.teachModes?.includes("online") &&
+                          tutor.teachModes?.includes("offline")
+                            ? "Online & Offline"
+                            : tutor.teachModes?.includes("online")
+                            ? "Online"
+                            : tutor.teachModes?.includes("offline")
+                            ? "Offline"
+                            : "Chưa cập nhật"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="detail-item">
+                      <div className="icon-wrapper">
+                        <i className="fas fa-language"></i>
+                      </div>
+                      <div>
+                        <h4>Ngôn ngữ</h4>
+                        <p>{tutor.languages?.join(", ") || "Tiếng Việt"}</p>
+                      </div>
+                    </div>
+
+                    <div className="detail-item">
+                      <div className="icon-wrapper">
+                        <i className="fas fa-university"></i>
+                      </div>
+                      <div>
+                        <h4>Học vấn</h4>
+                        <p>{tutor.education || "Chưa cập nhật"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="verification-section">
+                    <h3>
+                      <i className="fas fa-shield-alt"></i> Xác minh
+                    </h3>
+                    <div className="verification-badges">
+                      <div
+                        className={`verify-badge ${
+                          tutor.verified ? "verified" : "pending"
+                        }`}
+                      >
+                        <i
+                          className={`fas ${
+                            tutor.verified
+                              ? "fa-check-circle"
+                              : "fa-hourglass-half"
+                          }`}
+                        ></i>
+                        <span>
+                          {tutor.verified ? "Đã xác minh" : "Chờ xác minh"}
+                        </span>
+                      </div>
+                      {tutor.degreeStatus && (
+                        <div
+                          className={`verify-badge ${
+                            tutor.degreeStatus === "verified"
+                              ? "verified"
+                              : "pending"
+                          }`}
+                        >
+                          <i
+                            className={`fas ${
+                              tutor.degreeStatus === "verified"
+                                ? "fa-check-circle"
+                                : "fa-hourglass-half"
+                            }`}
+                          ></i>
+                          <span>
+                            Bằng cấp:{" "}
+                            {tutor.degreeStatus === "verified"
+                              ? "Đã xác minh"
+                              : "Chờ xác minh"}
+                          </span>
                         </div>
                       )}
                     </div>
-                  </>
-                )}
-              </div>
-            )}
+                  </div>
+                </div>
+              )}
 
-            {/* Certifications Tab */}
-            {activeTab === "certifications" && (
-              <div>
-                <h2><i className="fas fa-certificate"></i> Chứng chỉ & Bằng cấp</h2>
-                <div className="certifications-grid">
-                  {tutor.certifications && tutor.certifications.length > 0 ? (
-                    tutor.certifications.map((cert, index) => (
-                      <div key={index} className="cert-item">
-                        <div className="cert-icon">
-                          <i className="fas fa-award"></i>
-                        </div>
-                        <div className="cert-name">{cert.name}</div>
-                        <div className="cert-date">{cert.year || cert.date}</div>
-                      </div>
-                    ))
+              {/* Schedule Tab */}
+              {activeTab === "schedule" && (
+                <div>
+                  <h2>
+                    <i className="fas fa-calendar-alt"></i> Lịch của gia sư
+                  </h2>
+                  {availabilityLoading ? (
+                    <div style={{ textAlign: "center", padding: "40px" }}>
+                      <i
+                        className="fas fa-spinner fa-spin"
+                        style={{ fontSize: "32px", color: "#3b82f6" }}
+                      ></i>
+                      <p>Đang tải lịch...</p>
+                    </div>
                   ) : (
-                    <div className="no-certifications">
-                      <i className="fas fa-award"></i>
-                      <p>Chưa có chứng chỉ nào</p>
+                    <div className="availability-calendar">
+                      <div className="calendar-header">
+                        <h3>Lịch trong tuần</h3>
+                        <div className="legend">
+                          <div className="legend-item">
+                            <div className="color-box available"></div>
+                            <span>Rảnh</span>
+                          </div>
+                          <div className="legend-item">
+                            <div className="color-box unavailable"></div>
+                            <span>Không rảnh</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="availability-grid">
+                        <div className="grid-cell header">Thời gian</div>
+                        {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map(
+                          (day, i) => (
+                            <div key={i} className="grid-cell header">
+                              {day}
+                            </div>
+                          )
+                        )}
+
+                        {/* Morning */}
+                        <div className="grid-cell time-label">
+                          <div style={{ fontWeight: 700, fontSize: "14px" }}>
+                            Buổi sáng
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "#64748b",
+                              marginTop: "4px",
+                            }}
+                          >
+                            07:00 - 11:30
+                          </div>
+                        </div>
+                        {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
+                          const available = tutor.availability?.some(
+                            (slot) =>
+                              (slot.dayOfWeek === dayIndex ||
+                                slot.day === dayIndex) &&
+                              parseInt((slot.start || "").split(":")[0]) < 12
+                          );
+                          return (
+                            <div
+                              key={dayIndex}
+                              className={`grid-cell ${
+                                available ? "available" : "unavailable"
+                              }`}
+                            >
+                              {available ? (
+                                <span className="check-icon">✓</span>
+                              ) : (
+                                <span className="x-icon">−</span>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {/* Afternoon */}
+                        <div className="grid-cell time-label">
+                          <div style={{ fontWeight: 700, fontSize: "14px" }}>
+                            Buổi chiều
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "#64748b",
+                              marginTop: "4px",
+                            }}
+                          >
+                            13:00 - 17:30
+                          </div>
+                        </div>
+                        {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
+                          const available = tutor.availability?.some(
+                            (slot) =>
+                              (slot.dayOfWeek === dayIndex ||
+                                slot.day === dayIndex) &&
+                              parseInt((slot.start || "").split(":")[0]) >= 12
+                          );
+                          return (
+                            <div
+                              key={dayIndex}
+                              className={`grid-cell ${
+                                available ? "available" : "unavailable"
+                              }`}
+                            >
+                              {available ? (
+                                <span className="check-icon">✓</span>
+                              ) : (
+                                <span className="x-icon">−</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Courses Tab */}
-            {activeTab === "courses" && (
-              <div>
-                <h2><i className="fas fa-book-open"></i> Khóa học của gia sư</h2>
-                {coursesLoading ? (
-                  <div style={{ textAlign: 'center', padding: '40px' }}>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '32px', color: '#3b82f6' }}></i>
-                    <p>Đang tải khóa học...</p>
-                  </div>
-                ) : (
-                  <div className="courses-grid">
-                    {courses && courses.length > 0 ? (
-                      courses.map((course, index) => (
-                        <div key={index} className="course-card" onClick={() => navigate(`/courses/${course._id}`)}>
-                          <div className="course-image">
-                            {course.thumbnail ? (
-                              <img src={course.thumbnail} alt={course.title} />
-                            ) : (
-                              <i className="fas fa-book"></i>
-                            )}
-                          </div>
-                          <div className="course-info">
-                            <div className="course-name">{course.title}</div>
-                            <div className="course-desc">{course.description}</div>
-                            <div className="course-meta">
-                              <div className="course-price">{course.price?.toLocaleString() || 0}đ</div>
-                              <div className="course-students">
-                                <i className="fas fa-users"></i>
-                                {course.enrolledCount || 0}
+              {/* Reviews Tab */}
+              {activeTab === "reviews" && (
+                <div>
+                  <h2>
+                    <i className="fas fa-star"></i> Đánh giá từ học viên
+                  </h2>
+
+                  {reviewsLoading ? (
+                    <div style={{ textAlign: "center", padding: "40px" }}>
+                      <i
+                        className="fas fa-spinner fa-spin"
+                        style={{ fontSize: "32px", color: "#3b82f6" }}
+                      ></i>
+                      <p>Đang tải đánh giá...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {ratingStats && ratingStats.totalReviews > 0 && (
+                        <div
+                          className="rating-summary"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            padding: "24px",
+                            borderRadius: "12px",
+                            color: "white",
+                            marginBottom: "24px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 2fr",
+                              gap: "24px",
+                              alignItems: "center",
+                            }}
+                          >
+                            <div
+                              style={{
+                                textAlign: "center",
+                                borderRight: "1px solid rgba(255,255,255,0.3)",
+                                paddingRight: "24px",
+                              }}
+                            >
+                              <div
+                                style={{ fontSize: "48px", fontWeight: "bold" }}
+                              >
+                                {ratingStats.rating?.toFixed(1) || "0.0"}
+                              </div>
+                              <div
+                                style={{ fontSize: "18px", marginTop: "8px" }}
+                              >
+                                {ratingStats.totalReviews || 0} đánh giá
                               </div>
                             </div>
+                            <div style={{ display: "grid", gap: "8px" }}>
+                              {ratingStats.categories && (
+                                <>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <span>📚 Chất lượng giảng dạy:</span>
+                                    <span style={{ fontWeight: "bold" }}>
+                                      {ratingStats.categories.teaching?.toFixed(
+                                        1
+                                      ) || "0.0"}
+                                      /5
+                                    </span>
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <span>⏰ Đúng giờ:</span>
+                                    <span style={{ fontWeight: "bold" }}>
+                                      {ratingStats.categories.punctuality?.toFixed(
+                                        1
+                                      ) || "0.0"}
+                                      /5
+                                    </span>
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <span>💬 Giao tiếp:</span>
+                                    <span style={{ fontWeight: "bold" }}>
+                                      {ratingStats.categories.communication?.toFixed(
+                                        1
+                                      ) || "0.0"}
+                                      /5
+                                    </span>
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <span>📖 Chuẩn bị bài học:</span>
+                                    <span style={{ fontWeight: "bold" }}>
+                                      {ratingStats.categories.preparation?.toFixed(
+                                        1
+                                      ) || "0.0"}
+                                      /5
+                                    </span>
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <span>😊 Thân thiện:</span>
+                                    <span style={{ fontWeight: "bold" }}>
+                                      {ratingStats.categories.friendliness?.toFixed(
+                                        1
+                                      ) || "0.0"}
+                                      /5
+                                    </span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="reviews-list">
+                        {reviews && reviews.length > 0 ? (
+                          reviews.map((review) => (
+                            <div
+                              key={review._id}
+                              className="review-item"
+                              style={{
+                                background: "#f8f9fa",
+                                padding: "20px",
+                                borderRadius: "12px",
+                                marginBottom: "16px",
+                                border: "1px solid #e9ecef",
+                              }}
+                            >
+                              <div
+                                className="review-header"
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  marginBottom: "12px",
+                                }}
+                              >
+                                <div
+                                  className="reviewer-info"
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                  }}
+                                >
+                                  <div
+                                    className="reviewer-avatar"
+                                    style={{
+                                      width: "48px",
+                                      height: "48px",
+                                      borderRadius: "50%",
+                                      background: "#667eea",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontSize: "20px",
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {review.student?.avatar ? (
+                                      <img
+                                        src={review.student.avatar}
+                                        alt={review.student.full_name}
+                                        style={{
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover",
+                                        }}
+                                      />
+                                    ) : (
+                                      <i className="fas fa-user"></i>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div
+                                      className="reviewer-name"
+                                      style={{
+                                        fontWeight: "600",
+                                        color: "#1e293b",
+                                      }}
+                                    >
+                                      {review.isAnonymous
+                                        ? "Học viên ẩn danh"
+                                        : review.student?.full_name ||
+                                          "Học viên"}
+                                    </div>
+                                    <div
+                                      className="review-rating"
+                                      style={{
+                                        display: "flex",
+                                        gap: "4px",
+                                        marginTop: "4px",
+                                      }}
+                                    >
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <i
+                                          key={star}
+                                          className={`fas fa-star`}
+                                          style={{
+                                            color:
+                                              star <= review.rating
+                                                ? "#fbbf24"
+                                                : "#d1d5db",
+                                            fontSize: "14px",
+                                          }}
+                                        ></i>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div
+                                  className="review-date"
+                                  style={{ fontSize: "13px", color: "#64748b" }}
+                                >
+                                  {new Date(
+                                    review.created_at
+                                  ).toLocaleDateString("vi-VN")}
+                                </div>
+                              </div>
+
+                              {review.categories && (
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns:
+                                      "repeat(auto-fit, minmax(150px, 1fr))",
+                                    gap: "8px",
+                                    marginBottom: "12px",
+                                    padding: "12px",
+                                    background: "white",
+                                    borderRadius: "8px",
+                                  }}
+                                >
+                                  <div style={{ fontSize: "12px" }}>
+                                    <span style={{ color: "#64748b" }}>
+                                      Giảng dạy:
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontWeight: "600",
+                                        color: "#667eea",
+                                        marginLeft: "4px",
+                                      }}
+                                    >
+                                      {review.categories.teaching}/5
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: "12px" }}>
+                                    <span style={{ color: "#64748b" }}>
+                                      Đúng giờ:
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontWeight: "600",
+                                        color: "#667eea",
+                                        marginLeft: "4px",
+                                      }}
+                                    >
+                                      {review.categories.punctuality}/5
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: "12px" }}>
+                                    <span style={{ color: "#64748b" }}>
+                                      Giao tiếp:
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontWeight: "600",
+                                        color: "#667eea",
+                                        marginLeft: "4px",
+                                      }}
+                                    >
+                                      {review.categories.communication}/5
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: "12px" }}>
+                                    <span style={{ color: "#64748b" }}>
+                                      Chuẩn bị:
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontWeight: "600",
+                                        color: "#667eea",
+                                        marginLeft: "4px",
+                                      }}
+                                    >
+                                      {review.categories.preparation}/5
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: "12px" }}>
+                                    <span style={{ color: "#64748b" }}>
+                                      Thân thiện:
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontWeight: "600",
+                                        color: "#667eea",
+                                        marginLeft: "4px",
+                                      }}
+                                    >
+                                      {review.categories.friendliness}/5
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {review.comment && (
+                                <div
+                                  className="review-content"
+                                  style={{
+                                    color: "#475569",
+                                    lineHeight: "1.6",
+                                    fontSize: "14px",
+                                  }}
+                                >
+                                  {review.comment}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div
+                            className="no-reviews"
+                            style={{
+                              textAlign: "center",
+                              padding: "60px 20px",
+                            }}
+                          >
+                            <i
+                              className="fas fa-comment-slash"
+                              style={{
+                                fontSize: "48px",
+                                color: "#cbd5e1",
+                                marginBottom: "16px",
+                              }}
+                            ></i>
+                            <p style={{ color: "#64748b", fontSize: "16px" }}>
+                              Chưa có đánh giá nào
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Certifications Tab */}
+              {activeTab === "certifications" && (
+                <div>
+                  <h2>
+                    <i className="fas fa-certificate"></i> Chứng chỉ & Bằng cấp
+                  </h2>
+                  <div className="certifications-grid">
+                    {tutor.certifications && tutor.certifications.length > 0 ? (
+                      tutor.certifications.map((cert, index) => (
+                        <div key={index} className="cert-item">
+                          <div className="cert-icon">
+                            <i className="fas fa-award"></i>
+                          </div>
+                          <div className="cert-name">{cert.name}</div>
+                          <div className="cert-date">
+                            {cert.year || cert.date}
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="no-courses">
-                        <i className="fas fa-book-open"></i>
-                        <p>Chưa có khóa học nào</p>
+                      <div className="no-certifications">
+                        <i className="fas fa-award"></i>
+                        <p>Chưa có chứng chỉ nào</p>
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-          {/* End tab-content-area */}
-        </main>
-        {/* End tutor-content-area */}
+                </div>
+              )}
+
+              {/* Courses Tab */}
+              {activeTab === "courses" && (
+                <div>
+                  <h2>
+                    <i className="fas fa-book-open"></i> Khóa học của gia sư
+                  </h2>
+                  {coursesLoading ? (
+                    <div style={{ textAlign: "center", padding: "40px" }}>
+                      <i
+                        className="fas fa-spinner fa-spin"
+                        style={{ fontSize: "32px", color: "#3b82f6" }}
+                      ></i>
+                      <p>Đang tải khóa học...</p>
+                    </div>
+                  ) : (
+                    <div className="courses-grid">
+                      {courses && courses.length > 0 ? (
+                        courses.map((course, index) => (
+                          <div
+                            key={index}
+                            className="course-card"
+                            onClick={() => navigate(`/courses/${course._id}`)}
+                          >
+                            <div className="course-image">
+                              {course.thumbnail ? (
+                                <img
+                                  src={course.thumbnail}
+                                  alt={course.title}
+                                />
+                              ) : (
+                                <i className="fas fa-book"></i>
+                              )}
+                            </div>
+                            <div className="course-info">
+                              <div className="course-name">{course.title}</div>
+                              <div className="course-desc">
+                                {course.description}
+                              </div>
+                              <div className="course-meta">
+                                <div className="course-price">
+                                  {course.price?.toLocaleString() || 0}đ
+                                </div>
+                                <div className="course-students">
+                                  <i className="fas fa-users"></i>
+                                  {course.enrolledCount || 0}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="no-courses">
+                          <i className="fas fa-book-open"></i>
+                          <p>Chưa có khóa học nào</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* End tab-content-area */}
+          </main>
+          {/* End tutor-content-area */}
+        </div>
+        {/* End profile-container */}
       </div>
-      {/* End profile-container */}
-    </div>
 
       {/* Booking Form Modal - Outside of main content */}
       {showBookingForm && (
@@ -1470,36 +1813,57 @@ const TutorProfilePage = () => {
 
             {/* Tutor Availability Calendar */}
             <div className="tutor-availability-section">
-              <h4 style={{ marginBottom: '16px', color: '#1e293b', fontSize: '1.125rem' }}>
+              <h4
+                style={{
+                  marginBottom: "16px",
+                  color: "#1e293b",
+                  fontSize: "1.125rem",
+                }}
+              >
                 📅 Lịch rảnh của gia sư
               </h4>
               <div className="availability-grid">
                 <div className="availability-header">
                   <div className="time-label">Thời gian</div>
-                  {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((day, idx) => (
-                    <div key={idx} className="day-label">{day}</div>
-                  ))}
+                  {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map(
+                    (day, idx) => (
+                      <div key={idx} className="day-label">
+                        {day}
+                      </div>
+                    )
+                  )}
                 </div>
-                
+
                 {/* Morning Session */}
                 <div className="availability-row">
                   <div className="session-label">
-                    <div style={{ fontWeight: 600, color: '#1e293b' }}>Buổi sáng</div>
-                    <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>7:00-11:30</div>
+                    <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                      Buổi sáng
+                    </div>
+                    <div style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+                      7:00-11:30
+                    </div>
                   </div>
                   {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
-                    const hasSlot = Array.isArray(tutor.availability) && tutor.availability.some((slot) => {
-                      let d = slot.dayOfWeek ?? slot.day ?? 0;
-                      if (d === 7) d = 0;
-                      if (d !== dayIndex) return false;
-                      
-                      const start = slot.start || '';
-                      const [startHour] = start.split(':').map(Number);
-                      return startHour < 12;
-                    });
-                    
+                    const hasSlot =
+                      Array.isArray(tutor.availability) &&
+                      tutor.availability.some((slot) => {
+                        let d = slot.dayOfWeek ?? slot.day ?? 0;
+                        if (d === 7) d = 0;
+                        if (d !== dayIndex) return false;
+
+                        const start = slot.start || "";
+                        const [startHour] = start.split(":").map(Number);
+                        return startHour < 12;
+                      });
+
                     return (
-                      <div key={dayIndex} className={`availability-cell ${hasSlot ? 'available' : ''}`}>
+                      <div
+                        key={dayIndex}
+                        className={`availability-cell ${
+                          hasSlot ? "available" : ""
+                        }`}
+                      >
                         {hasSlot && <span className="check-icon">✓</span>}
                       </div>
                     );
@@ -1509,30 +1873,51 @@ const TutorProfilePage = () => {
                 {/* Afternoon Session */}
                 <div className="availability-row">
                   <div className="session-label">
-                    <div style={{ fontWeight: 600, color: '#1e293b' }}>Buổi chiều</div>
-                    <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>13:00-16:30</div>
+                    <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                      Buổi chiều
+                    </div>
+                    <div style={{ fontSize: "0.8125rem", color: "#64748b" }}>
+                      13:00-16:30
+                    </div>
                   </div>
                   {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
-                    const hasSlot = Array.isArray(tutor.availability) && tutor.availability.some((slot) => {
-                      let d = slot.dayOfWeek ?? slot.day ?? 0;
-                      if (d === 7) d = 0;
-                      if (d !== dayIndex) return false;
-                      
-                      const start = slot.start || '';
-                      const [startHour] = start.split(':').map(Number);
-                      return startHour >= 12;
-                    });
-                    
+                    const hasSlot =
+                      Array.isArray(tutor.availability) &&
+                      tutor.availability.some((slot) => {
+                        let d = slot.dayOfWeek ?? slot.day ?? 0;
+                        if (d === 7) d = 0;
+                        if (d !== dayIndex) return false;
+
+                        const start = slot.start || "";
+                        const [startHour] = start.split(":").map(Number);
+                        return startHour >= 12;
+                      });
+
                     return (
-                      <div key={dayIndex} className={`availability-cell ${hasSlot ? 'available' : ''}`}>
+                      <div
+                        key={dayIndex}
+                        className={`availability-cell ${
+                          hasSlot ? "available" : ""
+                        }`}
+                      >
                         {hasSlot && <span className="check-icon">✓</span>}
                       </div>
                     );
                   })}
                 </div>
               </div>
-              <p style={{ marginTop: '12px', fontSize: '0.875rem', color: '#64748b', textAlign: 'center' }}>
-                <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>
+              <p
+                style={{
+                  marginTop: "12px",
+                  fontSize: "0.875rem",
+                  color: "#64748b",
+                  textAlign: "center",
+                }}
+              >
+                <i
+                  className="fas fa-info-circle"
+                  style={{ marginRight: "6px" }}
+                ></i>
                 Ô có dấu ✓ là thời gian gia sư rảnh để dạy
               </p>
             </div>
@@ -1559,19 +1944,27 @@ const TutorProfilePage = () => {
                   <label htmlFor="subject">Chọn môn học *</label>
                   <select
                     id="subject"
-                    value={bookingData.subject?.name || bookingData.subject || ""}
+                    value={
+                      bookingData.subject?.name || bookingData.subject || ""
+                    }
                     onChange={(e) => {
                       const selectedValue = e.target.value;
                       const selectedSubject = tutor.subjects.find((s) => {
-                        const subjectName = typeof s === 'string' ? s : s.name;
+                        const subjectName = typeof s === "string" ? s : s.name;
                         return subjectName === selectedValue;
                       });
-                      
+
                       // Normalize subject to object format
-                      const normalizedSubject = typeof selectedSubject === 'string' 
-                        ? { name: selectedSubject, price: tutor.price, level: '', description: '' }
-                        : selectedSubject;
-                      
+                      const normalizedSubject =
+                        typeof selectedSubject === "string"
+                          ? {
+                              name: selectedSubject,
+                              price: tutor.price,
+                              level: "",
+                              description: "",
+                            }
+                          : selectedSubject;
+
                       // Lưu toàn bộ object subject
                       handleBookingInputChange("subject", normalizedSubject);
                       // Cập nhật giá khi chọn môn học
@@ -1582,7 +1975,8 @@ const TutorProfilePage = () => {
                         );
                         handleBookingInputChange(
                           "totalPrice",
-                          (normalizedSubject.price || tutor.price) * bookingData.numberOfSessions
+                          (normalizedSubject.price || tutor.price) *
+                            bookingData.numberOfSessions
                         );
                       }
                     }}
@@ -1599,7 +1993,8 @@ const TutorProfilePage = () => {
                   >
                     <option value="">-- Chọn môn học --</option>
                     {tutor.subjects?.map((subject, index) => {
-                      const subjectName = typeof subject === 'string' ? subject : subject.name;
+                      const subjectName =
+                        typeof subject === "string" ? subject : subject.name;
                       return (
                         <option key={index} value={subjectName}>
                           {subjectName}
@@ -2615,7 +3010,11 @@ function Timetable({ available = [], booked = [], onPick }) {
   };
 
   // Week window
-  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const addDays = (d, n) => {
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
+  };
   const startOfWeekMon = (d) => {
     const x = new Date(d);
     const day = x.getDay();
@@ -2630,8 +3029,12 @@ function Timetable({ available = [], booked = [], onPick }) {
     return t >= windowStart && t < windowEnd;
   };
 
-  available.filter((s) => inWindow(s.date)).forEach((s) => addToGrid(s.date, s.start, s.end, "available"));
-  booked.filter((s) => inWindow(s.date)).forEach((s) => addToGrid(s.date, s.start, s.end, "booked"));
+  available
+    .filter((s) => inWindow(s.date))
+    .forEach((s) => addToGrid(s.date, s.start, s.end, "available"));
+  booked
+    .filter((s) => inWindow(s.date))
+    .forEach((s) => addToGrid(s.date, s.start, s.end, "booked"));
 
   const periods = [
     { key: "morning", label: "Sáng" },
@@ -2666,9 +3069,15 @@ function Timetable({ available = [], booked = [], onPick }) {
           Tuần trước
         </button>
         <div className="tt-range">
-          {windowStart.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+          {windowStart.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+          })}
           {" - "}
-          {addDays(windowStart, 6).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}
+          {addDays(windowStart, 6).toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+          })}
         </div>
         <button className="tt-nav" onClick={() => setWeekOffset((v) => v + 1)}>
           Tuần sau
@@ -2677,7 +3086,9 @@ function Timetable({ available = [], booked = [], onPick }) {
       <div className="tt-head">
         <div className="tt-cell tt-corner"></div>
         {days.map((d, i) => (
-          <div key={i} className="tt-cell tt-day">{d}</div>
+          <div key={i} className="tt-cell tt-day">
+            {d}
+          </div>
         ))}
       </div>
       {periods.map((p) => (
@@ -2694,11 +3105,15 @@ function Timetable({ available = [], booked = [], onPick }) {
                 {items.map((s, idx) => (
                   <div
                     key={idx}
-                    className={`tt-slot ${s.type === "available" ? "tt-available" : "tt-booked"}`}
+                    className={`tt-slot ${
+                      s.type === "available" ? "tt-available" : "tt-booked"
+                    }`}
                     onClick={() => handleClick(s)}
                     role={s.type === "available" ? "button" : undefined}
                   >
-                    <span className="tt-time">{s.start} – {s.end}</span>
+                    <span className="tt-time">
+                      {s.start} – {s.end}
+                    </span>
                   </div>
                 ))}
               </div>
