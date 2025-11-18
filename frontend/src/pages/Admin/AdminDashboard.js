@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import AdminService from "../../services/AdminService";
-import AdminSidebar from "./AdminSidebar";
+import AdminDashboardCharts from "./AdminDashboardCharts";
 import "./AdminDashboard.modern.css";
 
 const AdminDashboard = ({ currentUser }) => {
   const [stats, setStats] = useState(null);
   const [recentActivity, setRecentActivity] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Reports for charts
+  const [revenueReport, setRevenueReport] = useState([]);
+  const [userReport, setUserReport] = useState({ byRole: [], byStatus: [] });
+  const [tutorReport, setTutorReport] = useState({
+    byStatus: [],
+    byVerification: [],
+  });
+
+  // Fallback to Redux store if prop not passed
+  const storeUser = useSelector(
+    (state) => state.user?.user || state.user?.account || null
+  );
 
   useEffect(() => {
     fetchDashboardData();
+    fetchReports();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -25,6 +39,21 @@ const AdminDashboard = ({ currentUser }) => {
     }
   };
 
+  const fetchReports = async () => {
+    try {
+      const [rev, users, tutors] = await Promise.all([
+        AdminService.getRevenueReport({}),
+        AdminService.getUserReport(),
+        AdminService.getTutorReport(),
+      ]);
+      setRevenueReport(Array.isArray(rev.data) ? rev.data : []);
+      setUserReport(users.data || { byRole: [], byStatus: [] });
+      setTutorReport(tutors.data || { byStatus: [], byVerification: [] });
+    } catch (e) {
+      console.error("Error fetching reports:", e);
+    }
+  };
+
   if (loading) {
     return (
       <div className="admin-loading">
@@ -33,10 +62,51 @@ const AdminDashboard = ({ currentUser }) => {
     );
   }
 
+  // Fallbacks in case stats API fails but reports are available
+  const computedTotalUsers = (() => {
+    const arr = userReport?.byRole || [];
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    return arr.reduce((sum, item) => sum + (item.count || 0), 0);
+  })();
+  const totalUsersValue = stats?.totalUsers || computedTotalUsers || 0;
+
+  const computedTotalTutors = (() => {
+    const arr = userReport?.byRole || [];
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const tutorItem = arr.find((x) => (x._id || x.role) === "tutor");
+    return tutorItem ? tutorItem.count || 0 : 0;
+  })();
+  const totalTutorsValue =
+    typeof stats?.totalTutors === "number" && stats.totalTutors > 0
+      ? stats.totalTutors
+      : computedTotalTutors || 0;
+
+  const computedApprovedTutors = (() => {
+    const arr = tutorReport?.byStatus || [];
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const item = arr.find((x) => (x._id || x.status) === "approved");
+    return item ? item.count || 0 : 0;
+  })();
+  const approvedTutorsValue =
+    typeof stats?.approvedTutors === "number" && stats.approvedTutors > 0
+      ? stats.approvedTutors
+      : computedApprovedTutors || 0;
+
+  const computedPendingTutors = (() => {
+    const arr = tutorReport?.byStatus || [];
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const item = arr.find((x) => (x._id || x.status) === "pending");
+    return item ? item.count || 0 : 0;
+  })();
+  const pendingTutorsValue =
+    typeof stats?.pendingTutors === "number" && stats.pendingTutors >= 0
+      ? stats.pendingTutors
+      : computedPendingTutors || 0;
+
   const statCards = [
     {
       title: "Tổng người dùng",
-      value: stats?.totalUsers || 0,
+      value: totalUsersValue,
       icon: "👤",
       color: "blue",
       change: "+12%",
@@ -44,19 +114,11 @@ const AdminDashboard = ({ currentUser }) => {
     },
     {
       title: "Tổng gia sư",
-      value: stats?.totalTutors || 0,
+      value: totalTutorsValue,
       icon: "🎓",
       color: "purple",
       change: "+8%",
-      description: "Số gia sư đã được duyệt",
-    },
-    {
-      title: "Tổng đặt lịch",
-      value: stats?.totalBookings || 0,
-      icon: "📅",
-      color: "green",
-      change: "+15%",
-      description: "Tổng số buổi học đã đặt",
+      description: "Số người dùng có role gia sư",
     },
     {
       title: "Doanh thu",
@@ -64,27 +126,28 @@ const AdminDashboard = ({ currentUser }) => {
       icon: "💲",
       color: "orange",
       change: "+23%",
-      description: "Tổng doanh thu hệ thống",
+      description: "Tổng doanh thu từ hợp đồng đã thanh toán",
     },
     {
       title: "Chờ duyệt",
-      value: stats?.pendingTutors || 0,
+      value: pendingTutorsValue,
       icon: "⏰",
       color: "red",
       change: "-5%",
       description: "Gia sư chờ duyệt",
     },
     {
-      title: "Người dùng hoạt động",
-      value: stats?.activeUsers || 0,
+      title: "Đơn đã duyệt",
+      value: approvedTutorsValue,
       icon: "✅",
       color: "green",
       change: "+9%",
-      description: "Người dùng đang hoạt động",
+      description: "Số đơn đăng ký gia sư đã được duyệt",
     },
   ];
 
-  if (!currentUser || currentUser.role !== "admin") {
+  const effectiveUser = currentUser || storeUser;
+  if (!effectiveUser || effectiveUser.role !== "admin") {
     return (
       <div className="admin-no-access">
         Bạn không có quyền truy cập trang này.
@@ -123,6 +186,13 @@ const AdminDashboard = ({ currentUser }) => {
           </div>
         ))}
       </div>
+
+      {/* Charts Section */}
+      <AdminDashboardCharts
+        revenueData={revenueReport}
+        usersByRole={userReport?.byRole || []}
+        tutorsByStatus={tutorReport?.byStatus || []}
+      />
 
       {/* Activity Section */}
       <div className="admin-activity">

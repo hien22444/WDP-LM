@@ -94,24 +94,39 @@ const sendEmail = async (to, subject, html) => {
 // Dashboard stats
 const getDashboardStats = async (req, res) => {
   try {
+    console.log("[Admin] getDashboardStats called");
     const totalUsers = await User.countDocuments();
-    const totalTutors = await TutorProfile.countDocuments();
+    // Total tutors: number of users having role 'tutor'
+    const totalTutors = await User.countDocuments({ role: "tutor" });
     const totalBookings = await Booking.countDocuments();
+    // Pending tutor applications (profiles)
     const pendingTutors = await TutorProfile.countDocuments({
       status: "pending",
     });
-    const activeUsers = await User.countDocuments({ status: "active" });
+    // Approved tutor applications (for KPI: Đơn đã duyệt)
+    const approvedTutors = await TutorProfile.countDocuments({
+      status: "approved",
+    });
     const completedBookings = await Booking.countDocuments({
       status: "completed",
     });
 
-    // Revenue calculation (assuming price field exists)
+    // Revenue calculation from PAID contracts/bookings
     const revenueResult = await Booking.aggregate([
-      { $match: { status: "completed" } },
+      { $match: { paymentStatus: "paid" } },
       { $group: { _id: null, totalRevenue: { $sum: "$price" } } },
     ]);
     const totalRevenue =
       revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    console.log("[Admin] stats computed:", {
+      totalUsers,
+      totalTutors,
+      totalBookings,
+      pendingTutors,
+      approvedTutors,
+      completedBookings,
+      totalRevenue,
+    });
 
     // Recent activity
     const recentUsers = await User.find()
@@ -121,8 +136,10 @@ const getDashboardStats = async (req, res) => {
 
     const recentBookings = await Booking.find()
       .populate("student", "full_name email")
-      .populate("tutorProfile", "user")
-      .populate("tutorProfile.user", "full_name email")
+      .populate({
+        path: "tutorProfile",
+        populate: { path: "user", select: "full_name email" },
+      })
       .sort({ created_at: -1 })
       .limit(5)
       .select("start end status price created_at");
@@ -133,7 +150,7 @@ const getDashboardStats = async (req, res) => {
         totalTutors,
         totalBookings,
         pendingTutors,
-        activeUsers,
+        approvedTutors,
         completedBookings,
         totalRevenue,
       },
@@ -756,8 +773,10 @@ const getBookings = async (req, res) => {
 
     const bookings = await Booking.find(query)
       .populate("student", "full_name email")
-      .populate("tutorProfile", "user")
-      .populate("tutorProfile.user", "full_name email")
+      .populate({
+        path: "tutorProfile",
+        populate: { path: "user", select: "full_name email" },
+      })
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -782,8 +801,10 @@ const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
       .populate("student", "full_name email phone_number")
-      .populate("tutorProfile", "user")
-      .populate("tutorProfile.user", "full_name email phone_number");
+      .populate({
+        path: "tutorProfile",
+        populate: { path: "user", select: "full_name email phone_number" },
+      });
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -815,8 +836,10 @@ const updateBookingStatus = async (req, res) => {
       { new: true }
     )
       .populate("student", "full_name email")
-      .populate("tutorProfile", "user")
-      .populate("tutorProfile.user", "full_name email");
+      .populate({
+        path: "tutorProfile",
+        populate: { path: "user", select: "full_name email" },
+      });
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -834,7 +857,7 @@ const getRevenueReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    let matchQuery = { status: "completed" };
+    let matchQuery = { paymentStatus: "paid" };
     if (startDate && endDate) {
       matchQuery.created_at = {
         $gte: new Date(startDate),
