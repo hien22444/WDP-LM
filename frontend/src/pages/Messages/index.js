@@ -122,33 +122,43 @@ const MessagesPage = () => {
             return;
           }
 
-          const mappedChats = response.conversations.map((conv) => {
-            const otherParticipant = conv.otherParticipant;
-            if (!otherParticipant) {
-              return null;
-            }
+          const mappedChats = response.conversations
+            .map((conv) => {
+              const otherParticipant = conv.otherParticipant;
+              if (!otherParticipant) {
+                return null;
+              }
 
-            const otherParticipantId = otherParticipant._id || otherParticipant;
-            const [id1, id2] = [String(userId), String(otherParticipantId)].sort();
-            const roomId = `chat_${id1}_${id2}`;
+              const otherParticipantId =
+                otherParticipant._id || otherParticipant;
+              const [id1, id2] = [
+                String(userId),
+                String(otherParticipantId),
+              ].sort();
+              const roomId = `chat_${id1}_${id2}`;
 
-            return {
-              conversationId: conv._id,
-              roomId,
-              userId: String(otherParticipantId),
-              name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
-              avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
-              isOnline: false,
-              lastMessage: conv.lastMessage
-                ? {
-                    text: conv.lastMessage.content || conv.lastMessage.message,
-                    timestamp: conv.lastMessage.timestamp,
-                    isRead: conv.lastMessage.isRead,
-                  }
-                : null,
-              unreadCount: conv.unreadCount || 0,
-            };
-          }).filter(chat => chat !== null);
+              return {
+                conversationId: conv._id,
+                roomId,
+                userId: String(otherParticipantId),
+                name:
+                  otherParticipant?.full_name ||
+                  otherParticipant?.email ||
+                  "Unknown Student",
+                avatar: otherParticipant?.profile?.avatar || null,
+                isOnline: false,
+                lastMessage: conv.lastMessage
+                  ? {
+                      text:
+                        conv.lastMessage.content || conv.lastMessage.message,
+                      timestamp: conv.lastMessage.timestamp,
+                      isRead: conv.lastMessage.isRead,
+                    }
+                  : null,
+                unreadCount: conv.unreadCount || 0,
+              };
+            })
+            .filter((chat) => chat !== null);
 
           console.log(`✅ Loaded ${mappedChats.length} conversations on mount`);
           setChatList(mappedChats);
@@ -278,60 +288,79 @@ const MessagesPage = () => {
           conversationsCount: response.conversations?.length || 0,
           conversations: response.conversations,
         });
-        
+
         if (response.success && response.conversations) {
-          console.log("✅ Loaded conversations from API:", response.conversations.length);
-          
+          console.log(
+            "✅ Loaded conversations from API:",
+            response.conversations.length
+          );
+
           if (response.conversations.length === 0) {
             console.warn("⚠️ API returned empty conversations array");
             setLoading(false);
             return;
           }
-          
-          // Map API response to chat list format
-          const mappedChats = response.conversations.map((conv) => {
-            const otherParticipant = conv.otherParticipant;
-            if (!otherParticipant) {
-              console.warn("⚠️ Conversation missing otherParticipant:", conv._id);
-              return null;
-            }
-            
-            const otherParticipantId = otherParticipant._id || otherParticipant;
-            const [id1, id2] = [String(userId), String(otherParticipantId)].sort();
-            const roomId = `chat_${id1}_${id2}`;
 
-            const mappedChat = {
-              conversationId: conv._id,
-              roomId, // Backward compatibility
-              userId: String(otherParticipantId),
-              name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
-              avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
-              isOnline: false, // Will be updated by socket
-              lastMessage: conv.lastMessage
-                ? {
-                    text: conv.lastMessage.content || conv.lastMessage.message,
-                    timestamp: conv.lastMessage.timestamp,
-                    isRead: conv.lastMessage.isRead,
-                  }
-                : null,
-              unreadCount: conv.unreadCount || 0,
-            };
-            
-            console.log("📋 Mapped chat:", {
-              conversationId: mappedChat.conversationId,
-              userId: mappedChat.userId,
-              name: mappedChat.name,
-              hasLastMessage: !!mappedChat.lastMessage,
-            });
-            
-            return mappedChat;
-          }).filter(chat => chat !== null); // Filter out null entries
+          // Map API response to chat list format
+          const mappedChats = response.conversations
+            .map((conv) => {
+              const otherParticipant = conv.otherParticipant;
+              if (!otherParticipant) {
+                console.warn(
+                  "⚠️ Conversation missing otherParticipant:",
+                  conv._id
+                );
+                return null;
+              }
+
+              const otherParticipantId =
+                otherParticipant._id || otherParticipant;
+              const [id1, id2] = [
+                String(userId),
+                String(otherParticipantId),
+              ].sort();
+              const roomId = `chat_${id1}_${id2}`;
+
+              const mappedChat = {
+                conversationId: conv._id,
+                roomId, // Backward compatibility
+                userId: String(otherParticipantId),
+                name:
+                  otherParticipant?.full_name ||
+                  otherParticipant?.email ||
+                  "Unknown Student",
+                avatar: otherParticipant?.profile?.avatar || null,
+                isOnline: false, // Will be updated by socket
+                lastMessage: conv.lastMessage
+                  ? {
+                      text:
+                        conv.lastMessage.content || conv.lastMessage.message,
+                      timestamp: conv.lastMessage.timestamp,
+                      isRead: conv.lastMessage.isRead,
+                    }
+                  : null,
+                unreadCount: conv.unreadCount || 0,
+              };
+
+              console.log("📋 Mapped chat:", {
+                conversationId: mappedChat.conversationId,
+                userId: mappedChat.userId,
+                name: mappedChat.name,
+                hasLastMessage: !!mappedChat.lastMessage,
+              });
+
+              return mappedChat;
+            })
+            .filter((chat) => chat !== null); // Filter out null entries
 
           console.log(`✅ Mapped ${mappedChats.length} chats from API`);
           setChatList(mappedChats);
           setLoading(false);
         } else {
-          console.warn("⚠️ API response not successful or missing conversations:", response);
+          console.warn(
+            "⚠️ API response not successful or missing conversations:",
+            response
+          );
           setLoading(false);
         }
       } catch (error) {
@@ -458,15 +487,18 @@ const MessagesPage = () => {
           } else {
             // Thêm chat mới vào đầu danh sách
             console.log("📨 Adding new chat from message:", data);
-            const [id1, id2] = [String(tutorId), senderIdStr === tutorIdStr ? receiverIdStr : senderIdStr].sort();
+            const [id1, id2] = [
+              String(tutorId),
+              senderIdStr === tutorIdStr ? receiverIdStr : senderIdStr,
+            ].sort();
             const roomId = data.roomId || `chat_${id1}_${id2}`;
-            
+
             const newChat = {
               conversationId: data.conversationId || null, // Kiến trúc mới
               roomId: roomId, // Backward compatibility
               userId: senderIdStr === tutorIdStr ? receiverIdStr : senderIdStr,
               name: data.senderName,
-              avatar: data.senderAvatar || "https://via.placeholder.com/40",
+              avatar: data.senderAvatar || null,
               lastMessage: {
                 text: data.message || data.content,
                 timestamp: new Date().toISOString(),
@@ -506,24 +538,36 @@ const MessagesPage = () => {
       // Refresh chat list when notified of updates
       const tutorId = currentUser?._id || currentUser?.account?._id;
       socket.emit("get_tutor_chats", { tutorId });
-      
+
       // Also reload from REST API
       try {
         console.log("🔄 Refreshing conversations from API after update...");
         const response = await getConversationsApi();
         if (response.success && response.conversations) {
-          const userId = currentUser?._id || currentUser?.account?._id || storedUserData?._id || storedUserData?.account?._id;
+          const userId =
+            currentUser?._id ||
+            currentUser?.account?._id ||
+            storedUserData?._id ||
+            storedUserData?.account?._id;
           const mappedChats = response.conversations.map((conv) => {
             const otherParticipant = conv.otherParticipant;
-            const [id1, id2] = [String(userId), String(otherParticipant._id || otherParticipant)].sort();
+            const [id1, id2] = [
+              String(userId),
+              String(otherParticipant._id || otherParticipant),
+            ].sort();
             const roomId = `chat_${id1}_${id2}`;
 
             return {
               conversationId: conv._id,
               roomId,
               userId: String(otherParticipant._id || otherParticipant),
-              name: otherParticipant?.full_name || otherParticipant?.email || "Unknown Student",
-              avatar: otherParticipant?.profile?.avatar || "https://via.placeholder.com/40",
+              name:
+                otherParticipant?.full_name ||
+                otherParticipant?.email ||
+                "Unknown Student",
+              avatar:
+                otherParticipant?.profile?.avatar ||
+                "https://via.placeholder.com/40",
               isOnline: false,
               lastMessage: conv.lastMessage
                 ? {
@@ -595,20 +639,17 @@ const MessagesPage = () => {
                 }`}
                 onClick={() => setActiveChat(chat)}
               >
-                <div className="chat-item-avatar">
-                  <img
-                    src={chat.avatar || "https://via.placeholder.com/40"}
-                    alt={chat.name}
-                  />
+                {/* <div className="chat-item-avatar">
+                  <img src={chat.image || ""} alt={chat.name} />
                   {chat.isOnline && <div className="online-indicator" />}
-                </div>
+                </div> */}
 
                 <div className="chat-item-info">
                   <div className="chat-item-header">
                     <h4>{chat.name}</h4>
-                    <span className="last-seen">
+                    {/* <span className="last-seen">
                       {chat.isOnline ? "Online" : "Offline"}
-                    </span>
+                    </span> */}
                   </div>
 
                   <div className="chat-item-preview">
@@ -641,7 +682,11 @@ const MessagesPage = () => {
               style={{ position: "relative", height: "100%", margin: 0 }}
               embedded={true}
               conversationId={activeChat.conversationId || activeChat._id}
-              key={activeChat.conversationId || activeChat.roomId || activeChat.userId}
+              key={
+                activeChat.conversationId ||
+                activeChat.roomId ||
+                activeChat.userId
+              }
             />
           ) : (
             <div className="no-chat-selected">

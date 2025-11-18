@@ -47,6 +47,7 @@
           cursor: pointer;
           transition: all 0.2s ease;
           margin-bottom: 8px;
+          border: 1px solid #e2e8f0;
 
           &:hover {
             background-color: #f7fafc;
@@ -60,30 +61,7 @@
             }
           }
 
-          .chat-item-avatar {
-            position: relative;
-            margin-right: 12px;
-
-            img {
-              width: 48px;
-              height: 48px;
-              border-radius: 50%;
-              object-fit: cover;
-              border: 2px solid #fff;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            }
-
-            .online-indicator {
-              position: absolute;
-              bottom: 2px;
-              right: 2px;
-              width: 12px;
-              height: 12px;
-              background-color: #48bb78;
-              border: 2px solid #fff;
-              border-radius: 50%;
-            }
-          }
+          
 
           .chat-item-info {
             flex: 1;

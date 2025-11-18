@@ -8,7 +8,8 @@ const ChatWidget = () => {
   ]);
   const [sending, setSending] = useState(false);
 
-  const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
+  const apiBase =
+    process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
 
   const sendMessage = async () => {
     const text = input.trim();
@@ -18,18 +19,30 @@ const ChatWidget = () => {
     setInput("");
     setSending(true);
     try {
-      const res = await fetch(`${apiBase}/ai/chat`, {
+      const res = await fetch(`${apiBase}/ai/chat-query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${res.status}`);
+      }
+
       const data = await res.json();
-      const reply = data?.message || "Xin lỗi, mình chưa trả lời được.";
+      const reply = data?.answer || "Xin lỗi, mình chưa trả lời được.";
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
+      console.error("[ChatWidget] Error:", e);
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "Có lỗi kết nối, bạn thử lại nhé." },
+        {
+          role: "assistant",
+          content: `Có lỗi: ${
+            e?.message || "Kết nối thất bại, bạn thử lại nhé."
+          }`,
+        },
       ]);
     } finally {
       setSending(false);
@@ -108,7 +121,9 @@ const ChatWidget = () => {
               </div>
             ))}
           </div>
-          <div style={{ display: "flex", padding: 8, gap: 8, background: "#fff" }}>
+          <div
+            style={{ display: "flex", padding: 8, gap: 8, background: "#fff" }}
+          >
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -117,7 +132,12 @@ const ChatWidget = () => {
               }}
               placeholder="Nhập câu hỏi..."
               disabled={sending}
-              style={{ flex: 1, border: "1px solid #ced4da", borderRadius: 8, padding: "8px 10px" }}
+              style={{
+                flex: 1,
+                border: "1px solid #ced4da",
+                borderRadius: 8,
+                padding: "8px 10px",
+              }}
             />
             <button
               onClick={sendMessage}
@@ -135,5 +155,3 @@ const ChatWidget = () => {
 };
 
 export default ChatWidget;
-
-

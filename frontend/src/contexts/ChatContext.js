@@ -2,7 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import io from "socket.io-client";
 import Cookies from "js-cookie";
-import { getCurrentUserApi, initiateConversationApi } from "../services/ApiService";
+import {
+  getCurrentUserApi,
+  initiateConversationApi,
+} from "../services/ApiService";
 
 const ChatContext = createContext();
 
@@ -31,8 +34,14 @@ export const ChatProvider = ({ children }) => {
 
   const openChat = async (tutor, userData) => {
     console.log("🔍 openChat called with:", { tutor, currentUser: userData });
-    console.log("🔍 Tutor object keys:", tutor ? Object.keys(tutor) : "tutor is null");
-    console.log("🔍 UserData object keys:", userData ? Object.keys(userData) : "userData is null");
+    console.log(
+      "🔍 Tutor object keys:",
+      tutor ? Object.keys(tutor) : "tutor is null"
+    );
+    console.log(
+      "🔍 UserData object keys:",
+      userData ? Object.keys(userData) : "userData is null"
+    );
 
     // Extract userId từ nhiều nguồn
     // userData có thể là currentUser từ Redux với structure: { account: { _id, ... } }
@@ -44,7 +53,7 @@ export const ChatProvider = ({ children }) => {
       userData?.account?.userId ||
       userData?.user?._id ||
       userData?.user?.id;
-    
+
     // Debug: log chi tiết userData structure
     console.log("🔍 UserData structure:", {
       has_id: !!userData?._id,
@@ -54,10 +63,12 @@ export const ChatProvider = ({ children }) => {
       account_keys: userData?.account ? Object.keys(userData.account) : null,
       account_values: userData?.account ? userData.account : null,
       account_id: userData?.account?._id,
-      account_id_string: userData?.account?._id ? String(userData.account._id) : null,
+      account_id_string: userData?.account?._id
+        ? String(userData.account._id)
+        : null,
       full_userData: userData,
     });
-    
+
     // Thử lấy userId từ account trực tiếp (có thể account chính là user object)
     if (!userId && userData?.account) {
       // Kiểm tra xem account có phải là user object không
@@ -74,7 +85,7 @@ export const ChatProvider = ({ children }) => {
     let tutorId =
       tutor?.userId || // User ID (từ backend API)
       tutor?.user?._id || // User ID từ user object
-      (typeof tutor?.user === 'string' ? tutor.user : null) || // User ID nếu là string
+      (typeof tutor?.user === "string" ? tutor.user : null) || // User ID nếu là string
       tutor?.user?.id || // User ID từ user object
       tutor?._id || // Profile ID (fallback)
       tutor?.id; // Profile ID (fallback)
@@ -86,8 +97,11 @@ export const ChatProvider = ({ children }) => {
         if (localStorageUserStr) {
           const localStorageUser = JSON.parse(localStorageUserStr);
           console.log("🔍 localStorage user:", localStorageUser);
-          console.log("🔍 localStorage user keys:", localStorageUser ? Object.keys(localStorageUser) : null);
-          
+          console.log(
+            "🔍 localStorage user keys:",
+            localStorageUser ? Object.keys(localStorageUser) : null
+          );
+
           // Thử nhiều cách để lấy userId
           userId =
             localStorageUser?._id ||
@@ -95,14 +109,19 @@ export const ChatProvider = ({ children }) => {
             localStorageUser?.account?._id ||
             localStorageUser?.account?.id ||
             localStorageUser?.account?.userId ||
-            (localStorageUser?.account && typeof localStorageUser.account === 'object' && !Array.isArray(localStorageUser.account) 
-              ? (localStorageUser.account._id || localStorageUser.account.id) 
+            (localStorageUser?.account &&
+            typeof localStorageUser.account === "object" &&
+            !Array.isArray(localStorageUser.account)
+              ? localStorageUser.account._id || localStorageUser.account.id
               : null);
-          
+
           if (userId) {
             console.log("✅ Got userId from localStorage:", userId);
           } else {
-            console.log("⚠️ localStorage user exists but no userId found:", localStorageUser);
+            console.log(
+              "⚠️ localStorage user exists but no userId found:",
+              localStorageUser
+            );
           }
         } else {
           console.log("⚠️ No user found in localStorage");
@@ -119,14 +138,16 @@ export const ChatProvider = ({ children }) => {
         if (token) {
           console.log("🔍 Attempting to decode JWT token...");
           // Decode JWT token để lấy userId (sub field chứa userId)
-          const base64Url = token.split('.')[1];
+          const base64Url = token.split(".")[1];
           if (base64Url) {
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
             const jsonPayload = decodeURIComponent(
               atob(base64)
-                .split('')
-                .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
+                .split("")
+                .map(
+                  (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                )
+                .join("")
             );
             const decoded = JSON.parse(jsonPayload);
             console.log("🔍 Decoded JWT payload:", decoded);
@@ -134,7 +155,10 @@ export const ChatProvider = ({ children }) => {
             if (userId) {
               console.log("✅ Got userId from JWT token (sub field):", userId);
             } else {
-              console.log("⚠️ JWT token decoded but no userId found in:", decoded);
+              console.log(
+                "⚠️ JWT token decoded but no userId found in:",
+                decoded
+              );
             }
           } else {
             console.log("⚠️ Invalid JWT token format (no payload)");
@@ -159,42 +183,54 @@ export const ChatProvider = ({ children }) => {
             response.user.id ||
             response.user.account?._id ||
             response.user.account?.id;
-          
+
           if (userId) {
             console.log("✅ Got userId from API:", userId);
           }
         }
       } catch (error) {
         console.error("❌ Error fetching user from API:", error);
-        console.log("⚠️ API call failed, will try to proceed with other sources");
+        console.log(
+          "⚠️ API call failed, will try to proceed with other sources"
+        );
         // Không throw error, tiếp tục với các nguồn khác
       }
     }
 
     // Nếu vẫn chưa có tutorId, thử lấy từ tutor.user nếu là string
-    if (!tutorId && tutor?.user && typeof tutor.user === 'string') {
+    if (!tutorId && tutor?.user && typeof tutor.user === "string") {
       tutorId = tutor.user;
     }
 
-    console.log("🔍 Extracted IDs:", { userId, tutorId, tutorUser: tutor?.user });
+    console.log("🔍 Extracted IDs:", {
+      userId,
+      tutorId,
+      tutorUser: tutor?.user,
+    });
 
     if (!userId || !tutorId) {
-      console.error("❌ Missing userId or tutorId:", { 
-        userId, 
-        tutorId, 
-        tutor: tutor ? {
-          userId: tutor.userId,
-          _id: tutor._id,
-          id: tutor.id,
-          user: tutor.user
-        } : null,
-        userData: userData ? {
-          _id: userData._id,
-          id: userData.id,
-          account: userData.account,
-          account_keys: userData.account ? Object.keys(userData.account) : null,
-          account_values: userData.account
-        } : null,
+      console.error("❌ Missing userId or tutorId:", {
+        userId,
+        tutorId,
+        tutor: tutor
+          ? {
+              userId: tutor.userId,
+              _id: tutor._id,
+              id: tutor.id,
+              user: tutor.user,
+            }
+          : null,
+        userData: userData
+          ? {
+              _id: userData._id,
+              id: userData.id,
+              account: userData.account,
+              account_keys: userData.account
+                ? Object.keys(userData.account)
+                : null,
+              account_values: userData.account,
+            }
+          : null,
         localStorageUser: (() => {
           try {
             const str = localStorage.getItem("user");
@@ -203,16 +239,18 @@ export const ChatProvider = ({ children }) => {
             return null;
           }
         })(),
-        token: Cookies.get("accessToken") ? "exists" : "missing"
+        token: Cookies.get("accessToken") ? "exists" : "missing",
       });
-      
+
       // Hiển thị alert cho user với thông tin chi tiết hơn
       if (!userId) {
         alert("Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.");
       } else if (!tutorId) {
         alert("Không thể lấy thông tin gia sư. Vui lòng thử lại sau.");
       } else {
-        alert("Không thể lấy thông tin người dùng hoặc gia sư. Vui lòng thử lại sau.");
+        alert(
+          "Không thể lấy thông tin người dùng hoặc gia sư. Vui lòng thử lại sau."
+        );
       }
       return;
     }
@@ -230,7 +268,9 @@ export const ChatProvider = ({ children }) => {
       const chatId = conversationId;
 
       // Check if chat already exists
-      const existingChat = activeChats.find((chat) => chat.id === chatId || chat.conversationId === conversationId);
+      const existingChat = activeChats.find(
+        (chat) => chat.id === chatId || chat.conversationId === conversationId
+      );
       if (existingChat) {
         maximizeChat(existingChat.id);
         return;
@@ -522,7 +562,7 @@ export const ChatProvider = ({ children }) => {
         tutor: {
           userId: notification.senderId,
           name: notification.senderName,
-          avatar: "https://via.placeholder.com/40",
+          avatar: null,
         },
         currentUser: currentUser,
         isMinimized: false,
