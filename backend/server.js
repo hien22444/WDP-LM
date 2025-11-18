@@ -412,6 +412,7 @@ const tutorVerificationRoutes = require("./src/routes/tutor-verification");
 const adminVerificationRoutes = require("./src/routes/admin-verification");
 const notificationRoutes = require("./src/routes/notification");
 const chatRoutes = require("./src/routes/chat");
+const courseRoutes = require("./src/routes/course");
 const {
   googleStart,
   googleRedirect,
@@ -432,6 +433,7 @@ app.use("/api/v1/profile-completion", profileCompletionRoutes);
 app.use("/api/v1/tutor-verification", tutorVerificationRoutes);
 app.use("/api/v1/admin/verification", adminVerificationRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/courses", courseRoutes);
 app.use("/api/chat", chatRoutes);
 
 // Google OAuth routes

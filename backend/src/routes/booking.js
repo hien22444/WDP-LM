@@ -24,40 +24,40 @@ const {
  * =====================================================
  * BOOKING SYSTEM FLOW (Updated Architecture)
  * =====================================================
- * 
+ *
  * 1. TUTOR SETUP:
  *    - Tutor creates AVAILABILITY PATTERN (not teaching slots)
  *    - Example: "T2, T4, T6 buổi sáng 8:00-11:30"
  *    - Stored in TutorProfile.availability[]
  *    - No documents created in database
- * 
+ *
  * 2. STUDENT BOOKING:
  *    - Student views tutor's availability pattern
  *    - Selects specific slots (e.g., "T2+T4 sáng, 4 tuần")
  *    - POST /recurring → Creates ONE booking with recurrencePattern
  *    - Payment link generated via PayOS
  *    - Status: "pending", paymentStatus: "none"
- * 
+ *
  * 3. PAYMENT:
  *    - Student pays via PayOS
  *    - Webhook updates paymentStatus = "paid"
  *    - Tutor receives notification
- * 
+ *
  * 4. TUTOR ACCEPTS:
  *    - POST /:id/decision → Tutor accepts/rejects
  *    - If accept: SessionGeneratorService creates TEACHING SESSIONS
  *    - Smart logic: ≤2 weeks = all sessions, >2 weeks = first 2 weeks
  *    - Teaching sessions = actual calendar events with date/time
- * 
+ *
  * 5. CALENDAR VIEW:
  *    - GET /sessions/calendar → Returns teaching sessions
  *    - Both tutor and student see calendar with scheduled sessions
  *    - Like the images provided: weekly view with specific slots
- * 
+ *
  * 6. CRON JOB:
  *    - Daily job generates upcoming sessions for long-term bookings
  *    - Creates sessions 2 weeks ahead
- * 
+ *
  * KEY CONCEPTS:
  *    - Availability = Pattern (general schedule)
  *    - Booking = Booking request with recurrence pattern
@@ -76,8 +76,8 @@ router.get("/tutors/:tutorId/available-slots", async (req, res) => {
     const { startDate, endDate } = req.query;
 
     if (!startDate || !endDate) {
-      return res.status(400).json({ 
-        message: "startDate and endDate are required" 
+      return res.status(400).json({
+        message: "startDate and endDate are required",
       });
     }
 
@@ -94,7 +94,7 @@ router.get("/tutors/:tutorId/available-slots", async (req, res) => {
     // Get existing bookings in the date range
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     // Only check conflicts with PAID bookings or accepted bookings
     // Ignore pending bookings that haven't been paid yet
     const existingBookings = await Booking.find({
@@ -104,8 +104,8 @@ router.get("/tutors/:tutorId/available-slots", async (req, res) => {
         {
           $or: [
             { paymentStatus: "paid" },
-            { status: { $in: ["accepted", "in_progress"] } }
-          ]
+            { status: { $in: ["accepted", "in_progress"] } },
+          ],
         },
         // Must match date range
         {
@@ -114,17 +114,17 @@ router.get("/tutors/:tutorId/available-slots", async (req, res) => {
             {
               type: "single",
               start: { $lte: end },
-              end: { $gte: start }
+              end: { $gte: start },
             },
             // Recurring bookings
             {
               type: "recurring",
               "recurrencePattern.startDate": { $lte: end },
-              "recurrencePattern.endDate": { $gte: start }
-            }
-          ]
-        }
-      ]
+              "recurrencePattern.endDate": { $gte: start },
+            },
+          ],
+        },
+      ],
     });
 
     // Generate available slots
@@ -135,15 +135,14 @@ router.get("/tutors/:tutorId/available-slots", async (req, res) => {
       existingBookings
     );
 
-    res.json({ 
+    res.json({
       slots,
       total: slots.length,
       tutor: {
         id: tutor._id,
-        availability: tutor.availability
-      }
+        availability: tutor.availability,
+      },
     });
-
   } catch (error) {
     console.error("Error generating available slots:", error);
     res.status(500).json({ message: "Failed to generate available slots" });
@@ -153,52 +152,62 @@ router.get("/tutors/:tutorId/available-slots", async (req, res) => {
 /**
  * Helper function to generate available slots from availability pattern
  */
-function generateAvailableSlots(availability, startDate, endDate, existingBookings) {
+function generateAvailableSlots(
+  availability,
+  startDate,
+  endDate,
+  existingBookings
+) {
   const slots = [];
   let currentDate = new Date(startDate);
   currentDate.setHours(0, 0, 0, 0);
-  
+
   const endDateTime = new Date(endDate);
   endDateTime.setHours(23, 59, 59, 999);
-  
+
   while (currentDate <= endDateTime) {
     const dayOfWeek = currentDate.getDay();
-    
+
     // Find availability for this day
-    const dayAvailability = availability.filter(a => a.dayOfWeek === dayOfWeek);
-    
-    dayAvailability.forEach(avail => {
+    const dayAvailability = availability.filter(
+      (a) => a.dayOfWeek === dayOfWeek
+    );
+
+    dayAvailability.forEach((avail) => {
       const slotStart = new Date(currentDate);
-      const [startHour, startMin] = avail.start.split(':');
+      const [startHour, startMin] = avail.start.split(":");
       slotStart.setHours(parseInt(startHour), parseInt(startMin), 0, 0);
-      
+
       const slotEnd = new Date(currentDate);
-      const [endHour, endMin] = avail.end.split(':');
+      const [endHour, endMin] = avail.end.split(":");
       slotEnd.setHours(parseInt(endHour), parseInt(endMin), 0, 0);
-      
+
       // Check for conflicts with existing bookings
-      const hasConflict = existingBookings.some(booking => {
+      const hasConflict = existingBookings.some((booking) => {
         if (booking.type === "single") {
           return slotStart < booking.end && slotEnd > booking.start;
         } else if (booking.type === "recurring") {
           // Check if this date/time conflicts with recurring pattern
           const bookingDate = new Date(booking.recurrencePattern.startDate);
           const bookingEnd = new Date(booking.recurrencePattern.endDate);
-          
+
           if (slotStart >= bookingDate && slotStart <= bookingEnd) {
             const slotDayOfWeek = slotStart.getDay();
-            return booking.recurrencePattern.selectedSlots.some(slot => {
+            return booking.recurrencePattern.selectedSlots.some((slot) => {
               if (slot.dayOfWeek !== slotDayOfWeek) return false;
-              
-              const [slotStartH, slotStartM] = slot.start.split(':');
-              const [slotEndH, slotEndM] = slot.end.split(':');
-              
+
+              const [slotStartH, slotStartM] = slot.start.split(":");
+              const [slotEndH, slotEndM] = slot.end.split(":");
+
               const bookingSlotStart = new Date(slotStart);
-              bookingSlotStart.setHours(parseInt(slotStartH), parseInt(slotStartM));
-              
+              bookingSlotStart.setHours(
+                parseInt(slotStartH),
+                parseInt(slotStartM)
+              );
+
               const bookingSlotEnd = new Date(slotStart);
               bookingSlotEnd.setHours(parseInt(slotEndH), parseInt(slotEndM));
-              
+
               return slotStart < bookingSlotEnd && slotEnd > bookingSlotStart;
             });
           }
@@ -206,7 +215,7 @@ function generateAvailableSlots(availability, startDate, endDate, existingBookin
         }
         return false;
       });
-      
+
       slots.push({
         date: new Date(currentDate),
         dayOfWeek,
@@ -215,13 +224,13 @@ function generateAvailableSlots(availability, startDate, endDate, existingBookin
         startDateTime: slotStart,
         endDateTime: slotEnd,
         available: !hasConflict,
-        session: avail.start < '12:00' ? 'morning' : 'afternoon'
+        session: avail.start < "12:00" ? "morning" : "afternoon",
       });
     });
-    
+
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   return slots;
 }
 
@@ -322,15 +331,26 @@ router.post("/", auth(), async (req, res) => {
     );
 
     if (!isAvailable) {
+      console.log("❌ Tutor not available:", {
+        requestedDay: dayOfWeek,
+        requestedTime: `${startHour} - ${endHour}`,
+        tutorAvailability: tutor.availability,
+      });
       errors.push("Gia sư không rảnh trong khung giờ này");
     }
 
-    // Check for existing bookings at the same time (including completed ones)
+    // Check for existing bookings at the same time (only pending/accepted, NOT completed)
     const existingBooking = await Booking.findOne({
       tutorProfile: tutorProfileId,
       start: { $lt: endTime },
       end: { $gt: startTime },
-      status: { $in: ["pending", "accepted", "completed"] },
+      status: { $in: ["pending", "accepted"] }, // Removed "completed"
+    });
+
+    console.log("🔍 Checking booking conflict:", {
+      tutorProfileId,
+      requestedTime: { start: startTime, end: endTime },
+      existingBooking: existingBooking ? existingBooking._id : null,
     });
 
     if (existingBooking) {
@@ -413,24 +433,24 @@ router.post("/", auth(), async (req, res) => {
 // Student creates recurring booking request (multiple weeks)
 router.post("/recurring", auth(), async (req, res) => {
   try {
-    const { 
-      tutorProfileId, 
-      startDate,  // Ngày bắt đầu (YYYY-MM-DD)
+    const {
+      tutorProfileId,
+      startDate, // Ngày bắt đầu (YYYY-MM-DD)
       selectedSlots, // Array of {dayOfWeek, start, end}
-      numberOfWeeks, 
-      mode, 
-      pricePerSession, 
-      notes 
+      numberOfWeeks,
+      mode,
+      pricePerSession,
+      notes,
     } = req.body;
 
-    console.log('📅 [Recurring Booking] Request received:', {
+    console.log("📅 [Recurring Booking] Request received:", {
       tutorProfileId,
       startDate,
       selectedSlots,
       numberOfWeeks,
       mode,
       pricePerSession,
-      userId: req.user.id
+      userId: req.user.id,
     });
 
     const errors = [];
@@ -438,8 +458,10 @@ router.post("/recurring", auth(), async (req, res) => {
     // Required fields validation
     if (!tutorProfileId) errors.push("Thiếu thông tin gia sư");
     if (!startDate) errors.push("Thiếu ngày bắt đầu");
-    if (!selectedSlots || selectedSlots.length === 0) errors.push("Chưa chọn buổi học");
-    if (!numberOfWeeks || numberOfWeeks < 1) errors.push("Số tuần học không hợp lệ");
+    if (!selectedSlots || selectedSlots.length === 0)
+      errors.push("Chưa chọn buổi học");
+    if (!numberOfWeeks || numberOfWeeks < 1)
+      errors.push("Số tuần học không hợp lệ");
     if (!mode) errors.push("Thiếu hình thức dạy học");
 
     if (errors.length > 0) {
@@ -447,7 +469,10 @@ router.post("/recurring", auth(), async (req, res) => {
     }
 
     // Check if tutor exists and is approved
-    const tutor = await TutorProfile.findById(tutorProfileId).populate('user', 'full_name email');
+    const tutor = await TutorProfile.findById(tutorProfileId).populate(
+      "user",
+      "full_name email"
+    );
     if (!tutor) {
       return res.status(404).json({ message: "Gia sư không tồn tại" });
     }
@@ -458,30 +483,36 @@ router.post("/recurring", auth(), async (req, res) => {
 
     // Check if student is trying to book their own profile
     if (String(tutor.user._id) === String(req.user.id)) {
-      return res.status(400).json({ message: "Không thể đặt lịch với chính mình" });
+      return res
+        .status(400)
+        .json({ message: "Không thể đặt lịch với chính mình" });
     }
 
     // Check if tutor supports the requested mode
     if (!tutor.teachModes.includes(mode)) {
-      errors.push(`Gia sư không hỗ trợ hình thức dạy ${mode === "online" ? "trực tuyến" : "tại nhà"}`);
+      errors.push(
+        `Gia sư không hỗ trợ hình thức dạy ${
+          mode === "online" ? "trực tuyến" : "tại nhà"
+        }`
+      );
     }
 
     // Validate start date is in the future (with timezone consideration)
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0); // Set to start of day
-    
+
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Set to start of today
-    
+
     if (start < now) {
       errors.push("Ngày bắt đầu phải từ hôm nay trở đi");
     }
 
-    console.log('📅 [Recurring Booking] Date validation:', {
+    console.log("📅 [Recurring Booking] Date validation:", {
       startDate,
       start: start.toISOString(),
       now: now.toISOString(),
-      isValid: start >= now
+      isValid: start >= now,
     });
 
     // Validate number of weeks (max 20)
@@ -491,33 +522,41 @@ router.post("/recurring", auth(), async (req, res) => {
 
     // Validate each slot
     selectedSlots.forEach((slot, index) => {
-      const [startHour, startMin] = slot.start.split(':');
-      const [endHour, endMin] = slot.end.split(':');
-      
+      const [startHour, startMin] = slot.start.split(":");
+      const [endHour, endMin] = slot.end.split(":");
+
       const slotStart = parseInt(startHour) * 60 + parseInt(startMin);
       const slotEnd = parseInt(endHour) * 60 + parseInt(endMin);
       const durationMinutes = slotEnd - slotStart;
       const durationHours = durationMinutes / 60;
-      
+
       if (durationHours < 2) {
-        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-        errors.push(`Buổi học ${dayNames[slot.dayOfWeek]} - ${slot.start} phải ít nhất 2 giờ`);
+        const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+        errors.push(
+          `Buổi học ${dayNames[slot.dayOfWeek]} - ${
+            slot.start
+          } phải ít nhất 2 giờ`
+        );
       }
       if (durationHours > 8) {
-        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-        errors.push(`Buổi học ${dayNames[slot.dayOfWeek]} - ${slot.start} không được quá 8 giờ`);
+        const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+        errors.push(
+          `Buổi học ${dayNames[slot.dayOfWeek]} - ${
+            slot.start
+          } không được quá 8 giờ`
+        );
       }
     });
 
     if (errors.length > 0) {
-      console.error('❌ [Recurring Booking] Validation errors:', errors);
+      console.error("❌ [Recurring Booking] Validation errors:", errors);
       return res.status(400).json({ message: "Validation failed", errors });
     }
 
     // Calculate end date and total sessions
     const endDate = new Date(start);
-    endDate.setDate(start.getDate() + (numberOfWeeks * 7) - 1);
-    
+    endDate.setDate(start.getDate() + numberOfWeeks * 7 - 1);
+
     const totalSessions = selectedSlots.length * numberOfWeeks;
     const price = pricePerSession || tutor.sessionRate || 0;
     const totalPrice = totalSessions * price;
@@ -527,45 +566,92 @@ router.post("/recurring", auth(), async (req, res) => {
       endDate: endDate.toISOString(),
       totalSessions,
       pricePerSession: price,
-      totalPrice
+      totalPrice,
     });
 
     // Check for conflicts with existing PAID OR ACCEPTED recurring bookings
-    // Ignore pending unpaid bookings
+    // Only check bookings that are active (not cancelled, not completed, not rejected)
     const conflicts = await Booking.find({
       tutorProfile: tutorProfileId,
-      type: 'recurring',
+      type: "recurring",
+      status: { $nin: ["cancelled", "completed", "rejected"] }, // Exclude finished bookings
       $and: [
         {
           $or: [
             { paymentStatus: "paid" },
-            { status: { $in: ["accepted", "in_progress"] } }
-          ]
+            { status: { $in: ["accepted", "in_progress"] } },
+          ],
         },
         {
           "recurrencePattern.startDate": { $lte: endDate },
-          "recurrencePattern.endDate": { $gte: start }
-        }
-      ]
+          "recurrencePattern.endDate": { $gte: start },
+        },
+      ],
+    });
+
+    console.log("🔍 [Recurring Booking] Checking conflicts:", {
+      tutorProfileId,
+      dateRange: { start: start.toISOString(), end: endDate.toISOString() },
+      foundConflicts: conflicts.length,
+      conflictIds: conflicts.map((c) => ({
+        id: c._id,
+        status: c.status,
+        payment: c.paymentStatus,
+        dateRange: {
+          start: c.recurrencePattern?.startDate,
+          end: c.recurrencePattern?.endDate,
+        },
+      })),
     });
 
     // Check if any conflicting booking has overlapping slots
     for (const conflict of conflicts) {
       const conflictSlots = conflict.recurrencePattern.selectedSlots;
-      const hasOverlap = selectedSlots.some(slot => 
-        conflictSlots.some(cSlot => {
+
+      console.log("🔍 [Recurring Booking] Checking conflict:", {
+        bookingId: conflict._id,
+        status: conflict.status,
+        paymentStatus: conflict.paymentStatus,
+        conflictSlots: conflictSlots.map(
+          (s) => `${s.dayOfWeek}: ${s.start}-${s.end}`
+        ),
+        requestedSlots: selectedSlots.map(
+          (s) => `${s.dayOfWeek}: ${s.start}-${s.end}`
+        ),
+      });
+
+      const hasOverlap = selectedSlots.some((slot) =>
+        conflictSlots.some((cSlot) => {
           if (cSlot.dayOfWeek !== slot.dayOfWeek) return false;
-          
-          // Check time overlap
-          const slot1Start = slot.start;
-          const slot1End = slot.end;
-          const slot2Start = cSlot.start;
-          const slot2End = cSlot.end;
-          
-          return slot1Start < slot2End && slot1End > slot2Start;
+
+          // Convert time strings to minutes for proper comparison
+          const timeToMinutes = (timeStr) => {
+            const [hours, minutes] = timeStr.split(":").map(Number);
+            return hours * 60 + minutes;
+          };
+
+          const slot1Start = timeToMinutes(slot.start);
+          const slot1End = timeToMinutes(slot.end);
+          const slot2Start = timeToMinutes(cSlot.start);
+          const slot2End = timeToMinutes(cSlot.end);
+
+          const overlaps = slot1Start < slot2End && slot1End > slot2Start;
+
+          if (overlaps) {
+            console.log("⚠️ [Recurring Booking] Time overlap detected:", {
+              day: slot.dayOfWeek,
+              requested: `${slot.start}-${slot.end}`,
+              existing: `${cSlot.start}-${cSlot.end}`,
+              requestedMinutes: `${slot1Start}-${slot1End}`,
+              existingMinutes: `${slot2Start}-${slot2End}`,
+            });
+          }
+
+          // Check if time ranges overlap
+          return overlaps;
         })
       );
-      
+
       if (hasOverlap) {
         errors.push("Có xung đột với lịch học đã đặt trước");
         break;
@@ -573,33 +659,33 @@ router.post("/recurring", auth(), async (req, res) => {
     }
 
     if (errors.length > 0) {
-      console.error('❌ [Recurring Booking] Conflict errors:', errors);
+      console.error("❌ [Recurring Booking] Conflict errors:", errors);
       return res.status(400).json({ message: "Có xung đột lịch học", errors });
     }
 
     // Create ONE recurring booking
     const booking = await Booking.create({
-      type: 'recurring',
+      type: "recurring",
       tutorProfile: tutor._id,
       student: req.user.id,
       recurrencePattern: {
-        selectedSlots: selectedSlots.map(s => ({
+        selectedSlots: selectedSlots.map((s) => ({
           dayOfWeek: s.dayOfWeek,
           start: s.start,
-          end: s.end
+          end: s.end,
         })),
         startDate: start,
         endDate: endDate,
-        numberOfWeeks
+        numberOfWeeks,
       },
       totalSessionsPlanned: totalSessions,
       mode,
       subject: req.body.subject || null,
       price,
       totalPrice,
-      notes: notes || '',
+      notes: notes || "",
       status: "pending", // Chờ thanh toán
-      paymentStatus: "none"
+      paymentStatus: "none",
     });
 
     console.log(`✅ [Recurring Booking] Created booking:`, booking._id);
@@ -609,13 +695,13 @@ router.post("/recurring", auth(), async (req, res) => {
     const paymentLink = await PaymentService.createRecurringBookingPayment({
       booking,
       tutorUser: tutor.user, // Pass user object, not tutor profile
-      student: req.user
+      student: req.user,
     });
 
     console.log(`💳 [Recurring Booking] Payment link generated:`, paymentLink);
 
     // Send notification to student about payment
-    res.status(201).json({ 
+    res.status(201).json({
       booking: {
         id: booking._id,
         type: booking.type,
@@ -626,18 +712,17 @@ router.post("/recurring", auth(), async (req, res) => {
         pricePerSession: price,
         totalPrice,
         status: booking.status,
-        paymentStatus: booking.paymentStatus
+        paymentStatus: booking.paymentStatus,
       },
       paymentLink,
-      message: `Đã tạo lịch học ${totalSessions} buổi. Vui lòng thanh toán để gửi yêu cầu đến gia sư.`
+      message: `Đã tạo lịch học ${totalSessions} buổi. Vui lòng thanh toán để gửi yêu cầu đến gia sư.`,
     });
-    
   } catch (e) {
     console.error("❌ [Recurring Booking] Error:", e);
     console.error("❌ [Recurring Booking] Stack trace:", e.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Failed to create recurring booking",
-      error: process.env.NODE_ENV === 'development' ? e.message : undefined
+      error: process.env.NODE_ENV === "development" ? e.message : undefined,
     });
   }
 });
@@ -658,6 +743,11 @@ router.post("/:id/decision", auth(), async (req, res) => {
       errors.push("Quyết định không hợp lệ (chỉ chấp nhận hoặc từ chối)");
     }
 
+    // CRITICAL: Validate signature for accept decisions
+    if (decision === "accept" && !tutorSignature?.trim()) {
+      errors.push("Vui lòng ký tên để chấp nhận hợp đồng");
+    }
+
     if (errors.length > 0) {
       return res.status(400).json({ message: "Validation failed", errors });
     }
@@ -665,7 +755,7 @@ router.post("/:id/decision", auth(), async (req, res) => {
     const booking = await Booking.findById(req.params.id)
       .populate("tutorProfile")
       .populate("student", "full_name email");
-    
+
     if (!booking) {
       return res.status(404).json({ message: "Booking không tồn tại" });
     }
@@ -689,7 +779,8 @@ router.post("/:id/decision", auth(), async (req, res) => {
     // Check if payment is completed for recurring bookings
     if (booking.type === "recurring" && booking.paymentStatus !== "paid") {
       return res.status(400).json({
-        message: "Học sinh chưa thanh toán. Chỉ có thể chấp nhận sau khi thanh toán."
+        message:
+          "Học sinh chưa thanh toán. Chỉ có thể chấp nhận sau khi thanh toán.",
       });
     }
 
@@ -708,52 +799,80 @@ router.post("/:id/decision", auth(), async (req, res) => {
     // Update booking status
     if (decision === "accept") {
       booking.status = "accepted";
-
-      if (tutorSignature) {
-        booking.tutorSignature = tutorSignature;
-        booking.tutorSignedAt = new Date();
-      }
+      booking.tutorSignature = tutorSignature.trim();
+      booking.tutorSignedAt = new Date();
       if (booking.studentSignature && booking.tutorSignature) {
         booking.contractSigned = true;
       }
 
-      await booking.save();
+      try {
+        // CRITICAL: Generate/validate sessions BEFORE saving booking
+        // This ensures if session generation fails, booking is NOT updated
+        if (booking.type === "single") {
+          // Create ONE session for single booking
+          const roomId = generateRoomId();
+          booking.roomId = roomId;
 
-      // Generate teaching sessions based on booking type
-      if (booking.type === "single") {
-        // Create ONE session for single booking
-        const roomId = generateRoomId();
-        booking.roomId = roomId;
+          const studentId =
+            booking.student?._id?.toString() || booking.student?.toString();
+          const tutorProfileId =
+            booking.tutorProfile?._id?.toString() ||
+            booking.tutorProfile?.toString();
 
-        const session = await TeachingSession.create({
-          booking: booking._id,
-          tutor: booking.tutorProfile.user,
-          student: booking.student._id,
-          scheduledDate: booking.start,
-          startTime: booking.start.toTimeString().substring(0, 5),
-          endTime: booking.end.toTimeString().substring(0, 5),
-          status: "scheduled",
-          roomId: roomId
-        });
+          if (!studentId || !tutorProfileId || !booking.mode) {
+            throw new Error(
+              `Missing required fields for session: student=${studentId}, tutorProfile=${tutorProfileId}, mode=${booking.mode}`
+            );
+          }
 
-        booking.sessionId = session._id;
+          const sessionData = {
+            booking: booking._id,
+            tutorProfile: tutorProfileId,
+            student: studentId,
+            startTime: new Date(booking.start),
+            endTime: new Date(booking.end),
+            courseName: booking.subject || "Buổi học",
+            mode: booking.mode,
+            status: "scheduled",
+            roomId: roomId,
+          };
+
+          console.log("📝 Creating single session with:", sessionData);
+
+          const session = await TeachingSession.create(sessionData);
+
+          booking.sessionId = session._id;
+          console.log(`✅ Created single session: ${session._id}`);
+        } else if (booking.type === "recurring") {
+          // Generate sessions using SessionGeneratorService
+          // This happens BEFORE saving the booking
+          console.log(
+            `📅 Generating sessions for recurring booking ${booking._id}`
+          );
+
+          const sessions =
+            await SessionGeneratorService.generateSessionsOnAccept(booking);
+
+          console.log(
+            `✅ Created ${sessions.length} sessions for recurring booking`
+          );
+
+          // Update booking status to in_progress only AFTER sessions are created
+          booking.status = "in_progress";
+        }
+
+        // NOW save booking - only if session generation succeeded
         await booking.save();
-
-        console.log(`✅ Created single session: ${session._id}`);
-
-      } else if (booking.type === "recurring") {
-        // Generate sessions using SessionGeneratorService
-        console.log(`📅 Generating sessions for recurring booking ${booking._id}`);
-        
-        const sessions = await SessionGeneratorService.generateSessionsOnAccept(booking);
-        
-        console.log(`✅ Created ${sessions.length} sessions for recurring booking`);
-        
-        // Update booking status to in_progress
-        booking.status = "in_progress";
-        await booking.save();
+        console.log(`✅ Booking ${booking._id} saved successfully`);
+      } catch (sessionError) {
+        console.error("❌ Error generating sessions:", sessionError);
+        // Don't save booking if session generation fails
+        throw new Error(
+          `Lỗi khi tạo lịch học: ${
+            sessionError.message || "Không xác định được lỗi"
+          }`
+        );
       }
-
     } else if (decision === "reject") {
       booking.status = "rejected";
       await booking.save();
@@ -776,7 +895,7 @@ router.post("/:id/decision", auth(), async (req, res) => {
 
     const message =
       decision === "accept"
-        ? booking.type === "recurring" 
+        ? booking.type === "recurring"
           ? `Đã chấp nhận yêu cầu đặt lịch. Đã tạo ${booking.upcomingSessions} buổi học.`
           : "Đã chấp nhận yêu cầu đặt lịch"
         : "Đã từ chối yêu cầu đặt lịch";
@@ -784,7 +903,12 @@ router.post("/:id/decision", auth(), async (req, res) => {
     res.json({ booking, message });
   } catch (e) {
     console.error("❌ Error in booking decision:", e);
-    res.status(500).json({ message: "Failed to update booking", error: e.message });
+    console.error("❌ Error stack:", e.stack);
+
+    // Return detailed error message to frontend
+    const errorMessage = e.message || "Không thể xử lý quyết định booking";
+
+    res.status(500).json({ message: errorMessage, error: e.message });
   }
 });
 
@@ -800,7 +924,7 @@ router.post("/:id/contract", auth(), async (req, res) => {
     }
 
     const { contractData, studentSignature } = req.body || {};
-    if (contractData && typeof contractData === 'object') {
+    if (contractData && typeof contractData === "object") {
       booking.contractData = {
         ...booking.contractData,
         ...contractData,
@@ -819,8 +943,8 @@ router.post("/:id/contract", auth(), async (req, res) => {
     await booking.save();
     res.json({ success: true, booking });
   } catch (error) {
-    console.error('Attach contract error:', error);
-    res.status(500).json({ message: 'Failed to attach contract' });
+    console.error("Attach contract error:", error);
+    res.status(500).json({ message: "Failed to attach contract" });
   }
 });
 
@@ -835,20 +959,20 @@ router.get("/me", auth(), async (req, res) => {
       );
       filter.tutorProfile = { $in: tutors.map((t) => t._id) };
     }
-    
+
     const items = await Booking.find(filter)
-      .select('+contractData')
+      .select("+contractData")
       .populate("student", "full_name email avatar phone")
       .populate({
         path: "tutorProfile",
         select: "user subject subjects bio rating totalReviews sessionRate",
         populate: {
           path: "user",
-          select: "full_name email avatar phone"
-        }
+          select: "full_name email avatar phone",
+        },
       })
       .sort({ created_at: -1 });
-      
+
     res.json({ items });
   } catch (e) {
     console.error("Error loading bookings:", e);
@@ -943,25 +1067,28 @@ router.get("/stats", auth(), async (req, res) => {
 // Tutors should only set availability patterns, not create teaching slots
 // Students book directly from availability, creating teaching sessions
 router.post("/slots", auth(), async (req, res) => {
-  return res.status(410).json({ 
-    message: "Teaching slots feature is deprecated. Please use availability patterns instead.",
-    info: "Tutors: Update your availability in profile settings. Students: Book directly from tutor's availability."
+  return res.status(410).json({
+    message:
+      "Teaching slots feature is deprecated. Please use availability patterns instead.",
+    info: "Tutors: Update your availability in profile settings. Students: Book directly from tutor's availability.",
   });
 });
 
 // DEPRECATED: List tutor's teaching sessions instead
 router.get("/slots/me", auth(), async (req, res) => {
   try {
-    const tutor = await TutorProfile.findOne({ user: req.user.id }).select("_id");
+    const tutor = await TutorProfile.findOne({ user: req.user.id }).select(
+      "_id"
+    );
     if (!tutor) return res.json({ items: [] });
-    
+
     // Return teaching sessions instead of teaching slots
     const TeachingSession = require("../models/TeachingSession");
     const items = await TeachingSession.find({ tutor: req.user.id })
       .populate("booking")
       .populate("student", "full_name email")
       .sort({ scheduledDate: 1 });
-    
+
     res.json({ items });
   } catch (e) {
     console.error("Get teaching sessions error:", e);
@@ -971,9 +1098,10 @@ router.get("/slots/me", auth(), async (req, res) => {
 
 // DEPRECATED: Use availability patterns instead
 router.get("/slots/public", async (req, res) => {
-  return res.status(410).json({ 
-    message: "Teaching slots are deprecated. Use tutor availability patterns instead.",
-    info: "Call GET /tutors/:id to see tutor's availability pattern and book directly."
+  return res.status(410).json({
+    message:
+      "Teaching slots are deprecated. Use tutor availability patterns instead.",
+    info: "Call GET /tutors/:id to see tutor's availability pattern and book directly.",
   });
 });
 
@@ -981,20 +1109,20 @@ router.get("/slots/public", async (req, res) => {
 router.get("/teaching-slots/tutor/:tutorProfileId", async (req, res) => {
   try {
     const { tutorProfileId } = req.params;
-    
+
     // Return tutor's availability pattern instead of teaching slots
     const tutor = await TutorProfile.findById(tutorProfileId)
       .select("availability hasAvailability")
       .populate("user", "full_name");
-    
+
     if (!tutor) {
       return res.status(404).json({ message: "Tutor not found" });
     }
-    
-    return res.json({ 
+
+    return res.json({
       availability: tutor.availability || [],
       hasAvailability: tutor.hasAvailability || false,
-      message: "Use availability pattern to book sessions"
+      message: "Use availability pattern to book sessions",
     });
   } catch (e) {
     console.error("Get tutor availability error:", e);
@@ -1006,12 +1134,14 @@ router.get("/teaching-slots/tutor/:tutorProfileId", async (req, res) => {
 router.get("/teaching-slots/tutor/:tutorProfileId/legacy", async (req, res) => {
   try {
     const { tutorProfileId } = req.params;
-    const slots = await TeachingSlot.find({ 
+    const slots = await TeachingSlot.find({
       tutorProfile: tutorProfileId,
-      status: "open" 
+      status: "open",
     }).sort({ start: 1 });
-    
-    console.log(`📚 Fetched ${slots.length} slots for tutor profile: ${tutorProfileId}`);
+
+    console.log(
+      `📚 Fetched ${slots.length} slots for tutor profile: ${tutorProfileId}`
+    );
     res.json(slots);
   } catch (e) {
     console.error("Get tutor slots error:", e);
@@ -1064,16 +1194,23 @@ router.delete("/slots/:id", auth(), async (req, res) => {
 // Get calendar/schedule for tutor or student (all teaching sessions)
 router.get("/sessions/calendar", auth(), async (req, res) => {
   try {
-    const { role = "student", startDate, endDate, week, month, year } = req.query;
-    
+    const {
+      role = "student",
+      startDate,
+      endDate,
+      week,
+      month,
+      year,
+    } = req.query;
+
     // Build date filter
     let dateFilter = {};
-    
+
     if (startDate && endDate) {
       // Custom date range
       dateFilter.scheduledDate = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
     } else if (week && year) {
       // Specific week
@@ -1085,10 +1222,10 @@ router.get("/sessions/calendar", auth(), async (req, res) => {
       weekStart.setDate(startOfYear.getDate() + daysOffset);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 7);
-      
+
       dateFilter.scheduledDate = {
         $gte: weekStart,
-        $lt: weekEnd
+        $lt: weekEnd,
       };
     } else if (month && year) {
       // Specific month
@@ -1096,16 +1233,16 @@ router.get("/sessions/calendar", auth(), async (req, res) => {
       const yearNum = parseInt(year);
       const monthStart = new Date(yearNum, monthNum, 1);
       const monthEnd = new Date(yearNum, monthNum + 1, 0);
-      
+
       dateFilter.scheduledDate = {
         $gte: monthStart,
-        $lte: monthEnd
+        $lte: monthEnd,
       };
     }
-    
+
     let filter = {
       ...dateFilter,
-      status: { $in: ["scheduled", "ongoing", "completed", "cancelled"] }
+      status: { $in: ["scheduled", "ongoing", "completed", "cancelled"] },
     };
 
     // Filter by role
@@ -1123,7 +1260,7 @@ router.get("/sessions/calendar", auth(), async (req, res) => {
 
     // Group by date for calendar view
     const calendar = sessions.reduce((acc, session) => {
-      const dateKey = session.scheduledDate.toISOString().split('T')[0];
+      const dateKey = session.scheduledDate.toISOString().split("T")[0];
       if (!acc[dateKey]) {
         acc[dateKey] = [];
       }
@@ -1135,16 +1272,16 @@ router.get("/sessions/calendar", auth(), async (req, res) => {
         student: session.student,
         tutor: session.tutor,
         booking: session.booking,
-        roomId: session.roomId
+        roomId: session.roomId,
       });
       return acc;
     }, {});
 
-    res.json({ 
+    res.json({
       sessions,
       calendar,
       totalSessions: sessions.length,
-      role
+      role,
     });
   } catch (e) {
     console.error("Get calendar error:", e);
@@ -1276,11 +1413,9 @@ router.post("/:id/payment-success", auth(), async (req, res) => {
 
     // Check if user is the student who made the booking
     if (String(booking.student) !== String(req.user.id)) {
-      return res
-        .status(403)
-        .json({
-          message: "Not authorized to process payment for this booking",
-        });
+      return res.status(403).json({
+        message: "Not authorized to process payment for this booking",
+      });
     }
 
     // Check if booking is accepted
@@ -1504,19 +1639,22 @@ router.post("/:id/join-token", auth(), async (req, res) => {
 router.post("/:id/complete", auth(), async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
-      .populate('tutorProfile', 'user')
-      .populate('student', '_id');
-      
+      .populate("tutorProfile", "user")
+      .populate("student", "_id");
+
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
     // Check if user is the tutor
-    const tutorUserId = booking.tutorProfile?.user?._id || booking.tutorProfile?.user;
+    const tutorUserId =
+      booking.tutorProfile?.user?._id || booking.tutorProfile?.user;
     const isTutor = String(tutorUserId) === String(req.user.id);
 
     if (!isTutor) {
-      return res.status(403).json({ message: "Only tutor can mark booking as completed" });
+      return res
+        .status(403)
+        .json({ message: "Only tutor can mark booking as completed" });
     }
 
     if (booking.status !== "accepted") {
@@ -1527,7 +1665,7 @@ router.post("/:id/complete", auth(), async (req, res) => {
 
     // Check if it's the end date or later
     let endDate;
-    if (booking.type === 'recurring' && booking.recurrencePattern?.endDate) {
+    if (booking.type === "recurring" && booking.recurrencePattern?.endDate) {
       endDate = new Date(booking.recurrencePattern.endDate);
     } else if (booking.end) {
       endDate = new Date(booking.end);
@@ -1537,10 +1675,10 @@ router.post("/:id/complete", auth(), async (req, res) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
-      
+
       if (today < endDate) {
-        return res.status(400).json({ 
-          message: "Chỉ có thể hoàn thành từ ngày kết thúc lịch dạy trở đi" 
+        return res.status(400).json({
+          message: "Chỉ có thể hoàn thành từ ngày kết thúc lịch dạy trở đi",
         });
       }
     }
@@ -1598,14 +1736,18 @@ router.post("/:id/cancel", auth(), async (req, res) => {
         await NotificationService.notifyTutorBookingCancelled(booking);
         console.log("✅ Notification sent to tutor about booking cancellation");
       } catch (emailError) {
-        console.error("❌ Failed to send cancellation notification:", emailError);
+        console.error(
+          "❌ Failed to send cancellation notification:",
+          emailError
+        );
         // Continue even if email fails
       }
     }
 
     res.json({
       success: true,
-      message: "Booking cancelled successfully. Refund will be processed manually if payment was made.",
+      message:
+        "Booking cancelled successfully. Refund will be processed manually if payment was made.",
       booking,
     });
   } catch (error) {

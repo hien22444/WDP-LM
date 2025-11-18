@@ -4,6 +4,14 @@ const { generateRoomId } = require("./WebRTCService");
 
 class SessionGeneratorService {
   /**
+   * Helper: Extract ID from object or use directly if string
+   */
+  extractId(field) {
+    if (!field) return null;
+    return field._id ? field._id.toString() : field.toString();
+  }
+
+  /**
    * Generate teaching sessions for a booking within a date range
    * @param {Object} booking - The booking document
    * @param {Date} startDate - Start date for session generation
@@ -15,77 +23,123 @@ class SessionGeneratorService {
       throw new Error("This method is only for recurring bookings");
     }
 
+    // Ensure booking has required fields populated
+    console.log("📋 [SessionGeneratorService] Processing booking:", {
+      bookingId: booking._id,
+      type: booking.type,
+      hasStudent: !!booking.student,
+      studentId: booking.student?._id || booking.student,
+      hasTutorProfile: !!booking.tutorProfile,
+      tutorProfileId: booking.tutorProfile?._id || booking.tutorProfile,
+      mode: booking.mode,
+      subject: booking.subject,
+    });
+
     const { selectedSlots } = booking.recurrencePattern;
     const sessions = [];
-    
+
     let currentDate = new Date(startDate);
     currentDate.setHours(0, 0, 0, 0);
-    
+
     const endDateTime = new Date(endDate);
     endDateTime.setHours(23, 59, 59, 999);
-    
+
     console.log(`📅 Generating sessions for booking ${booking._id}`);
     console.log(`   From: ${currentDate.toLocaleDateString()}`);
     console.log(`   To: ${endDateTime.toLocaleDateString()}`);
-    
+
     while (currentDate <= endDateTime) {
       const dayOfWeek = currentDate.getDay();
-      const daySlots = selectedSlots.filter(s => s.dayOfWeek === dayOfWeek);
-      
+      const daySlots = selectedSlots.filter((s) => s.dayOfWeek === dayOfWeek);
+
       for (const slot of daySlots) {
+        // Create datetime objects for this slot
+        const [startHour, startMin] = slot.start.split(":");
+        const [endHour, endMin] = slot.end.split(":");
+
+        const slotStart = new Date(currentDate);
+        slotStart.setHours(parseInt(startHour), parseInt(startMin), 0, 0);
+
+        const slotEnd = new Date(currentDate);
+        slotEnd.setHours(parseInt(endHour), parseInt(endMin), 0, 0);
+
         // Check if session already exists for this date and time
-        const sessionDate = new Date(currentDate);
-        const exists = await TeachingSession.exists({
+        const exists = await TeachingSession.findOne({
           booking: booking._id,
-          scheduledDate: {
-            $gte: new Date(sessionDate.setHours(0, 0, 0, 0)),
-            $lt: new Date(sessionDate.setHours(23, 59, 59, 999))
-          },
-          startTime: slot.start
+          startTime: slotStart,
+          endTime: slotEnd,
         });
-        
+
         if (!exists) {
-          const session = await TeachingSession.create({
+          const studentId = this.extractId(booking.student);
+          const tutorProfileId = this.extractId(booking.tutorProfile);
+
+          if (!studentId || !tutorProfileId) {
+            console.error("❌ Missing student or tutorProfile:", {
+              studentId,
+              tutorProfileId,
+              booking: booking._id,
+            });
+            throw new Error(
+              `Missing required fields: student=${studentId}, tutorProfile=${tutorProfileId}`
+            );
+          }
+
+          const sessionData = {
             booking: booking._id,
-            student: booking.student,
-            tutor: booking.tutorProfile,
-            scheduledDate: new Date(currentDate),
-            startTime: slot.start,
-            endTime: slot.end,
-            dayOfWeek,
+            student: studentId,
+            tutorProfile: tutorProfileId,
+            startTime: slotStart,
+            endTime: slotEnd,
+            courseName: booking.subject || "Buổi học",
+            mode: booking.mode || "online",
             status: "scheduled",
-            roomId: generateRoomId()
-          });
-          
+            roomId: generateRoomId(),
+          };
+
+          console.log("📝 Creating recurring session with:", sessionData);
+
+          const session = await TeachingSession.create(sessionData);
+
           sessions.push(session);
-          console.log(`   ✅ Created: ${session.scheduledDate.toLocaleDateString()} ${session.startTime}-${session.endTime}`);
+          console.log(
+            `   ✅ Created: ${currentDate.toLocaleDateString()} ${slot.start}-${
+              slot.end
+            }`
+          );
         } else {
-          console.log(`   ⏭️  Skipped: ${currentDate.toLocaleDateString()} ${slot.start} (already exists)`);
+          console.log(
+            `   ⏭️  Skipped: ${currentDate.toLocaleDateString()} ${
+              slot.start
+            } (already exists)`
+          );
         }
       }
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     // Update booking statistics
     const upcomingCount = await TeachingSession.countDocuments({
       booking: booking._id,
       status: "scheduled",
-      scheduledDate: { $gte: new Date() }
+      startTime: { $gte: new Date() },
     });
-    
+
     const completedCount = await TeachingSession.countDocuments({
       booking: booking._id,
-      status: "completed"
+      status: "completed",
     });
-    
+
     booking.upcomingSessions = upcomingCount;
     booking.completedSessions = completedCount;
     await booking.save();
-    
+
     console.log(`📊 Sessions created: ${sessions.length}`);
-    console.log(`📊 Total upcoming: ${upcomingCount}, Completed: ${completedCount}`);
-    
+    console.log(
+      `📊 Total upcoming: ${upcomingCount}, Completed: ${completedCount}`
+    );
+
     return sessions;
   }
 
@@ -102,21 +156,31 @@ class SessionGeneratorService {
 
     const { startDate, endDate, numberOfWeeks } = booking.recurrencePattern;
     const start = new Date(startDate);
-    
+
     let generationEndDate;
-    
+
     if (numberOfWeeks <= 2) {
       // Short-term booking: Create all sessions immediately
       generationEndDate = new Date(endDate);
-      console.log(`📅 Short-term booking (${numberOfWeeks} week${numberOfWeeks > 1 ? 's' : ''}) - Creating all sessions`);
+      console.log(
+        `📅 Short-term booking (${numberOfWeeks} week${
+          numberOfWeeks > 1 ? "s" : ""
+        }) - Creating all sessions`
+      );
     } else {
       // Long-term booking: Create only first 2 weeks
       generationEndDate = new Date(start);
       generationEndDate.setDate(start.getDate() + 14);
-      console.log(`📅 Long-term booking (${numberOfWeeks} weeks) - Creating sessions for first 2 weeks`);
+      console.log(
+        `📅 Long-term booking (${numberOfWeeks} weeks) - Creating sessions for first 2 weeks`
+      );
     }
-    
-    return await this.generateSessionsForBooking(booking, start, generationEndDate);
+
+    return await this.generateSessionsForBooking(
+      booking,
+      start,
+      generationEndDate
+    );
   }
 
   /**
@@ -125,44 +189,50 @@ class SessionGeneratorService {
    */
   async generateUpcomingSessions() {
     console.log("\n🔄 Starting daily session generation...");
-    
+
     const now = new Date();
     const twoWeeksFromNow = new Date();
     twoWeeksFromNow.setDate(now.getDate() + 14);
-    
+
     // Find active long-term recurring bookings (>2 weeks)
     const longTermBookings = await Booking.find({
       type: "recurring",
       status: { $in: ["accepted", "in_progress"] },
       "recurrencePattern.numberOfWeeks": { $gt: 2 },
-      "recurrencePattern.endDate": { $gte: now }
+      "recurrencePattern.endDate": { $gte: now },
     }).populate("tutorProfile student");
-    
-    console.log(`📋 Found ${longTermBookings.length} long-term bookings to process`);
-    
+
+    console.log(
+      `📋 Found ${longTermBookings.length} long-term bookings to process`
+    );
+
     let totalGenerated = 0;
-    
+
     for (const booking of longTermBookings) {
       try {
         console.log(`\n📝 Processing booking ${booking._id}`);
-        console.log(`   Student: ${booking.student?.full_name || booking.student}`);
-        console.log(`   Tutor: ${booking.tutorProfile?.user || 'N/A'}`);
-        
+        console.log(
+          `   Student: ${booking.student?.full_name || booking.student}`
+        );
+        console.log(`   Tutor: ${booking.tutorProfile?.user || "N/A"}`);
+
         // Generate sessions for next 2 weeks if not already created
         const sessions = await this.generateSessionsForBooking(
           booking,
           now,
           twoWeeksFromNow
         );
-        
+
         totalGenerated += sessions.length;
         console.log(`   ✅ Generated ${sessions.length} new sessions`);
-        
       } catch (error) {
-        console.error(`   ❌ Error processing booking ${booking._id}:`, error.message);
+        console.error(
+          `   ❌ Error processing booking ${booking._id}:`,
+          error.message
+        );
       }
     }
-    
+
     console.log(`\n🎉 Daily session generation completed!`);
     console.log(`   Total sessions created: ${totalGenerated}`);
     console.log(`   Bookings processed: ${longTermBookings.length}`);
@@ -177,23 +247,23 @@ class SessionGeneratorService {
       {
         $group: {
           _id: "$status",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
-    
+
     const result = {
       total: 0,
       scheduled: 0,
       completed: 0,
-      cancelled: 0
+      cancelled: 0,
     };
-    
-    stats.forEach(stat => {
+
+    stats.forEach((stat) => {
       result.total += stat.count;
       result[stat._id] = stat.count;
     });
-    
+
     return result;
   }
 }

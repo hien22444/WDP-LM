@@ -43,28 +43,47 @@ const UniversalHeader = () => {
             .replace(/[\u0300-\u036f]/g, "")
             .trim()
         : "";
+
+    // Check localStorage first (most reliable)
     let localRole = "";
     try {
       const raw = localStorage.getItem("user");
       if (raw) {
         const u = JSON.parse(raw);
         localRole = u?.role || u?.account?.role || u?.profile?.role || "";
+        console.log("📦 User from localStorage:", u);
+        console.log("📦 Role from localStorage:", localRole);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("❌ Error reading localStorage:", e);
+    }
+
+    // Also check Redux state
     const roles = [
+      localRole,
       userState?.user?.role,
       userState?.user?.account?.role,
       userState?.user?.profile?.role,
       userState?.account?.role,
       userState?.profile?.role,
       userState?.role,
-      localRole,
     ]
       .filter(Boolean)
       .map(normalize);
-    return roles.some(
+
+    const result = roles.some(
       (r) => r === "tutor" || r.includes("giasu") || r.includes("gia su")
     );
+
+    console.log("🔍 isTutor check:", {
+      result,
+      roles,
+      localRole,
+      reduxRole: userState?.user?.role,
+      reduxAccountRole: userState?.account?.role,
+    });
+
+    return result;
   }, [userState]);
   const avatar = useMemo(
     () =>
@@ -208,8 +227,13 @@ const UniversalHeader = () => {
               )}
               <button
                 onClick={() => {
+                  console.log("🎯 Khóa học của tôi clicked, isTutor:", isTutor);
+                  const targetRoute = isTutor
+                    ? "/tutor/courses"
+                    : "/my-courses";
+                  console.log("➡️ Navigating to:", targetRoute);
                   setIsMenuOpen(false);
-                  navigate("/courses");
+                  navigate(targetRoute);
                 }}
                 className="dropdown-item"
               >

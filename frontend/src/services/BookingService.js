@@ -28,33 +28,39 @@ export const createBooking = async (payload) => {
 
 export const createRecurringBooking = async (payload) => {
   try {
-    console.log("📤 [BookingService] Sending recurring booking request:", payload);
-    
+    console.log(
+      "📤 [BookingService] Sending recurring booking request:",
+      payload
+    );
+
     const res = await client.post(`/bookings/recurring`, payload);
-    
+
     console.log("✅ [BookingService] Booking response:", res.data);
-    
+
     const { booking, paymentLink, message } = res.data;
-    
+
     // Show success message
-    toast.success(message || `🎉 Đã tạo lịch học ${booking.totalSessions} buổi! Đang chuyển đến trang thanh toán...`);
-    
+    toast.success(
+      message ||
+        `🎉 Đã tạo lịch học ${booking.totalSessions} buổi! Đang chuyển đến trang thanh toán...`
+    );
+
     // Redirect to payment page after 1.5 seconds
     setTimeout(() => {
       window.location.href = paymentLink;
     }, 1500);
-    
+
     return { booking, paymentLink };
   } catch (error) {
     console.error("❌ [BookingService] Error:", error);
     console.error("❌ [BookingService] Error response:", error.response?.data);
-    
+
     const message =
       error.response?.data?.message || "Không thể đặt lịch. Vui lòng thử lại.";
     const errors = error.response?.data?.errors || [];
-    
+
     if (errors.length > 0) {
-      toast.error(`❌ ${message}: ${errors.join(", ")}`);
+      //  toast.error(`❌ ${message}: ${errors.join(", ")}`);
     } else {
       toast.error(`❌ ${message}`);
     }
@@ -69,8 +75,29 @@ export const listMyBookings = async (role = "student") => {
 
 export const tutorDecision = async (id, decision, tutorSignature) => {
   try {
-    const payload = tutorSignature ? { decision, tutorSignature } : { decision };
+    // Validate decision
+    if (!decision || !["accept", "reject"].includes(decision)) {
+      throw new Error("Quyết định không hợp lệ");
+    }
+
+    // Validate signature for accept decisions
+    if (decision === "accept" && !tutorSignature?.trim()) {
+      throw new Error("Vui lòng ký tên để chấp nhận hợp đồng");
+    }
+
+    const payload = tutorSignature
+      ? { decision, tutorSignature: tutorSignature.trim() }
+      : { decision };
+
+    console.log(`📤 [BookingService] Sending decision:`, {
+      bookingId: id,
+      decision,
+    });
+
     const res = await client.post(`/bookings/${id}/decision`, payload);
+
+    console.log(`✅ [BookingService] Decision response:`, res.data);
+
     const message =
       decision === "accept"
         ? "✅ Đã chấp nhận yêu cầu đặt lịch. Học viên đã được thông báo qua email."
@@ -78,10 +105,16 @@ export const tutorDecision = async (id, decision, tutorSignature) => {
     toast.success(message);
     return res.data.booking;
   } catch (error) {
+    console.error("❌ [BookingService] Error:", error);
+    console.error("❌ [BookingService] Error response:", error.response?.data);
+
     const message =
       error.response?.data?.message ||
+      error.response?.data?.errors?.[0] ||
+      error.message ||
       "Không thể xử lý yêu cầu. Vui lòng thử lại.";
-    toast.error(`❌ ${message}`);
+
+    console.error(`❌ [BookingService] Throwing error: ${message}`);
     throw error;
   }
 };
@@ -96,10 +129,10 @@ export const completeBooking = async (id) => {
 export const saveBookingContract = async (bookingId, payload) => {
   try {
     const res = await client.post(`/bookings/${bookingId}/contract`, payload);
-    toast.success('📝 Đã lưu hợp đồng cho yêu cầu đặt lịch.');
+    toast.success("📝 Đã lưu hợp đồng cho yêu cầu đặt lịch.");
     return res.data.booking;
   } catch (error) {
-    const message = error.response?.data?.message || 'Không thể lưu hợp đồng.';
+    const message = error.response?.data?.message || "Không thể lưu hợp đồng.";
     toast.error(`❌ ${message}`);
     throw error;
   }

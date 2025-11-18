@@ -29,14 +29,16 @@ const BookingSchema = new mongoose.Schema(
 
     // For recurring bookings
     recurrencePattern: {
-      selectedSlots: [{
-        dayOfWeek: { type: Number, required: true }, // 0-6 (Sunday-Saturday)
-        start: { type: String, required: true }, // "08:00"
-        end: { type: String, required: true } // "10:00"
-      }],
+      selectedSlots: [
+        {
+          dayOfWeek: { type: Number, required: true }, // 0-6 (Sunday-Saturday)
+          start: { type: String, required: true }, // "08:00"
+          end: { type: String, required: true }, // "10:00"
+        },
+      ],
       startDate: { type: Date },
       endDate: { type: Date },
-      numberOfWeeks: { type: Number }
+      numberOfWeeks: { type: Number },
     },
 
     // Session tracking for recurring bookings
@@ -129,7 +131,7 @@ BookingSchema.index({ type: 1, status: 1 });
 BookingSchema.virtual("sessions", {
   ref: "TeachingSession",
   localField: "_id",
-  foreignField: "booking"
+  foreignField: "booking",
 });
 
 module.exports = mongoose.model("Booking", BookingSchema);

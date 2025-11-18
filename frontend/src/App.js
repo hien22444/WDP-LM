@@ -282,6 +282,9 @@ import TutorPublishSlot from "./pages/Tutor/TutorPublishSlot";
 import TutorOpenCourses from "./pages/Tutor/TutorOpenCourses";
 import TutorList from "./pages/Tutor/TutorList";
 import CourseDetail from "./pages/Tutor/CourseDetail";
+import TutorCourses from "./pages/Tutor/TutorCourses";
+import CourseForm from "./pages/Tutor/CourseForm";
+import PublicCourses from "./pages/Course/PublicCourses";
 import ChatLayout from "./components/Layout/ChatLayout";
 import AuthenticatedLayout from "./components/Layout/AuthenticatedLayout";
 import AdminLayout from "./components/Admin/AdminLayout";
@@ -411,7 +414,7 @@ function App() {
           <Route path="/tutors" element={<TutorList />} />
           <Route path="/tutor/:id" element={<TutorProfilePage />} />
           <Route path="/booking/:tutorId" element={<BookingPage />} />
-          <Route path="/courses" element={<TutorOpenCourses />} />
+          <Route path="/courses" element={<PublicCourses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<div>Contact Page</div>} />
@@ -452,6 +455,22 @@ function App() {
           <Route
             path="/profile"
             element={isAuthenticated ? <Profile /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/tutor/courses"
+            element={isAuthenticated ? <TutorCourses /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/tutor/courses/create"
+            element={isAuthenticated ? <CourseForm /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/tutor/courses/:id/edit"
+            element={isAuthenticated ? <CourseForm /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/my-courses"
+            element={isAuthenticated ? <PublicCourses /> : <Navigate to="/" />}
           />
           <Route
             path="/payments"

@@ -28,7 +28,7 @@ export const getFavoriteTutors = async () => {
 export const addFavoriteTutor = async (tutorId) => {
   try {
     const res = await client.post(`/favorites/tutors/${tutorId}`);
-    toast.success("Đã thêm gia sư vào danh sách yêu thích");
+    //   toast.success("Đã thêm gia sư vào danh sách yêu thích");
     return res.data;
   } catch (error) {
     console.error("Error adding favorite tutor:", error);
@@ -41,7 +41,7 @@ export const addFavoriteTutor = async (tutorId) => {
 export const removeFavoriteTutor = async (tutorId) => {
   try {
     const res = await client.delete(`/favorites/tutors/${tutorId}`);
-    toast.success("Đã xóa gia sư khỏi danh sách yêu thích");
+    //   toast.success("Đã xóa gia sư khỏi danh sách yêu thích");
     return res.data;
   } catch (error) {
     console.error("Error removing favorite tutor:", error);
