@@ -1442,3 +1442,128 @@
     max-height: 60vh;
   }
 }
+
+/* === CV PROFILE BODY ENHANCEMENTS === */
+.cv-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.cv-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 14px 0;
+}
+
+.cv-summary {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #334155;
+}
+
+.cv-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.cv-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cv-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cv-info-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.cv-info-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+}
+
+.cv-info-value {
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.cv-highlight {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.cv-price {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.text-muted {
+  color: #94a3b8;
+}
+
+@media (max-width: 1024px) {
+  .cv-two-columns { grid-template-columns: 1fr; }
+  .cv-info-grid { grid-template-columns: 1fr; }
+}
+
+/* === Scoped overrides to ensure visibility === */
+.admin-tutors-page .cv-section {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin-bottom: 20px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+}
+
+.admin-tutors-page .cv-section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #1e293b !important;
+  margin: 0 0 14px 0 !important;
+}
+
+.admin-tutors-page .cv-summary {
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+  color: #334155 !important;
+}
+
+.admin-tutors-page .cv-two-columns { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+.admin-tutors-page .cv-column { display: flex !important; flex-direction: column !important; gap: 16px !important; }
+.admin-tutors-page .cv-info-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
+.admin-tutors-page .cv-info-item { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 10px !important; padding: 14px !important; }
+.admin-tutors-page .cv-info-label { font-size: 12px !important; font-weight: 700 !important; color: #64748b !important; text-transform: uppercase !important; letter-spacing: .4px !important; margin-bottom: 6px !important; }
+.admin-tutors-page .cv-info-value { font-size: 14px !important; color: #1f2937 !important; }
+.admin-tutors-page .cv-price { color: #2563eb !important; font-weight: 800 !important; }
+.admin-tutors-page .cv-highlight { color: #0f766e !important; font-weight: 800 !important; }
+.admin-tutors-page .cv-section-title i { color: #334155 !important; }
+
+@media (max-width: 1024px) {
+  .admin-tutors-page .cv-two-columns { grid-template-columns: 1fr !important; }
+  .admin-tutors-page .cv-info-grid { grid-template-columns: 1fr !important; }
+}

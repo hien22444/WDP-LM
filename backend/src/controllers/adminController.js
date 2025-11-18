@@ -427,20 +427,23 @@ const banUser = async (req, res) => {
 // Tutor management
 const getTutors = async (req, res) => {
   try {
-    const { page = 1, limit = 1000, status = 'all', search } = req.query; // Tăng limit lên 1000 để lấy tất cả
+    const { page = 1, limit = 1000, status = "all", search } = req.query; // Tăng limit lên 1000 để lấy tất cả
     const skip = (page - 1) * limit;
 
-    console.log('=== ADMIN GET TUTORS (FULL DEBUG) ===');
-    console.log('Query params:', { page, limit, status, search });
+    console.log("=== ADMIN GET TUTORS (FULL DEBUG) ===");
+    console.log("Query params:", { page, limit, status, search });
 
     let query = {};
-    
-    // Filter theo status - LẤY TẤT CẢ nếu status = 'all'
-    if (status && status !== 'all') {
+
+    // Filter theo status
+    // - Nếu có status cụ thể (khác 'all'): lọc đúng status đó
+    // - Nếu status = 'all' hoặc không gửi: CHỈ lấy các đơn đã nộp (loại bỏ draft)
+    if (status && status !== "all") {
       query.status = status;
+    } else {
+      query.status = { $in: ["pending", "approved", "rejected"] };
     }
-    // Không filter gì cả nếu status = 'all' để lấy TẤT CẢ đơn kể cả draft, null, undefined
-    
+
     if (search) {
       query.$or = [
         { bio: { $regex: search, $options: "i" } },
@@ -453,8 +456,8 @@ const getTutors = async (req, res) => {
 
     // Lấy TẤT CẢ đơn, không loại bỏ đơn nào
     const tutors = await TutorProfile.find(query)
-      .populate("user", "fullName email phone role isVerified") // Sửa field names
-      .sort({ createdAt: -1 }) // Sửa field name
+      .populate("user", "full_name email phone_number status role")
+      .sort({ created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
       .lean();
@@ -465,22 +468,22 @@ const getTutors = async (req, res) => {
 
     // Debug: Thống kê tất cả status có trong DB
     const allStatusStats = await TutorProfile.aggregate([
-      { $group: { _id: "$status", count: { $sum: 1 } } }
+      { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
     console.log("📊 All statuses in DB:", allStatusStats);
 
     // Debug: Status breakdown của kết quả trả về
     const statusBreakdown = {};
-    tutors.forEach(tutor => {
-      const tutorStatus = tutor.status || 'null/undefined';
+    tutors.forEach((tutor) => {
+      const tutorStatus = tutor.status || "null/undefined";
       statusBreakdown[tutorStatus] = (statusBreakdown[tutorStatus] || 0) + 1;
     });
     console.log("📋 Status breakdown in result:", statusBreakdown);
 
     // Debug: User info
     const userStats = {
-      hasUser: tutors.filter(t => t.user).length,
-      noUser: tutors.filter(t => !t.user).length
+      hasUser: tutors.filter((t) => t.user).length,
+      noUser: tutors.filter((t) => !t.user).length,
     };
     console.log("👥 User stats:", userStats);
 
@@ -488,8 +491,10 @@ const getTutors = async (req, res) => {
     console.log("🔍 Detailed info (first 10):");
     tutors.slice(0, 10).forEach((t, index) => {
       console.log(`  ${index + 1}. ID: ${t._id.toString().slice(-8)}`);
-      console.log(`     Status: ${t.status || 'NO STATUS'}`);
-      console.log(`     User: ${t.user ? t.user.fullName || 'NO NAME' : 'NO USER'}`);
+      console.log(`     Status: ${t.status || "NO STATUS"}`);
+      console.log(
+        `     User: ${t.user ? t.user.fullName || "NO NAME" : "NO USER"}`
+      );
       console.log(`     Created: ${t.createdAt}`);
     });
 
@@ -500,21 +505,21 @@ const getTutors = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        totalPages: Math.ceil(total / parseInt(limit))
+        totalPages: Math.ceil(total / parseInt(limit)),
       },
       debug: {
         allStatusStats,
         statusBreakdown,
         userStats,
-        totalInDB: total
-      }
+        totalInDB: total,
+      },
     });
   } catch (error) {
     console.error("❌ Error getting tutors:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "Error fetching tutors",
-      error: error.message 
+      error: error.message,
     });
   }
 };
@@ -573,7 +578,7 @@ const updateTutorStatus = async (req, res) => {
     }
 
     // Cập nhật status của tutor profile
-    const tutor = await TutorProfile.findByIdAndUpdate(
+    let tutor = await TutorProfile.findByIdAndUpdate(
       id,
       { status },
       { new: true }
@@ -583,20 +588,53 @@ const updateTutorStatus = async (req, res) => {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
-    // Gửi email thông báo khi approve
+    // Khi approve: cập nhật role user -> 'tutor' và gửi email
     if (status === "approved" && tutor.user) {
+      try {
+        const prevUser = await User.findById(tutor.user._id).select(
+          "role email full_name"
+        );
+        if (prevUser && prevUser.role !== "tutor") {
+          await User.findByIdAndUpdate(tutor.user._id, { role: "tutor" });
+          console.log(`✅ Updated user role to 'tutor' for ${prevUser.email}`);
+        }
+      } catch (e) {
+        console.error("⚠️ Failed to update user role to tutor:", e.message);
+      }
+
+      // Re-fetch tutor to include latest user role
+      try {
+        tutor = await TutorProfile.findById(id).populate(
+          "user",
+          "full_name email phone_number status role"
+        );
+        if (tutor?.user) {
+          tutor.user.role = "tutor"; // ensure in-memory object reflects change
+        }
+      } catch (e) {
+        console.error(
+          "⚠️ Failed to reload tutor after role update:",
+          e.message
+        );
+      }
+
+      // Gửi email thông báo khi approve
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0;">
             <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Chúc mừng! Đơn đăng ký gia sư đã được duyệt</h1>
           </div>
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${tutor.user.full_name}</strong>,</p>
+            <p style="font-size: 16px; color: #1f2937;">Xin chào <strong>${
+              tutor.user.full_name
+            }</strong>,</p>
             <p style="font-size: 16px; color: #1f2937;">Đơn đăng ký làm gia sư của bạn trên <strong>EduMatch</strong> đã được phê duyệt!</p>
             
             <div style="background: white; padding: 20px; border-left: 4px solid #10b981; margin: 20px 0; border-radius: 4px;">
               <p style="margin: 0; color: #10b981; font-size: 14px; font-weight: 600;">✅ Trạng thái:</p>
-              <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px;">Đơn đăng ký đã được duyệt - ID: ${tutor._id}</p>
+              <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px;">Đơn đăng ký đã được duyệt - ID: ${
+                tutor._id
+              }</p>
             </div>
             
             <div style="background: #d1fae5; padding: 15px; border-radius: 6px; margin: 20px 0;">
@@ -609,7 +647,9 @@ const updateTutorStatus = async (req, res) => {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/profile" 
+              <a href="${
+                process.env.FRONTEND_URL || "http://localhost:3000"
+              }/profile" 
                  style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
                 Xem hồ sơ gia sư
               </a>
@@ -629,7 +669,9 @@ const updateTutorStatus = async (req, res) => {
         emailHtml
       );
 
-      console.log(`✅ Tutor profile ${tutor._id} approved for user ${tutor.user.email}`);
+      console.log(
+        `✅ Tutor profile ${tutor._id} approved for user ${tutor.user.email}`
+      );
     }
 
     // Gửi email nếu bị từ chối

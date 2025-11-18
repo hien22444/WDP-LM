@@ -31,37 +31,48 @@ const AdminTutors = () => {
     console.log("🔄 fetchTutors called with statusFilter:", statusFilter);
     setError(null);
     try {
-      console.log("📡 Calling AdminService.getTutors() with status:", statusFilter);
-      const params = statusFilter === "all" ? { limit: 1000 } : { status: statusFilter, limit: 1000 };
+      console.log(
+        "📡 Calling AdminService.getTutors() with status:",
+        statusFilter
+      );
+      const params =
+        statusFilter === "all"
+          ? { limit: 1000 }
+          : { status: statusFilter, limit: 1000 };
       const res = await AdminService.getTutors(params);
       console.log("📊 Full API response:", res);
-      
+
       // Backend trả về data trực tiếp trong res.data, không phải res.data.tutors
       const tutorData = res.data?.data || res.data?.tutors || res.data || [];
       console.log("📋 Tutors data:", tutorData);
       console.log("📈 Total records:", tutorData.length);
-      
+
       // Debug info từ backend
       if (res.data?.debug) {
         console.log("🔍 Backend debug info:", res.data.debug);
       }
-      
+
       // Status breakdown
       const statusBreakdown = tutorData.reduce((acc, tutor) => {
-        const status = tutor.status || 'null/undefined';
+        const status = tutor.status || "null/undefined";
         acc[status] = (acc[status] || 0) + 1;
         return acc;
       }, {});
       console.log("🏷️ Frontend status breakdown:", statusBreakdown);
-      
+
       // User breakdown
       const userBreakdown = {
-        hasUser: tutorData.filter(t => t.user).length,
-        noUser: tutorData.filter(t => !t.user).length
+        hasUser: tutorData.filter((t) => t.user).length,
+        noUser: tutorData.filter((t) => !t.user).length,
       };
       console.log("👥 User breakdown:", userBreakdown);
-      
-      setTutors(tutorData);
+
+      const normalized = Array.isArray(tutorData) ? tutorData : [];
+      const filtered =
+        statusFilter === "all"
+          ? normalized.filter((t) => (t?.status || "") !== "draft")
+          : normalized;
+      setTutors(filtered);
     } catch (err) {
       console.error("❌ Error fetching tutors:", err);
       setError("Lỗi tải danh sách tutor.");
@@ -157,7 +168,8 @@ const AdminTutors = () => {
       const fullTutorData = res.data || tutor;
       console.log("📋 Full tutor data:", fullTutorData);
       console.log("📄 Degree documents sources:", {
-        verification_degreeDocuments: fullTutorData.verification?.degreeDocuments,
+        verification_degreeDocuments:
+          fullTutorData.verification?.degreeDocuments,
         degreeDocumentUrls: fullTutorData.degreeDocumentUrls,
       });
       console.log("🆔 ID documents sources:", {
@@ -259,7 +271,9 @@ const AdminTutors = () => {
             )}
           </button>
           <button
-            className={`admin-tab ${statusFilter === "pending" ? "active" : ""}`}
+            className={`admin-tab ${
+              statusFilter === "pending" ? "active" : ""
+            }`}
             onClick={() => setStatusFilter("pending")}
           >
             <span className="admin-tab-icon">⏳</span>
@@ -269,7 +283,9 @@ const AdminTutors = () => {
             )}
           </button>
           <button
-            className={`admin-tab ${statusFilter === "approved" ? "active" : ""}`}
+            className={`admin-tab ${
+              statusFilter === "approved" ? "active" : ""
+            }`}
             onClick={() => setStatusFilter("approved")}
           >
             <span className="admin-tab-icon">✅</span>
@@ -279,7 +295,9 @@ const AdminTutors = () => {
             )}
           </button>
           <button
-            className={`admin-tab ${statusFilter === "rejected" ? "active" : ""}`}
+            className={`admin-tab ${
+              statusFilter === "rejected" ? "active" : ""
+            }`}
             onClick={() => setStatusFilter("rejected")}
           >
             <span className="admin-tab-icon">❌</span>
@@ -551,7 +569,8 @@ const AdminTutors = () => {
                   display: "block",
                 }}
               >
-                ℹ️ Đơn sẽ được chuyển sang trạng thái "Đã duyệt" và user sẽ nhận email thông báo.
+                ℹ️ Đơn sẽ được chuyển sang trạng thái "Đã duyệt" và user sẽ nhận
+                email thông báo.
               </small>
             </div>
             <div className="modal-actions">
@@ -1386,7 +1405,7 @@ const AdminTutors = () => {
                   <span className="verification-title-icon">✅</span>
                   Trạng thái xác thực
                 </h4>
-                
+
                 {/* Xác thực Bằng cấp */}
                 <div className="verification-card">
                   <div className="verification-card-header">
@@ -1395,22 +1414,17 @@ const AdminTutors = () => {
                         <span className="verification-icon">🎓</span>
                         Bằng cấp
                       </h5>
-                      <span className={`verification-status-badge ${selectedTutor.verification?.degreeStatus || "pending"}`}>
-                        {selectedTutor.verification?.degreeStatus === "verified"
-                          ? "✅ Đã xác thực"
-                          : selectedTutor.verification?.degreeStatus === "rejected"
-                          ? "❌ Đã từ chối"
-                          : "⏳ Chờ xác thực"}
-                      </span>
+                      <></>
                     </div>
                   </div>
-                  
+
                   {/* Hiển thị ảnh bằng cấp */}
                   {(() => {
                     // Lấy ảnh từ nhiều nguồn: verification.degreeDocuments hoặc degreeDocumentUrls
-                    const degreeDocs = selectedTutor.verification?.degreeDocuments || 
-                                      selectedTutor.degreeDocumentUrls || 
-                                      [];
+                    const degreeDocs =
+                      selectedTutor.verification?.degreeDocuments ||
+                      selectedTutor.degreeDocumentUrls ||
+                      [];
                     return degreeDocs.length > 0 ? (
                       <div className="verification-documents-section">
                         <div className="verification-documents-header">
@@ -1423,43 +1437,46 @@ const AdminTutors = () => {
                         </div>
                         <div className="verification-documents-grid">
                           {degreeDocs.map((cert, index) => (
-                          <div key={index} className="verification-document-item">
-                            <div className="verification-document-preview">
-                              <img
-                                src={toUrl(cert)}
-                                alt={`Bằng cấp ${index + 1}`}
-                                className="verification-document-thumbnail"
-                                onError={(e) => {
-                                  e.target.style.display = "none";
-                                  e.target.nextSibling.style.display = "flex";
-                                }}
-                              />
-                              <div
-                                className="verification-document-error"
-                                style={{ display: "none" }}
-                              >
-                                <span>❌ Không thể tải ảnh</span>
-                              </div>
-                              <div className="verification-document-overlay">
-                                <button
-                                  className="verification-view-btn"
-                                  onClick={() => {
-                                    setImagePreview({
-                                      open: true,
-                                      imageUrl: toUrl(cert),
-                                      title: `Bằng cấp ${index + 1}`,
-                                    });
+                            <div
+                              key={index}
+                              className="verification-document-item"
+                            >
+                              <div className="verification-document-preview">
+                                <img
+                                  src={toUrl(cert)}
+                                  alt={`Bằng cấp ${index + 1}`}
+                                  className="verification-document-thumbnail"
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextSibling.style.display = "flex";
                                   }}
+                                />
+                                <div
+                                  className="verification-document-error"
+                                  style={{ display: "none" }}
                                 >
-                                  <span className="view-btn-icon">👁️</span>
-                                  Xem ảnh
-                                </button>
+                                  <span>❌ Không thể tải ảnh</span>
+                                </div>
+                                <div className="verification-document-overlay">
+                                  <button
+                                    className="verification-view-btn"
+                                    onClick={() => {
+                                      setImagePreview({
+                                        open: true,
+                                        imageUrl: toUrl(cert),
+                                        title: `Bằng cấp ${index + 1}`,
+                                      });
+                                    }}
+                                  >
+                                    <span className="view-btn-icon">👁️</span>
+                                    Xem ảnh
+                                  </button>
+                                </div>
                               </div>
+                              <p className="verification-document-label">
+                                Bằng cấp {index + 1}
+                              </p>
                             </div>
-                            <p className="verification-document-label">
-                              Bằng cấp {index + 1}
-                            </p>
-                          </div>
                           ))}
                         </div>
                       </div>
@@ -1470,80 +1487,101 @@ const AdminTutors = () => {
                       </div>
                     );
                   })()}
-                  
+
                   {/* Buttons xác thực - chỉ hiển thị khi có tài liệu và chưa xác thực */}
                   {(() => {
-                    const degreeDocs = selectedTutor.verification?.degreeDocuments || 
-                                      selectedTutor.degreeDocumentUrls || 
-                                      [];
-                    return degreeDocs.length > 0 &&
-                   selectedTutor.verification?.degreeStatus !== "verified" && 
-                   selectedTutor.verification?.degreeStatus !== "rejected" && (
-                    <div className="verification-actions">
-                      <button
-                        className="admin-btn admin-btn-success admin-btn-sm"
-                        onClick={() => {
-                          showConfirm(
-                            "Xác nhận duyệt bằng cấp",
-                            "Bạn có chắc muốn duyệt tài liệu bằng cấp của gia sư này?",
-                            async () => {
-                              try {
-                                await AdminService.updateTutorVerification(
-                                  selectedTutor._id,
-                                  { degreeStatus: "verified" }
-                                );
-                                showAlert("✅ Đã duyệt bằng cấp!");
-                                await fetchTutors();
-                                // Refresh selected tutor data
-                                try {
-                                  const res = await AdminService.getTutorById(selectedTutor._id);
-                                  setSelectedTutor(res.data || selectedTutor);
-                                } catch (e) {
-                                  console.error("Error refreshing tutor:", e);
+                    const degreeDocs =
+                      selectedTutor.verification?.degreeDocuments ||
+                      selectedTutor.degreeDocumentUrls ||
+                      [];
+                    return (
+                      false &&
+                      degreeDocs.length > 0 &&
+                      selectedTutor.verification?.degreeStatus !== "verified" &&
+                      selectedTutor.verification?.degreeStatus !==
+                        "rejected" && (
+                        <div className="verification-actions">
+                          <button
+                            className="admin-btn admin-btn-success admin-btn-sm"
+                            onClick={() => {
+                              showConfirm(
+                                "Xác nhận duyệt bằng cấp",
+                                "Bạn có chắc muốn duyệt tài liệu bằng cấp của gia sư này?",
+                                async () => {
+                                  try {
+                                    await AdminService.updateTutorVerification(
+                                      selectedTutor._id,
+                                      { degreeStatus: "verified" }
+                                    );
+                                    showAlert("✅ Đã duyệt bằng cấp!");
+                                    await fetchTutors();
+                                    // Refresh selected tutor data
+                                    try {
+                                      const res =
+                                        await AdminService.getTutorById(
+                                          selectedTutor._id
+                                        );
+                                      setSelectedTutor(
+                                        res.data || selectedTutor
+                                      );
+                                    } catch (e) {
+                                      console.error(
+                                        "Error refreshing tutor:",
+                                        e
+                                      );
+                                    }
+                                  } catch (error) {
+                                    showAlert("❌ Lỗi khi duyệt bằng cấp");
+                                  }
                                 }
-                              } catch (error) {
-                                showAlert("❌ Lỗi khi duyệt bằng cấp");
-                              }
-                            }
-                          );
-                        }}
-                      >
-                        <span className="admin-btn-icon">✅</span>
-                        Duyệt
-                      </button>
-                      <button
-                        className="admin-btn admin-btn-danger admin-btn-sm"
-                        onClick={() => {
-                          showConfirm(
-                            "Xác nhận từ chối bằng cấp",
-                            "Bạn có chắc muốn từ chối tài liệu bằng cấp của gia sư này?",
-                            async () => {
-                              try {
-                                await AdminService.updateTutorVerification(
-                                  selectedTutor._id,
-                                  { degreeStatus: "rejected" }
-                                );
-                                showAlert("❌ Đã từ chối bằng cấp!");
-                                await fetchTutors();
-                                // Refresh selected tutor data
-                                try {
-                                  const res = await AdminService.getTutorById(selectedTutor._id);
-                                  setSelectedTutor(res.data || selectedTutor);
-                                } catch (e) {
-                                  console.error("Error refreshing tutor:", e);
+                              );
+                            }}
+                          >
+                            <span className="admin-btn-icon">✅</span>
+                            Duyệt
+                          </button>
+                          <button
+                            className="admin-btn admin-btn-danger admin-btn-sm"
+                            onClick={() => {
+                              showConfirm(
+                                "Xác nhận từ chối bằng cấp",
+                                "Bạn có chắc muốn từ chối tài liệu bằng cấp của gia sư này?",
+                                async () => {
+                                  try {
+                                    await AdminService.updateTutorVerification(
+                                      selectedTutor._id,
+                                      { degreeStatus: "rejected" }
+                                    );
+                                    showAlert("❌ Đã từ chối bằng cấp!");
+                                    await fetchTutors();
+                                    // Refresh selected tutor data
+                                    try {
+                                      const res =
+                                        await AdminService.getTutorById(
+                                          selectedTutor._id
+                                        );
+                                      setSelectedTutor(
+                                        res.data || selectedTutor
+                                      );
+                                    } catch (e) {
+                                      console.error(
+                                        "Error refreshing tutor:",
+                                        e
+                                      );
+                                    }
+                                  } catch (error) {
+                                    showAlert("❌ Lỗi khi từ chối bằng cấp");
+                                  }
                                 }
-                              } catch (error) {
-                                showAlert("❌ Lỗi khi từ chối bằng cấp");
-                              }
-                            }
-                          );
-                        }}
-                      >
-                        <span className="admin-btn-icon">❌</span>
-                        Từ chối
-                      </button>
-                    </div>
-                  );
+                              );
+                            }}
+                          >
+                            <span className="admin-btn-icon">❌</span>
+                            Từ chối
+                          </button>
+                        </div>
+                      )
+                    );
                   })()}
                 </div>
 
@@ -1555,22 +1593,17 @@ const AdminTutors = () => {
                         <span className="verification-icon">🆔</span>
                         CMND/CCCD
                       </h5>
-                      <span className={`verification-status-badge ${selectedTutor.verification?.idStatus || "pending"}`}>
-                        {selectedTutor.verification?.idStatus === "verified"
-                          ? "✅ Đã xác thực"
-                          : selectedTutor.verification?.idStatus === "rejected"
-                          ? "❌ Đã từ chối"
-                          : "⏳ Chờ xác thực"}
-                      </span>
+                      <></>
                     </div>
                   </div>
-                  
+
                   {/* Hiển thị ảnh CMND/CCCD */}
                   {(() => {
                     // Lấy ảnh từ nhiều nguồn: verification.idDocuments hoặc idDocumentUrls
-                    const idDocs = selectedTutor.verification?.idDocuments || 
-                                   selectedTutor.idDocumentUrls || 
-                                   [];
+                    const idDocs =
+                      selectedTutor.verification?.idDocuments ||
+                      selectedTutor.idDocumentUrls ||
+                      [];
                     return idDocs.length > 0 ? (
                       <div className="verification-documents-section">
                         <div className="verification-documents-header">
@@ -1583,43 +1616,46 @@ const AdminTutors = () => {
                         </div>
                         <div className="verification-documents-grid">
                           {idDocs.map((idImg, index) => (
-                          <div key={index} className="verification-document-item">
-                            <div className="verification-document-preview">
-                              <img
-                                src={toUrl(idImg)}
-                                alt={`CMND/CCCD ${index + 1}`}
-                                className="verification-document-thumbnail"
-                                onError={(e) => {
-                                  e.target.style.display = "none";
-                                  e.target.nextSibling.style.display = "flex";
-                                }}
-                              />
-                              <div
-                                className="verification-document-error"
-                                style={{ display: "none" }}
-                              >
-                                <span>❌ Không thể tải ảnh</span>
-                              </div>
-                              <div className="verification-document-overlay">
-                                <button
-                                  className="verification-view-btn"
-                                  onClick={() => {
-                                    setImagePreview({
-                                      open: true,
-                                      imageUrl: toUrl(idImg),
-                                      title: `CMND/CCCD ${index + 1}`,
-                                    });
+                            <div
+                              key={index}
+                              className="verification-document-item"
+                            >
+                              <div className="verification-document-preview">
+                                <img
+                                  src={toUrl(idImg)}
+                                  alt={`CMND/CCCD ${index + 1}`}
+                                  className="verification-document-thumbnail"
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextSibling.style.display = "flex";
                                   }}
+                                />
+                                <div
+                                  className="verification-document-error"
+                                  style={{ display: "none" }}
                                 >
-                                  <span className="view-btn-icon">👁️</span>
-                                  Xem ảnh
-                                </button>
+                                  <span>❌ Không thể tải ảnh</span>
+                                </div>
+                                <div className="verification-document-overlay">
+                                  <button
+                                    className="verification-view-btn"
+                                    onClick={() => {
+                                      setImagePreview({
+                                        open: true,
+                                        imageUrl: toUrl(idImg),
+                                        title: `CMND/CCCD ${index + 1}`,
+                                      });
+                                    }}
+                                  >
+                                    <span className="view-btn-icon">👁️</span>
+                                    Xem ảnh
+                                  </button>
+                                </div>
                               </div>
+                              <p className="verification-document-label">
+                                CMND/CCCD {index + 1}
+                              </p>
                             </div>
-                            <p className="verification-document-label">
-                              CMND/CCCD {index + 1}
-                            </p>
-                          </div>
                           ))}
                         </div>
                       </div>
@@ -1630,80 +1666,100 @@ const AdminTutors = () => {
                       </div>
                     );
                   })()}
-                  
+
                   {/* Buttons xác thực - chỉ hiển thị khi có tài liệu và chưa xác thực */}
                   {(() => {
-                    const idDocs = selectedTutor.verification?.idDocuments || 
-                                   selectedTutor.idDocumentUrls || 
-                                   [];
-                    return idDocs.length > 0 &&
-                   selectedTutor.verification?.idStatus !== "verified" && 
-                   selectedTutor.verification?.idStatus !== "rejected" && (
-                    <div className="verification-actions">
-                      <button
-                        className="admin-btn admin-btn-success admin-btn-sm"
-                        onClick={() => {
-                          showConfirm(
-                            "Xác nhận duyệt CMND/CCCD",
-                            "Bạn có chắc muốn duyệt tài liệu CMND/CCCD của gia sư này?",
-                            async () => {
-                              try {
-                                await AdminService.updateTutorVerification(
-                                  selectedTutor._id,
-                                  { idStatus: "verified" }
-                                );
-                                showAlert("✅ Đã duyệt CMND/CCCD!");
-                                await fetchTutors();
-                                // Refresh selected tutor data
-                                try {
-                                  const res = await AdminService.getTutorById(selectedTutor._id);
-                                  setSelectedTutor(res.data || selectedTutor);
-                                } catch (e) {
-                                  console.error("Error refreshing tutor:", e);
+                    const idDocs =
+                      selectedTutor.verification?.idDocuments ||
+                      selectedTutor.idDocumentUrls ||
+                      [];
+                    return (
+                      false &&
+                      idDocs.length > 0 &&
+                      selectedTutor.verification?.idStatus !== "verified" &&
+                      selectedTutor.verification?.idStatus !== "rejected" && (
+                        <div className="verification-actions">
+                          <button
+                            className="admin-btn admin-btn-success admin-btn-sm"
+                            onClick={() => {
+                              showConfirm(
+                                "Xác nhận duyệt CMND/CCCD",
+                                "Bạn có chắc muốn duyệt tài liệu CMND/CCCD của gia sư này?",
+                                async () => {
+                                  try {
+                                    await AdminService.updateTutorVerification(
+                                      selectedTutor._id,
+                                      { idStatus: "verified" }
+                                    );
+                                    showAlert("✅ Đã duyệt CMND/CCCD!");
+                                    await fetchTutors();
+                                    // Refresh selected tutor data
+                                    try {
+                                      const res =
+                                        await AdminService.getTutorById(
+                                          selectedTutor._id
+                                        );
+                                      setSelectedTutor(
+                                        res.data || selectedTutor
+                                      );
+                                    } catch (e) {
+                                      console.error(
+                                        "Error refreshing tutor:",
+                                        e
+                                      );
+                                    }
+                                  } catch (error) {
+                                    showAlert("❌ Lỗi khi duyệt CMND/CCCD");
+                                  }
                                 }
-                              } catch (error) {
-                                showAlert("❌ Lỗi khi duyệt CMND/CCCD");
-                              }
-                            }
-                          );
-                        }}
-                      >
-                        <span className="admin-btn-icon">✅</span>
-                        Duyệt
-                      </button>
-                      <button
-                        className="admin-btn admin-btn-danger admin-btn-sm"
-                        onClick={() => {
-                          showConfirm(
-                            "Xác nhận từ chối CMND/CCCD",
-                            "Bạn có chắc muốn từ chối tài liệu CMND/CCCD của gia sư này?",
-                            async () => {
-                              try {
-                                await AdminService.updateTutorVerification(
-                                  selectedTutor._id,
-                                  { idStatus: "rejected" }
-                                );
-                                showAlert("❌ Đã từ chối CMND/CCCD!");
-                                await fetchTutors();
-                                // Refresh selected tutor data
-                                try {
-                                  const res = await AdminService.getTutorById(selectedTutor._id);
-                                  setSelectedTutor(res.data || selectedTutor);
-                                } catch (e) {
-                                  console.error("Error refreshing tutor:", e);
+                              );
+                            }}
+                          >
+                            <span className="admin-btn-icon">✅</span>
+                            Duyệt
+                          </button>
+                          <button
+                            className="admin-btn admin-btn-danger admin-btn-sm"
+                            onClick={() => {
+                              showConfirm(
+                                "Xác nhận từ chối CMND/CCCD",
+                                "Bạn có chắc muốn từ chối tài liệu CMND/CCCD của gia sư này?",
+                                async () => {
+                                  try {
+                                    await AdminService.updateTutorVerification(
+                                      selectedTutor._id,
+                                      { idStatus: "rejected" }
+                                    );
+                                    showAlert("❌ Đã từ chối CMND/CCCD!");
+                                    await fetchTutors();
+                                    // Refresh selected tutor data
+                                    try {
+                                      const res =
+                                        await AdminService.getTutorById(
+                                          selectedTutor._id
+                                        );
+                                      setSelectedTutor(
+                                        res.data || selectedTutor
+                                      );
+                                    } catch (e) {
+                                      console.error(
+                                        "Error refreshing tutor:",
+                                        e
+                                      );
+                                    }
+                                  } catch (error) {
+                                    showAlert("❌ Lỗi khi từ chối CMND/CCCD");
+                                  }
                                 }
-                              } catch (error) {
-                                showAlert("❌ Lỗi khi từ chối CMND/CCCD");
-                              }
-                            }
-                          );
-                        }}
-                      >
-                        <span className="admin-btn-icon">❌</span>
-                        Từ chối
-                      </button>
-                    </div>
-                  );
+                              );
+                            }}
+                          >
+                            <span className="admin-btn-icon">❌</span>
+                            Từ chối
+                          </button>
+                        </div>
+                      )
+                    );
                   })()}
                 </div>
               </div>
@@ -1723,11 +1779,21 @@ const AdminTutors = () => {
 
       {/* Image Preview Modal */}
       {imagePreview.open && (
-        <div className="modal-overlay image-preview-overlay" onClick={() => setImagePreview({ open: false, imageUrl: null, title: "" })}>
-          <div className="image-preview-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay image-preview-overlay"
+          onClick={() =>
+            setImagePreview({ open: false, imageUrl: null, title: "" })
+          }
+        >
+          <div
+            className="image-preview-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               className="image-preview-close"
-              onClick={() => setImagePreview({ open: false, imageUrl: null, title: "" })}
+              onClick={() =>
+                setImagePreview({ open: false, imageUrl: null, title: "" })
+              }
             >
               &times;
             </button>
@@ -1756,7 +1822,9 @@ const AdminTutors = () => {
               </button>
               <button
                 className="admin-btn admin-btn-primary"
-                onClick={() => setImagePreview({ open: false, imageUrl: null, title: "" })}
+                onClick={() =>
+                  setImagePreview({ open: false, imageUrl: null, title: "" })
+                }
               >
                 Đóng
               </button>
