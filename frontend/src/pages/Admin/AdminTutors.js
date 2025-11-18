@@ -481,10 +481,8 @@ const AdminTutors = () => {
                     </td>
                     <td className="admin-table-td admin-table-td-actions">
                       <div className="admin-action-buttons">
-                        {/* Chỉ hiển thị button Duyệt nếu status là pending hoặc chưa có status */}
-                        {(tutor.status === "pending" ||
-                          !tutor.status ||
-                          (!tutor.verified && !tutor.rejected)) && (
+                        {/* Chỉ hiển thị button Duyệt khi status là 'pending' */}
+                        {tutor.status === "pending" && (
                           <button
                             className="admin-btn admin-btn-success admin-btn-sm"
                             disabled={actionLoading}
