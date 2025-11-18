@@ -1592,6 +1592,17 @@ router.post("/:id/cancel", auth(), async (req, res) => {
     booking.cancelledAt = new Date();
     await booking.save();
 
+    // Send email notification to tutor if student cancelled
+    if (isStudent) {
+      try {
+        await NotificationService.notifyTutorBookingCancelled(booking);
+        console.log("✅ Notification sent to tutor about booking cancellation");
+      } catch (emailError) {
+        console.error("❌ Failed to send cancellation notification:", emailError);
+        // Continue even if email fails
+      }
+    }
+
     res.json({
       success: true,
       message: "Booking cancelled successfully. Refund will be processed manually if payment was made.",

@@ -264,10 +264,20 @@ const createEmailTemplate = (type, data) => {
               <h3>📚 Thông tin khóa học</h3>
               <p><strong>Gia sư:</strong> ${data.tutorName}</p>
               <p><strong>Thời gian:</strong> ${formatDateTime(data.start)}</p>
-              <p><strong>Lý do:</strong> Gia sư không thể sắp xếp thời gian phù hợp</p>
             </div>
             
-            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            ${data.paymentStatus === 'paid' || data.paymentStatus === 'refunded' ? `
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+              <h4 style="color: #856404; margin-top: 0;">💰 Hoàn tiền</h4>
+              <p style="color: #856404; margin: 10px 0;">
+                Vui lòng liên hệ gia sư <strong>${data.tutorName}</strong> 
+                ${data.tutorEmail ? `tại <a href="mailto:${data.tutorEmail}" style="color: #dc3545;">${data.tutorEmail}</a>` : ''} 
+                để được hoàn tiền.
+              </p>
+            </div>
+            ` : ''}
+            
+            <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
               <h4>💡 Gợi ý:</h4>
               <ul style="margin: 10px 0; padding-left: 20px;">
                 <li>Tìm kiếm gia sư khác phù hợp hơn</li>
@@ -614,6 +624,52 @@ const createEmailTemplate = (type, data) => {
           </div>
         </div>
       `
+    },
+    
+    booking_cancelled_by_student: {
+      subject: "❌ Học sinh đã hủy booking - EduMatch",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); color: white; padding: 20px; text-align: center;">
+            <h1>🎓 EduMatch</h1>
+            <h2>❌ Học sinh đã hủy booking</h2>
+          </div>
+          <div style="padding: 20px; background: #f8f9fa;">
+            <p>Xin chào <strong>${data.tutorName}</strong>,</p>
+            <p>Học sinh <strong>${data.studentName}</strong> đã hủy booking với bạn:</p>
+            
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc3545;">
+              <h3>📚 Thông tin booking</h3>
+              <p><strong>Học sinh:</strong> ${data.studentName}</p>
+              <p><strong>Thời gian:</strong> ${formatDateTime(data.start)} - ${formatDateTime(data.end)}</p>
+              <p><strong>Hình thức:</strong> ${data.mode === 'online' ? 'Trực tuyến' : 'Tại nhà'}</p>
+              <p><strong>Học phí:</strong> ${formatCurrency(data.price)} VNĐ</p>
+              ${data.reason ? `<p><strong>Lý do:</strong> ${data.reason}</p>` : ''}
+            </div>
+            
+            ${data.paymentStatus === 'paid' || data.paymentStatus === 'refunded' ? `
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+              <h4 style="color: #856404; margin-top: 0;">💰 Hoàn tiền</h4>
+              <p style="color: #856404; margin: 10px 0;">
+                Học sinh đã thanh toán cho booking này. Vui lòng liên hệ với <strong>LearnMate</strong> qua email 
+                <a href="mailto:${process.env.MAIL_FROM || 'support@edumatch.com'}" style="color: #dc3545;">${process.env.MAIL_FROM || 'support@edumatch.com'}</a> 
+                để được hướng dẫn hoàn tiền cho học sinh.
+              </p>
+            </div>
+            ` : ''}
+            
+            <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <h4>💡 Lưu ý:</h4>
+              <p style="margin: 10px 0;">
+                Lịch dạy của bạn đã được cập nhật. Bạn có thể nhận booking mới cho khung giờ này.
+              </p>
+            </div>
+          </div>
+          <div style="background: #f8f9fa; padding: 15px; text-align: center; color: #666; font-size: 12px;">
+            <p>© 2024 EduMatch. Tất cả quyền được bảo lưu.</p>
+          </div>
+        </div>
+      `
     }
   };
   
@@ -717,7 +773,7 @@ const notifyStudentBookingDecision = async (booking, decision) => {
     
     // Get tutor info
     const tutorProfile = await TutorProfile.findById(booking.tutorProfile)
-      .populate('user', 'full_name');
+      .populate('user', 'full_name email');
     
     if (!tutorProfile || !tutorProfile.user) {
       console.error("Tutor profile not found for booking:", booking._id);
@@ -727,10 +783,12 @@ const notifyStudentBookingDecision = async (booking, decision) => {
     const data = {
       studentName: student.full_name,
       tutorName: tutorProfile.user.full_name,
+      tutorEmail: tutorProfile.user.email,
       start: booking.start,
       end: booking.end,
       mode: booking.mode,
       price: booking.price,
+      paymentStatus: booking.paymentStatus,
       location: booking.mode === 'offline' ? 'Địa điểm sẽ được thông báo' : null,
       roomCode: booking.roomId || null // Include room code if available
     };
@@ -1014,10 +1072,64 @@ const sendBookingReminder = async (booking) => {
   }
 };
 
+// Notify tutor when student cancels booking
+const notifyTutorBookingCancelled = async (booking) => {
+  try {
+    // Get tutor info
+    const tutorProfile = await TutorProfile.findById(booking.tutorProfile)
+      .populate('user', 'full_name email');
+    
+    if (!tutorProfile || !tutorProfile.user) {
+      console.error("Tutor profile not found for booking:", booking._id);
+      return { success: false, error: "Tutor not found" };
+    }
+    
+    // Get student info
+    const student = await User.findById(booking.student);
+    if (!student) {
+      console.error("Student not found for booking:", booking._id);
+      return { success: false, error: "Student not found" };
+    }
+    
+    const data = {
+      tutorName: tutorProfile.user.full_name,
+      studentName: student.full_name,
+      studentEmail: student.email,
+      start: booking.start,
+      end: booking.end,
+      mode: booking.mode,
+      price: booking.price,
+      paymentStatus: booking.paymentStatus,
+      reason: booking.cancellationReason
+    };
+    
+    // Create in-app notification for tutor
+    try {
+      await Notification.create({
+        recipient: tutorProfile.user._id,
+        type: 'booking_cancelled',
+        title: '❌ Học sinh đã hủy booking',
+        message: `${student.full_name} đã hủy booking. ${booking.paymentStatus === 'paid' ? 'Vui lòng liên hệ LearnMate để hoàn tiền cho học sinh.' : ''}`,
+        link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/tutor/bookings`,
+        data: { bookingId: booking._id, studentName: student.full_name, paymentStatus: booking.paymentStatus }
+      });
+      console.log("✅ In-app notification sent to tutor about cancellation");
+    } catch (e) {
+      console.warn('⚠️ Failed to create in-app notification for tutor:', e.message);
+    }
+    
+    return await sendNotificationEmail(tutorProfile.user.email, 'booking_cancelled_by_student', data);
+  } catch (error) {
+    console.error("Error notifying tutor about cancellation:", error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendNotificationEmail,
   notifyTutorBookingCreated,
   notifyStudentBookingDecision,
+  notifyTutorBookingCancelled,
   notifyStudentPaymentSuccess,
   notifyTutorPaymentSuccess,
   notifyStudentPaymentHeld,
