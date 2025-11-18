@@ -35,13 +35,22 @@ class SessionGeneratorService {
       for (const slot of daySlots) {
         // Check if session already exists for this date and time
         const sessionDate = new Date(currentDate);
-        const exists = await TeachingSession.exists({
+        const startOfDay = new Date(sessionDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(sessionDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        const exists = await TeachingSession.findOne({
           booking: booking._id,
           scheduledDate: {
-            $gte: new Date(sessionDate.setHours(0, 0, 0, 0)),
-            $lt: new Date(sessionDate.setHours(23, 59, 59, 999))
+            $gte: startOfDay,
+            $lt: endOfDay
           },
-          startTime: slot.start
+          dayOfWeek: dayOfWeek
+        }).then(doc => {
+          // Compare time strings manually since startTime is a String field
+          if (!doc) return null;
+          return doc.startTime === slot.start ? doc : null;
         });
         
         if (!exists) {

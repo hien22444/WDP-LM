@@ -26,6 +26,14 @@ const userSlice = createSlice({
       state.isAuthenticated = true;
       state.user = action.payload.user;
       state.error = null;
+      
+      // ✅ CRITICAL: Save user to localStorage for persistence
+      try {
+        localStorage.setItem("user", JSON.stringify(action.payload.user));
+        console.log("✅ User saved to localStorage:", action.payload.user);
+      } catch (e) {
+        console.error("❌ Failed to save user to localStorage:", e);
+      }
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -42,6 +50,9 @@ const userSlice = createSlice({
       Cookies.remove("accessToken");
       Cookies.remove("refreshToken");
 
+      // Clear user data from localStorage
+      localStorage.removeItem("user");
+      
       // Clear chat-related localStorage
       localStorage.removeItem("chatMessages");
       localStorage.removeItem("chatNotifications");

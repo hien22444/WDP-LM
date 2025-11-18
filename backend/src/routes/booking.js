@@ -322,15 +322,26 @@ router.post("/", auth(), async (req, res) => {
     );
 
     if (!isAvailable) {
+      console.log("❌ Tutor not available:", {
+        requestedDay: dayOfWeek,
+        requestedTime: `${startHour} - ${endHour}`,
+        tutorAvailability: tutor.availability
+      });
       errors.push("Gia sư không rảnh trong khung giờ này");
     }
 
-    // Check for existing bookings at the same time (including completed ones)
+    // Check for existing bookings at the same time (only pending/accepted, NOT completed)
     const existingBooking = await Booking.findOne({
       tutorProfile: tutorProfileId,
       start: { $lt: endTime },
       end: { $gt: startTime },
-      status: { $in: ["pending", "accepted", "completed"] },
+      status: { $in: ["pending", "accepted"] }, // Removed "completed"
+    });
+
+    console.log("🔍 Checking booking conflict:", {
+      tutorProfileId,
+      requestedTime: { start: startTime, end: endTime },
+      existingBooking: existingBooking ? existingBooking._id : null
     });
 
     if (existingBooking) {
@@ -531,10 +542,11 @@ router.post("/recurring", auth(), async (req, res) => {
     });
 
     // Check for conflicts with existing PAID OR ACCEPTED recurring bookings
-    // Ignore pending unpaid bookings
+    // Only check bookings that are active (not cancelled, not completed, not rejected)
     const conflicts = await Booking.find({
       tutorProfile: tutorProfileId,
       type: 'recurring',
+      status: { $nin: ["cancelled", "completed", "rejected"] }, // Exclude finished bookings
       $and: [
         {
           $or: [
@@ -549,20 +561,62 @@ router.post("/recurring", auth(), async (req, res) => {
       ]
     });
 
+    console.log('🔍 [Recurring Booking] Checking conflicts:', {
+      tutorProfileId,
+      dateRange: { start: start.toISOString(), end: endDate.toISOString() },
+      foundConflicts: conflicts.length,
+      conflictIds: conflicts.map(c => ({ 
+        id: c._id, 
+        status: c.status, 
+        payment: c.paymentStatus,
+        dateRange: {
+          start: c.recurrencePattern?.startDate,
+          end: c.recurrencePattern?.endDate
+        }
+      }))
+    });
+
     // Check if any conflicting booking has overlapping slots
     for (const conflict of conflicts) {
       const conflictSlots = conflict.recurrencePattern.selectedSlots;
+      
+      console.log('🔍 [Recurring Booking] Checking conflict:', {
+        bookingId: conflict._id,
+        status: conflict.status,
+        paymentStatus: conflict.paymentStatus,
+        conflictSlots: conflictSlots.map(s => `${s.dayOfWeek}: ${s.start}-${s.end}`),
+        requestedSlots: selectedSlots.map(s => `${s.dayOfWeek}: ${s.start}-${s.end}`)
+      });
+      
       const hasOverlap = selectedSlots.some(slot => 
         conflictSlots.some(cSlot => {
           if (cSlot.dayOfWeek !== slot.dayOfWeek) return false;
           
-          // Check time overlap
-          const slot1Start = slot.start;
-          const slot1End = slot.end;
-          const slot2Start = cSlot.start;
-          const slot2End = cSlot.end;
+          // Convert time strings to minutes for proper comparison
+          const timeToMinutes = (timeStr) => {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+          };
           
-          return slot1Start < slot2End && slot1End > slot2Start;
+          const slot1Start = timeToMinutes(slot.start);
+          const slot1End = timeToMinutes(slot.end);
+          const slot2Start = timeToMinutes(cSlot.start);
+          const slot2End = timeToMinutes(cSlot.end);
+          
+          const overlaps = slot1Start < slot2End && slot1End > slot2Start;
+          
+          if (overlaps) {
+            console.log('⚠️ [Recurring Booking] Time overlap detected:', {
+              day: slot.dayOfWeek,
+              requested: `${slot.start}-${slot.end}`,
+              existing: `${cSlot.start}-${cSlot.end}`,
+              requestedMinutes: `${slot1Start}-${slot1End}`,
+              existingMinutes: `${slot2Start}-${slot2End}`
+            });
+          }
+          
+          // Check if time ranges overlap
+          return overlaps;
         })
       );
       

@@ -4,17 +4,26 @@ const User = require("../models/User");
 // Original auth function
 const auth = function (required = true) {
   return (req, res, next) => {
+    console.log("🔐 Auth middleware called for:", req.method, req.path);
+    console.log("🔐 Headers:", req.headers);
+    
     const authHeader = req.headers.authorization || req.headers.Authorization;
+    console.log("🔐 Auth header:", authHeader?.substring(0, 30) + "...");
+    
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("❌ Auth failed: Missing or invalid auth header");
       if (required) return res.status(401).json({ message: "Missing token" });
       return next();
     }
     const token = authHeader.split(" ")[1];
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("✅ Token verified, decoded:", decoded);
       req.user = { id: decoded.sub };
+      console.log("✅ req.user set to:", req.user);
       next();
     } catch (err) {
+      console.log("❌ Token verification failed:", err.message);
       return res.status(401).json({ message: "Invalid or expired token" });
     }
   };

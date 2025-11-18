@@ -302,6 +302,60 @@ router.get("/me", auth(), async (req, res) => {
   }
 });
 
+// Get tutor's subjects for course creation (protected)
+router.get("/profile", auth(), async (req, res) => {
+  try {
+    console.log("=".repeat(60));
+    console.log("📚 GET /tutors/profile called");
+    console.log("📚 Request headers:", req.headers);
+    console.log("📚 Auth middleware user:", req.user);
+    console.log("📚 User ID (req.user.id):", req.user?.id);
+    console.log("📚 User ID (req.user.userId):", req.user?.userId);
+    
+    // Use req.user.id (from auth middleware) or req.user.userId
+    const userId = req.user?.userId || req.user?.id;
+    console.log("📚 Final userId to use:", userId);
+    
+    const tutorProfile = await TutorProfile.findOne({ user: userId })
+      .select("subjects status");
+
+    console.log("📚 Query executed: TutorProfile.findOne({ user:", userId, "})");
+    console.log("📚 Tutor Profile Found:", tutorProfile ? "YES" : "NO");
+    
+    if (!tutorProfile) {
+      console.log("❌ Tutor profile not found for user:", userId);
+      console.log("=".repeat(60));
+      return res.status(404).json({ message: "Tutor profile not found" });
+    }
+
+    console.log("📚 Profile ID:", tutorProfile._id);
+    console.log("📚 Profile status:", tutorProfile.status);
+    console.log("📚 Subjects count:", tutorProfile.subjects?.length);
+    console.log("📚 Raw subjects array:", JSON.stringify(tutorProfile.subjects, null, 2));
+
+    // subjects is already embedded in TutorProfile, no need to populate
+    // Just format the response
+    const subjects = tutorProfile.subjects.map((s, index) => ({
+      _id: `${tutorProfile._id}_${index}`, // Generate unique ID for frontend
+      name: s.name,
+      level: s.level,
+      price: s.price,
+    }));
+
+    console.log("✅ Formatted subjects for response:", JSON.stringify(subjects, null, 2));
+    console.log("✅ Sending response with", subjects.length, "subjects");
+    console.log("=".repeat(60));
+    
+    res.json({ subjects, status: tutorProfile.status });
+  } catch (error) {
+    console.log("=".repeat(60));
+    console.error("❌ Error fetching tutor profile:", error);
+    console.error("❌ Error stack:", error.stack);
+    console.log("=".repeat(60));
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // Get tutor's courses/slots (public) - MUST be before /:id route
 router.get("/:id/courses", async (req, res) => {
   try {
