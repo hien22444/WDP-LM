@@ -695,6 +695,9 @@ router.patch("/me", auth(), async (req, res) => {
     if (req.body.teachingMethod)
       updateData.teachingMethod = req.body.teachingMethod;
     if (req.body.achievements) updateData.achievements = req.body.achievements;
+    if (req.body.teachModes && Array.isArray(req.body.teachModes)) {
+      updateData.teachModes = req.body.teachModes;
+    }
 
     const profile = await TutorProfile.findOneAndUpdate(
       { user: req.user.id },

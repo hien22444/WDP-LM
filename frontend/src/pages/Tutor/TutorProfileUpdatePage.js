@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
+  getMyTutorProfile,
   updateTutorProfile,
   updateTutorBasic,
   saveAvailability,
 } from "../../services/TutorService";
 import { createTeachingSlot } from "../../services/BookingService";
 import UniversalHeader from "../../components/Layout/UniversalHeader";
+import SimpleAvailabilitySelector from "./SimpleAvailabilitySelector";
 import "./TutorProfileUpdatePage.scss";
 
 const TutorProfileUpdatePage = () => {
@@ -26,6 +28,7 @@ const TutorProfileUpdatePage = () => {
     teachingMethod: "",
     achievements: "",
     availability: [],
+    teachModes: [], // Thêm field teachModes: ["online", "offline"]
   });
 
   // Config tạo slot nhanh từ lịch rảnh
@@ -84,7 +87,7 @@ const TutorProfileUpdatePage = () => {
       if (
         typeof it.dayOfWeek !== "number" ||
         it.dayOfWeek < 0 ||
-        it.dayOfWeek > 6
+it.dayOfWeek > 6
       )
         return { ok: false, message: "dayOfWeek không hợp lệ" };
       if (!timeRe.test(it.start) || !timeRe.test(it.end))
@@ -151,6 +154,74 @@ const TutorProfileUpdatePage = () => {
 
     // Load existing tutor profile data if available
     // This could be fetched from an API
+    const loadProfile = async () => {
+      try {
+        const profile = await getMyTutorProfile();
+        if (!profile) return;
+
+        // Map backend profile to local formData shape
+        setFormData((prev) => ({
+          ...prev,
+          introduction: profile.bio || prev.introduction,
+          experience: profile.experienceYears || prev.experience,
+          location: profile.city || prev.location,
+          university: profile.university || prev.university || "",
+          education: profile.education || prev.education || "",
+          teachingMethod: profile.teachingMethod || prev.teachingMethod || "",
+          achievements: profile.achievements || prev.achievements || "",
+          teachModes: Array.isArray(profile.teachModes) ? profile.teachModes : prev.teachModes || [],
+          hourlyRate:
+            profile.sessionRate !== undefined && profile.sessionRate !== null
+              ? profile.sessionRate
+              : prev.hourlyRate,
+          subjects: Array.isArray(profile.subjects)
+            ? profile.subjects.map((s) => ({
+                name: s.name,
+                price: s.price || 0,
+                level: s.level || "Tất cả",
+                description: s.description || "",
+              }))
+            : prev.subjects,
+availability: Array.isArray(profile.availability)
+            ? profile.availability.map((a) => ({
+                dayOfWeek:
+                  typeof a.dayOfWeek === "number" ? a.dayOfWeek : a.day || 0,
+                start: a.start || a.startTime || "00:00",
+                end: a.end || a.endTime || "00:00",
+              }))
+            : prev.availability,
+        }));
+
+        // Optionally, initialize dayRanges based on availability if present
+        if (Array.isArray(profile.availability) && profile.availability.length) {
+          // Build a simple dayRanges where any availability within common ranges toggles the range enabled
+          const nextRanges = [...defaultRanges];
+          profile.availability.forEach((a) => {
+            const day = typeof a.dayOfWeek === "number" ? a.dayOfWeek : a.day || 0;
+            const start = (a.start || a.startTime || "00:00").slice(0, 5);
+            const end = (a.end || a.endTime || "00:00").slice(0, 5);
+
+            const markRange = (period) => {
+              if (!nextRanges[day]) nextRanges[day] = JSON.parse(JSON.stringify(defaultRanges[0]));
+              nextRanges[day][period] = { enabled: true, start, end };
+            };
+
+            // naive mapping: morning 08-11, afternoon 13-17, evening 18-22
+            if (start >= "07:00" && end <= "12:00") markRange("morning");
+            else if (start >= "12:00" && end <= "17:30") markRange("afternoon");
+            else markRange("evening");
+          });
+
+          setDayRanges(nextRanges);
+          // rebuild availability from these ranges to keep consistency
+          rebuildAvailability(nextRanges);
+        }
+      } catch (err) {
+        console.error("Failed to load tutor profile:", err);
+      }
+    };
+
+    loadProfile();
   }, [isAuthenticated, currentUser, navigate]);
 
   const handleInputChange = (e) => {
@@ -191,7 +262,7 @@ const TutorProfileUpdatePage = () => {
       console.log("✅ TutorProfileUpdatePage: Update successful:", result);
       toast.success("Cập nhật hồ sơ gia sư thành công!");
       navigate("/profile");
-    } catch (error) {
+} catch (error) {
       console.error(
         "❌ TutorProfileUpdatePage: Error updating tutor profile:",
         error
@@ -283,8 +354,7 @@ const TutorProfileUpdatePage = () => {
           // Tạo start/end theo giờ phút từ availability
           const [sh, sm] = (a.start || "00:00").split(":").map((n) => parseInt(n, 10));
           const [eh, em] = (a.end || "00:00").split(":").map((n) => parseInt(n, 10));
-
-          const start = new Date(current);
+const start = new Date(current);
           start.setHours(sh || 0, sm || 0, 0, 0);
           const end = new Date(current);
           end.setHours(eh || 0, em || 0, 0, 0);
@@ -366,7 +436,7 @@ const TutorProfileUpdatePage = () => {
         };
         try {
           const slot = await createTeachingSlot(payload);
-          created.push(slot);
+created.push(slot);
         } catch (e) {
           console.error("Create slot error", e);
         }
@@ -443,7 +513,7 @@ const TutorProfileUpdatePage = () => {
                                   },
                                 ],
                               }));
-                            }
+}
                           }}
                         />
                         <span className="subject-label">{subject}</span>
@@ -504,7 +574,7 @@ const TutorProfileUpdatePage = () => {
                             const description = e.target.value;
                             setFormData((prev) => ({
                               ...prev,
-                              subjects: prev.subjects.map((s) =>
+subjects: prev.subjects.map((s) =>
                                 s.name === subject ? { ...s, description } : s
                               ),
                             }));
@@ -531,6 +601,78 @@ const TutorProfileUpdatePage = () => {
                 className="form-control"
                 min="0"
               />
+            </div>
+
+            {/* Hình thức dạy học */}
+            <div className="form-section">
+              <h3>Hình thức dạy học</h3>
+              <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
+                Chọn các hình thức bạn hỗ trợ (có thể chọn nhiều)
+              </p>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  padding: '12px 20px',
+                  border: '2px solid',
+                  borderColor: formData.teachModes?.includes('online') ? '#3b82f6' : '#e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  backgroundColor: formData.teachModes?.includes('online') ? '#eff6ff' : 'white',
+                  transition: 'all 0.2s'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.teachModes?.includes('online') || false}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setFormData(prev => ({
+                        ...prev,
+                        teachModes: isChecked 
+                          ? [...(prev.teachModes || []), 'online']
+                          : (prev.teachModes || []).filter(m => m !== 'online')
+                      }));
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '15px', fontWeight: 500 }}>💻 Online (dạy trực tuyến)</span>
+                </label>
+
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  padding: '12px 20px',
+                  border: '2px solid',
+                  borderColor: formData.teachModes?.includes('offline') ? '#3b82f6' : '#e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  backgroundColor: formData.teachModes?.includes('offline') ? '#eff6ff' : 'white',
+                  transition: 'all 0.2s'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.teachModes?.includes('offline') || false}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setFormData(prev => ({
+                        ...prev,
+                        teachModes: isChecked 
+                          ? [...(prev.teachModes || []), 'offline']
+                          : (prev.teachModes || []).filter(m => m !== 'offline')
+                      }));
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '15px', fontWeight: 500 }}>🏫 Offline (dạy tại nhà)</span>
+                </label>
+              </div>
+              {(!formData.teachModes || formData.teachModes.length === 0) && (
+                <p style={{ fontSize: '13px', color: '#ef4444', marginTop: '8px' }}>
+                  ⚠️ Vui lòng chọn ít nhất một hình thức dạy học
+                </p>
+              )}
             </div>
 
             {/* Mức phí */}
@@ -593,7 +735,7 @@ const TutorProfileUpdatePage = () => {
                 name="teachingMethod"
                 value={formData.teachingMethod}
                 onChange={handleInputChange}
-                placeholder="Mô tả phương pháp dạy học của bạn..."
+placeholder="Mô tả phương pháp dạy học của bạn..."
                 className="form-control"
                 rows="4"
               />
@@ -614,194 +756,41 @@ const TutorProfileUpdatePage = () => {
 
             {/* Lịch rảnh */}
             <div className="form-section">
-              <h3>Thời khóa biểu dạy cố định (hiển thị cho học viên)</h3>
+              <h3>🗓️ Lịch rảnh của bạn</h3>
               <p className="form-hint">
-                Tick các mốc giờ bạn dạy cố định mỗi tuần. Hệ thống có thể tự công khai
-                thời khóa biểu này thành các slot cho {timetableConfig.horizonWeeks} tuần tới.
+                Chọn các buổi sáng/chiều mà bạn có thể dạy. Học viên sẽ chọn giờ cụ thể (tối thiểu 2h) 
+                trong khung giờ buổi sáng (7:00-11:30) hoặc buổi chiều (13:00-16:30).
               </p>
 
-              <div className="availability-grid simple">
-                {[
-                  "Chủ nhật",
-                  "Thứ 2",
-                  "Thứ 3",
-                  "Thứ 4",
-                  "Thứ 5",
-                  "Thứ 6",
-                  "Thứ 7",
-                ].map((dayLabel, dayIndex) => (
-                  <div key={dayIndex} className="day-row">
-                    <h4>{dayLabel}</h4>
-                    {["morning", "afternoon", "evening"].map((period) => {
-                      const title =
-                        period === "morning"
-                          ? "Sáng"
-                          : period === "afternoon"
-                          ? "Chiều"
-                          : "Tối";
-                      const seg = dayRanges[dayIndex][period];
-                      return (
-                        <div key={period} className="period">
-                          <label className="toggle">
-                            <input
-                              type="checkbox"
-                              checked={seg.enabled}
-                              onChange={(e) => {
-                                const enabled = e.target.checked;
-                                const next = [...dayRanges];
-                                next[dayIndex] = {
-                                  ...next[dayIndex],
-                                  [period]: { ...seg, enabled },
-                                };
-                                setDayRanges(next);
-                                rebuildAvailability(next);
-                              }}
-                            />
-                            <span>{title}</span>
-                          </label>
-                          <div className="time-range">
-                            <input
-                              type="time"
-                              value={seg.start}
-                              onChange={(e) => {
-                                const next = [...dayRanges];
-                                next[dayIndex] = {
-                                  ...next[dayIndex],
-                                  [period]: { ...seg, start: e.target.value },
-                                };
-                                setDayRanges(next);
-                                rebuildAvailability(next);
-                              }}
-                            />
-                            <span>đến</span>
-                            <input
-                              type="time"
-                              value={seg.end}
-                              onChange={(e) => {
-                                const next = [...dayRanges];
-                                next[dayIndex] = {
-                                  ...next[dayIndex],
-                                  [period]: { ...seg, end: e.target.value },
-                                };
-                                setDayRanges(next);
-                                rebuildAvailability(next);
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+              <SimpleAvailabilitySelector
+                defaultAvailability={formData.availability}
+                onChange={(newAvailability) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    availability: newAvailability
+                  }));
+                }}
+              />
 
-              {formData.availability.length > 0 && (
-                <div className="selected-slots">
-                  <p>Đã chọn {formData.availability.length} khung giờ rảnh</p>
-                </div>
-              )}
-
-              {/* Actions: lưu availability và tạo slot */}
-              <div className="availability-actions">
+              {/* Actions: lưu availability */}
+              <div className="availability-actions" style={{ marginTop: '24px' }}>
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-primary"
                   onClick={handleSaveAvailability}
                   disabled={loading}
+                  style={{
+                    padding: '12px 24px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    width: '100%',
+                    maxWidth: '400px',
+                    margin: '0 auto',
+                    display: 'block'
+                  }}
                 >
-                  Lưu thời khóa biểu theo tuần
+                  {loading ? "Đang lưu..." : "💾 Lưu lịch rảnh"}
                 </button>
-
-                <div className="generate-slots">
-                  <div className="row" style={{ marginBottom: 8 }}>
-                    <label className="toggle">
-                      <input
-                        type="checkbox"
-                        checked={timetableConfig.publish}
-                        onChange={(e) =>
-                          setTimetableConfig((s) => ({ ...s, publish: e.target.checked }))
-                        }
-                      />
-                      <span>Công khai thời khóa biểu thành slot tự động</span>
-                    </label>
-                  </div>
-                  <div className="row">
-                    <label>
-                      Bắt đầu từ ngày
-                      <input
-                        type="date"
-                        value={slotConfig.startFrom}
-                        onChange={(e) =>
-                          setSlotConfig((s) => ({ ...s, startFrom: e.target.value }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Số tuần
-                      <input
-                        type="number"
-                        min="1"
-                        max="12"
-                        value={slotConfig.weeks}
-                        onChange={(e) =>
-                          setSlotConfig((s) => ({ ...s, weeks: parseInt(e.target.value || 1) }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Hình thức
-                      <select
-                        value={slotConfig.mode}
-                        onChange={(e) => setSlotConfig((s) => ({ ...s, mode: e.target.value }))}
-                      >
-                        <option value="online">Online</option>
-                        <option value="offline">Tại nhà</option>
-                      </select>
-                    </label>
-                    <label>
-                      Học phí/buổi (VNĐ)
-                      <input
-                        type="number"
-                        min="0"
-                        value={slotConfig.price}
-                        onChange={(e) =>
-                          setSlotConfig((s) => ({ ...s, price: parseInt(e.target.value || 0) }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Số HV
-                      <input
-                        type="number"
-                        min="1"
-                        value={slotConfig.capacity}
-                        onChange={(e) =>
-                          setSlotConfig((s) => ({ ...s, capacity: parseInt(e.target.value || 1) }))
-                        }
-                      />
-                    </label>
-                  </div>
-                  <div className="row">
-                    <label style={{ flex: 1 }}>
-                      Tên buổi học (courseName)
-                      <input
-                        type="text"
-                        value={slotConfig.courseName}
-                        onChange={(e) =>
-                          setSlotConfig((s) => ({ ...s, courseName: e.target.value }))
-                        }
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={handleGenerateSlots}
-                      disabled={loading}
-                    >
-                      Tạo slot từ lịch rảnh
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -815,7 +804,7 @@ const TutorProfileUpdatePage = () => {
               >
                 Hủy
               </button>
-              <button type="submit" className="btn-submit" disabled={loading}>
+<button type="submit" className="btn-submit" disabled={loading}>
                 {loading ? "Đang cập nhật..." : "Cập nhật hồ sơ"}
               </button>
             </div>

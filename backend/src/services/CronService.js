@@ -1,5 +1,6 @@
 const cron = require("node-cron");
 const Booking = require("../models/Booking");
+const TutorProfile = require("../models/TutorProfile");
 const NotificationService = require("./NotificationService");
 
 class CronService {
@@ -142,6 +143,98 @@ class CronService {
         success: false,
         error: error.message
       };
+    }
+  }
+
+  /**
+   * Tự động xóa tutor profiles bị reject sau 30 ngày
+   * Chạy mỗi ngày lúc 2:00 AM
+   */
+  static async cleanupRejectedProfiles() {
+    try {
+      console.log("[Cron] Starting cleanup rejected tutor profiles job...");
+
+      // Tính ngày 30 ngày trước
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Tìm profiles bị reject từ 30 ngày trước
+      const rejectedProfiles = await TutorProfile.find({
+        status: 'rejected',
+        updatedAt: { $lt: thirtyDaysAgo }
+      }).populate('user', 'email full_name');
+
+      if (rejectedProfiles.length === 0) {
+        console.log("[Cron] No rejected profiles to cleanup");
+        return { success: true, deletedCount: 0 };
+      }
+
+      console.log(`[Cron] Found ${rejectedProfiles.length} rejected profiles to cleanup:`);
+      
+      // Log thông tin profiles sẽ bị xóa
+      rejectedProfiles.forEach((profile) => {
+        console.log(`  - ${profile.user?.email || 'N/A'} (ID: ${profile._id}, Rejected: ${profile.updatedAt})`);
+      });
+
+      // Xóa profiles
+      const result = await TutorProfile.deleteMany({
+        status: 'rejected',
+        updatedAt: { $lt: thirtyDaysAgo }
+      });
+
+      console.log(`[Cron] Deleted ${result.deletedCount} rejected profiles (>30 days old)`);
+
+      return {
+        success: true,
+        deletedCount: result.deletedCount,
+        deletedProfiles: rejectedProfiles.map(p => ({
+          id: p._id.toString(),
+          userEmail: p.user?.email,
+          rejectedAt: p.updatedAt
+        }))
+      };
+
+    } catch (error) {
+      console.error("[Cron] Error cleaning up rejected profiles:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Cleanup pending unpaid bookings after 30 minutes
+   * Runs every 10 minutes
+   */
+  static async cleanupUnpaidBookings() {
+    try {
+      console.log("[Cron] Starting cleanup unpaid bookings job...");
+
+      const now = new Date();
+      const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+
+      // Find bookings that are pending, unpaid, and created more than 30 minutes ago
+      const expiredBookings = await Booking.find({
+        status: "pending",
+        paymentStatus: { $in: ["none", "pending"] },
+        createdAt: { $lt: thirtyMinutesAgo }
+      });
+
+      let deletedCount = 0;
+      for (const booking of expiredBookings) {
+        console.log(`[Cron] Deleting expired unpaid booking ${booking._id} (created ${booking.createdAt})`);
+        await booking.deleteOne();
+        deletedCount++;
+      }
+
+      console.log(`[Cron] Cleanup completed: ${deletedCount} unpaid bookings deleted`);
+
+      return {
+        success: true,
+        deletedCount
+      };
+
+    } catch (error) {
+      console.error("[Cron] Error in cleanupUnpaidBookings:", error);
+      return { success: false, error: error.message };
     }
   }
 

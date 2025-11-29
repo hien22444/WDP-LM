@@ -272,6 +272,7 @@ import ChangePassword from "./components/Auth/ChangePassword/ChangePassword";
 import OAuthCallback from "./components/Auth/OAuthCallback";
 import ProtectedOnboarding from "./components/Auth/ProtectedOnboarding";
 import TutorProfilePage from "./pages/Tutor/TutorProfilePage";
+import BookingPage from "./pages/Booking/BookingPage";
 import TutorProfileUpdatePage from "./pages/Tutor/TutorProfileUpdatePage";
 import TutorBookings from "./pages/Tutor/TutorBookings";
 import TutorSchedule from "./pages/Tutor/TutorSchedule";
@@ -402,6 +403,7 @@ function App() {
         <Route element={<AuthenticatedLayout />}>
           <Route path="/tutors" element={<TutorList />} />
           <Route path="/tutor/:id" element={<TutorProfilePage />} />
+          <Route path="/booking/:tutorId" element={<BookingPage />} />
           <Route path="/courses" element={<TutorOpenCourses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/about" element={<About />} />

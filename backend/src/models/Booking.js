@@ -2,6 +2,14 @@ const mongoose = require("mongoose");
 
 const BookingSchema = new mongoose.Schema(
   {
+    // Booking type: single (one-time) or recurring (multiple sessions)
+    type: {
+      type: String,
+      enum: ["single", "recurring"],
+      default: "single",
+      required: true,
+    },
+
     tutorProfile: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TutorProfile",
@@ -14,10 +22,32 @@ const BookingSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    start: { type: Date, required: true },
-    end: { type: Date, required: true },
+
+    // For single bookings
+    start: { type: Date },
+    end: { type: Date },
+
+    // For recurring bookings
+    recurrencePattern: {
+      selectedSlots: [{
+        dayOfWeek: { type: Number, required: true }, // 0-6 (Sunday-Saturday)
+        start: { type: String, required: true }, // "08:00"
+        end: { type: String, required: true } // "10:00"
+      }],
+      startDate: { type: Date },
+      endDate: { type: Date },
+      numberOfWeeks: { type: Number }
+    },
+
+    // Session tracking for recurring bookings
+    totalSessionsPlanned: { type: Number, default: 1 },
+    completedSessions: { type: Number, default: 0 },
+    upcomingSessions: { type: Number, default: 0 },
+
     mode: { type: String, enum: ["online", "offline"], required: true },
-    price: { type: Number, default: 0 },
+    subject: { type: String, default: null }, // Môn học học sinh đặt
+    price: { type: Number, default: 0 }, // Price per session
+    totalPrice: { type: Number, default: 0 }, // Total for all sessions
     status: {
       type: String,
       enum: [
@@ -92,5 +122,14 @@ const BookingSchema = new mongoose.Schema(
 );
 
 BookingSchema.index({ start: 1, tutorProfile: 1 });
+BookingSchema.index({ "recurrencePattern.startDate": 1, tutorProfile: 1 });
+BookingSchema.index({ type: 1, status: 1 });
+
+// Virtual to get all teaching sessions for this booking
+BookingSchema.virtual("sessions", {
+  ref: "TeachingSession",
+  localField: "_id",
+  foreignField: "booking"
+});
 
 module.exports = mongoose.model("Booking", BookingSchema);

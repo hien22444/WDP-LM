@@ -1,4 +1,5 @@
 const CronService = require("../services/CronService");
+const SessionGeneratorService = require("../services/SessionGeneratorService");
 
 /**
  * Khởi động tất cả cron jobs
@@ -36,6 +37,21 @@ class CronManager {
     // Job 4: Cleanup old bookings mỗi ngày (24 giờ)
     this.scheduleJob("cleanupOldBookings", 24 * 60 * 60 * 1000, () => {
       CronService.cleanupOldBookings();
+    });
+
+    // Job 5: Cleanup rejected tutor profiles mỗi ngày (24 giờ)
+    this.scheduleJob("cleanupRejectedProfiles", 24 * 60 * 60 * 1000, () => {
+      CronService.cleanupRejectedProfiles();
+    });
+
+    // Job 6: Generate upcoming sessions for recurring bookings mỗi ngày (24 giờ)
+    this.scheduleJob("generateUpcomingSessions", 24 * 60 * 60 * 1000, () => {
+      SessionGeneratorService.generateUpcomingSessions();
+    });
+
+    // Job 7: Cleanup unpaid bookings mỗi 10 phút
+    this.scheduleJob("cleanupUnpaidBookings", 10 * 60 * 1000, () => {
+      CronService.cleanupUnpaidBookings();
     });
   }
 

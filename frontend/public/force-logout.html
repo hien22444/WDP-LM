@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Force Logout & Clear Auth</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 { color: #667eea; }
+        .info {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #e74c3c;
+        }
+        button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 Auth Mismatch Detected!</h1>
+        
+        <div class="info">
+            <h3>❌ Problem:</h3>
+            <p>You're logged in with: <code>tunggod24@gmail.com</code></p>
+            <p>User ID: <code>6912e923415acc00ae1ead25</code></p>
+            <p><strong>This user does NOT exist in local DB!</strong></p>
+            <br>
+            <h3>💡 Solution:</h3>
+            <p>1. Clear all auth tokens</p>
+            <p>2. Logout completely</p>
+            <p>3. Register a NEW account</p>
+        </div>
+
+        <button onclick="forceLogout()">
+            🗑️ Force Logout & Clear Everything
+        </button>
+
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        function forceLogout() {
+            const resultEl = document.getElementById('result');
+            
+            try {
+                // Clear localStorage
+                localStorage.clear();
+                console.log('✅ Cleared localStorage');
+                
+                // Clear sessionStorage
+                sessionStorage.clear();
+                console.log('✅ Cleared sessionStorage');
+                
+                // Clear all cookies
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "")
+                        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                console.log('✅ Cleared cookies');
+                
+                // Show success
+                resultEl.innerHTML = `
+                    <div class="success">
+                        ✅ Successfully cleared all auth data!<br>
+                        <br>
+                        Redirecting to home in 2 seconds...
+                    </div>
+                `;
+                
+                // Redirect to home after 2 seconds
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+                
+            } catch (error) {
+                resultEl.innerHTML = `
+                    <div class="error">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-display current auth status
+        window.addEventListener('load', () => {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            console.log('Current user:', user);
+            console.log('Current token:', token ? 'EXISTS' : 'NONE');
+        });
+    </script>
+</body>
+</html>

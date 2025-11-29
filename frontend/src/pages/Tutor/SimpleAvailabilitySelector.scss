@@ -1,0 +1,341 @@
+.simple-availability-selector {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .header {
+    margin-bottom: 24px;
+    text-align: center;
+
+    h3 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+
+    .description {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+
+      .badge {
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+
+        &.morning {
+          background: #fef3c7;
+          color: #92400e;
+          border: 1px solid #fbbf24;
+        }
+
+        &.afternoon {
+          background: #dbeafe;
+          color: #1e40af;
+          border: 1px solid #60a5fa;
+        }
+      }
+
+      .time {
+        color: #4b5563;
+        font-weight: 500;
+      }
+
+      .note {
+        color: #6b7280;
+        font-style: italic;
+      }
+    }
+  }
+
+  .quick-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    .btn-quick {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+
+    .btn-clear {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #ef4444;
+      background: #fff;
+      color: #dc2626;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #fef2f2;
+      }
+    }
+  }
+
+  .selection-grid {
+    margin-bottom: 24px;
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+
+      thead {
+        background: #f9fafb;
+
+        th {
+          padding: 12px;
+          text-align: center;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 2px solid #e5e7eb;
+          font-size: 14px;
+
+          small {
+            font-weight: 400;
+            color: #6b7280;
+            font-size: 12px;
+          }
+
+          &:first-child {
+            text-align: left;
+            width: 150px;
+          }
+        }
+      }
+
+      tbody {
+        tr {
+          &:not(:last-child) td {
+            border-bottom: 1px solid #f3f4f6;
+          }
+
+          &:hover {
+            background: #fafafa;
+          }
+
+          .day-label {
+            padding: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 15px;
+          }
+
+          .session-cell {
+            padding: 12px;
+            text-align: center;
+
+            .session-btn {
+              width: 100%;
+              padding: 12px 16px;
+              border-radius: 8px;
+              border: 2px solid #e5e7eb;
+              background: #fff;
+              color: #9ca3af;
+              font-size: 14px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.2s;
+
+              &:hover:not(.active) {
+                border-color: #d1d5db;
+                background: #f9fafb;
+              }
+
+              &.active {
+                border-color: transparent;
+                color: #fff;
+                font-weight: 600;
+
+                &.morning {
+                  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+                  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+                }
+
+                &.afternoon {
+                  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+                  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
+                }
+
+                &:hover {
+                  transform: translateY(-2px);
+                  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .summary {
+    padding: 20px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #166534;
+      margin-bottom: 12px;
+    }
+
+    .empty {
+      color: #6b7280;
+      font-style: italic;
+      margin: 0;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        padding: 8px 0;
+        color: #166534;
+        font-size: 14px;
+        line-height: 1.6;
+
+        &:not(:last-child) {
+          border-bottom: 1px solid #bbf7d0;
+        }
+
+        strong {
+          color: #15803d;
+          min-width: 100px;
+          display: inline-block;
+        }
+      }
+    }
+  }
+
+  .info {
+    padding: 16px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+
+    p {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #1e40af;
+      line-height: 1.6;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      strong {
+        font-weight: 600;
+        color: #1e3a8a;
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .simple-availability-selector {
+    padding: 16px;
+
+    .header h3 {
+      font-size: 20px;
+    }
+
+    .legend {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .quick-actions {
+      flex-direction: column;
+
+      .btn-quick,
+      .btn-clear {
+        width: 100%;
+      }
+    }
+
+    .selection-grid table {
+      thead th {
+        font-size: 12px;
+        padding: 8px 4px;
+
+        small {
+          display: block;
+          margin-top: 4px;
+        }
+      }
+
+      tbody {
+        .day-label {
+          font-size: 13px;
+          padding: 12px 8px;
+        }
+
+        .session-cell {
+          padding: 8px 4px;
+
+          .session-btn {
+            padding: 10px 8px;
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+}

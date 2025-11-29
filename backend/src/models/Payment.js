@@ -19,6 +19,11 @@ const PaymentSchema = new mongoose.Schema(
       ref: "TeachingSlot",
       default: null,
     },
+    bookingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Booking",
+      default: null,
+    },
     amount: { type: Number, required: true },
     productName: { type: String },
     checkoutUrl: { type: String, default: null },

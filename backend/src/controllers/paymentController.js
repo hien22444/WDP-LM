@@ -12,6 +12,7 @@ const {
   notifyTutorPaymentSuccess,
   notifyTutorBookingCreated,
 } = require("../services/NotificationService");
+const PaymentService = require("../services/PaymentService");
 
 // Tạo link thanh toán
 const createPaymentLink = async (req, res) => {
@@ -277,11 +278,14 @@ const createPaymentLink = async (req, res) => {
 
 // Nhận webhook từ PayOS
 const receiveWebhook = async (req, res) => {
-  console.log("🔄 Webhook received - Full data:", {
-    body: req.body,
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("🔔 [WEBHOOK] PayOS Webhook Received at:", new Date().toISOString());
+  console.log("🔔 [WEBHOOK] Full request data:", {
+    body: JSON.stringify(req.body, null, 2),
     headers: req.headers,
     method: req.method,
   });
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   const webhookData = req.body || {};
   try {
     console.log("🔍 Processing webhook with code:", webhookData.code);
@@ -362,7 +366,30 @@ const receiveWebhook = async (req, res) => {
           const incomingContract = meta?.contractData || null;
           const incomingStudentSignature = meta?.studentSignature || null;
 
-          if (payment && payment.slotId) {
+          // Handle recurring booking (new system)
+          if (payment && payment.bookingId) {
+            console.log("🔄 [Webhook] Processing recurring booking payment:", {
+              bookingId: payment.bookingId.toString(),
+              orderCode,
+              paymentId: payment._id.toString()
+            });
+
+            try {
+              const result = await PaymentService.processPaymentWebhook({
+                orderCode: String(orderCode),
+                status: "PAID",
+                webhookData
+              });
+              console.log("✅ [Webhook] Recurring booking payment processed successfully");
+              console.log("✅ [Webhook] Result:", JSON.stringify(result, null, 2));
+            } catch (error) {
+              console.error("❌ [Webhook] Error processing recurring booking payment:", error.message);
+              console.error("❌ [Webhook] Error stack:", error.stack);
+              // Don't fail the webhook response
+            }
+          }
+          // Handle teaching slot booking (old system)
+          else if (payment && payment.slotId) {
             console.log("✅ Payment has slotId - will create booking from slot:", payment.slotId.toString());
             // Get the teaching slot
             const slot = await TeachingSlot.findById(payment.slotId);
@@ -505,7 +532,7 @@ const receiveWebhook = async (req, res) => {
               console.warn("⚠️ Slot not found for payment.slotId:", payment.slotId?.toString());
             }
           } else {
-            console.warn("⚠️ Payment record has no slotId - cannot create booking. PaymentId:", payment?._id?.toString());
+            console.warn("⚠️ Payment record has neither bookingId nor slotId. PaymentId:", payment?._id?.toString());
           }
         } else {
           console.log(`❕ Order ${orderCode} status is: ${status}`);

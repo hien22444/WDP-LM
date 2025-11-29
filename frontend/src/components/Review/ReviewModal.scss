@@ -120,9 +120,13 @@
         border-radius: 4px;
         transition: all 0.2s;
         filter: grayscale(1);
+        pointer-events: all;
+        position: relative;
+        z-index: 1;
 
         &:hover {
           transform: scale(1.1);
+          filter: grayscale(0.5);
         }
 
         &.active {
@@ -160,11 +164,35 @@
         color: #6c757d;
         margin: 0;
         flex: 1;
+        pointer-events: none;
       }
 
       .star-rating.small {
+        display: flex;
+        gap: 4px;
+        pointer-events: all;
+        
         .star {
           font-size: 18px;
+          padding: 4px;
+          cursor: pointer;
+          background: none;
+          border: none;
+          transition: all 0.2s;
+          filter: grayscale(1);
+          pointer-events: all;
+          position: relative;
+          z-index: 10;
+          
+          &:hover {
+            transform: scale(1.2);
+            filter: grayscale(0.5);
+          }
+          
+          &.active {
+            filter: grayscale(0);
+            transform: scale(1.1);
+          }
         }
       }
     }

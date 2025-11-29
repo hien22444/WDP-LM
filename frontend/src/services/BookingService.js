@@ -26,6 +26,42 @@ export const createBooking = async (payload) => {
   }
 };
 
+export const createRecurringBooking = async (payload) => {
+  try {
+    console.log("📤 [BookingService] Sending recurring booking request:", payload);
+    
+    const res = await client.post(`/bookings/recurring`, payload);
+    
+    console.log("✅ [BookingService] Booking response:", res.data);
+    
+    const { booking, paymentLink, message } = res.data;
+    
+    // Show success message
+    toast.success(message || `🎉 Đã tạo lịch học ${booking.totalSessions} buổi! Đang chuyển đến trang thanh toán...`);
+    
+    // Redirect to payment page after 1.5 seconds
+    setTimeout(() => {
+      window.location.href = paymentLink;
+    }, 1500);
+    
+    return { booking, paymentLink };
+  } catch (error) {
+    console.error("❌ [BookingService] Error:", error);
+    console.error("❌ [BookingService] Error response:", error.response?.data);
+    
+    const message =
+      error.response?.data?.message || "Không thể đặt lịch. Vui lòng thử lại.";
+    const errors = error.response?.data?.errors || [];
+    
+    if (errors.length > 0) {
+      toast.error(`❌ ${message}: ${errors.join(", ")}`);
+    } else {
+      toast.error(`❌ ${message}`);
+    }
+    throw error;
+  }
+};
+
 export const listMyBookings = async (role = "student") => {
   const res = await client.get(`/bookings/me`, { params: { role } });
   return res.data.items;
@@ -48,6 +84,12 @@ export const tutorDecision = async (id, decision, tutorSignature) => {
     toast.error(`❌ ${message}`);
     throw error;
   }
+};
+
+// Complete booking (tutor marks as completed)
+export const completeBooking = async (id) => {
+  const res = await client.post(`/bookings/${id}/complete`);
+  return res.data.booking;
 };
 
 // Save/attach contract to an existing booking
@@ -269,6 +311,7 @@ const bookingService = {
   createBooking,
   listMyBookings,
   tutorDecision,
+  completeBooking,
   saveBookingContract,
   getBookingsByDateRange,
   getTutorAvailability,

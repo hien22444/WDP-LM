@@ -1,11 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import "./LandingPage.scss";
+import DebugUserInfo from "../../components/Debug/DebugUserInfo";
 
 const PublicLandingPage = () => {
   const navigate = useNavigate();
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     AOS.init({ duration: 1000 });
@@ -19,10 +21,21 @@ const PublicLandingPage = () => {
         "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css";
       document.head.appendChild(link);
     }
+
+    // Check if Ctrl+D is pressed to toggle debug
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        setShowDebug(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
     <div className="home-container">
+      {showDebug && <DebugUserInfo />}
       <header className="header">
         <div className="header-wrapper">
           <div className="logo">

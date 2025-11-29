@@ -37,25 +37,13 @@ const Dashboard = () => {
       if (response.success && response.data) {
         setDashboardData(response.data);
       } else {
-        throw new Error("Invalid response format");
+        console.warn("No dashboard data available");
+        setDashboardData({});
       }
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
-      // Fallback to mock data
-      console.log("Using fallback mock data");
-      switch (role) {
-        case "learner":
-          setDashboardData(DashboardService.getLearnerMockData());
-          break;
-        case "tutor":
-          setDashboardData(DashboardService.getTutorMockData());
-          break;
-        case "admin":
-          setDashboardData(DashboardService.getAdminMockData());
-          break;
-        default:
-          break;
-      }
+      // Set empty data instead of mock
+      setDashboardData({});
     } finally {
       setLoading(false);
     }

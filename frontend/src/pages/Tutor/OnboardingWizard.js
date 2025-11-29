@@ -14,6 +14,7 @@ import "./OnboardingWizard.scss";
 const OnboardingWizard = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [customSubjectInput, setCustomSubjectInput] = useState(""); // Input cho môn tự thêm
   const [formData, setFormData] = useState({
     // Education info
     education: "",
@@ -79,6 +80,35 @@ const OnboardingWizard = () => {
       ...prev,
       [field]: file,
     }));
+  };
+
+  // Thêm môn học tự nhập
+  const handleAddCustomSubject = () => {
+    const trimmedInput = customSubjectInput.trim();
+    
+    if (!trimmedInput) {
+      toast.warning("⚠️ Vui lòng nhập tên môn học hoặc kỹ năng");
+      return;
+    }
+
+    // Kiểm tra trùng
+    if (formData.subjects.some((s) => s.name.toLowerCase() === trimmedInput.toLowerCase())) {
+      toast.warning("⚠️ Môn học này đã có trong danh sách");
+      return;
+    }
+
+    // Thêm vào danh sách
+    setFormData((prev) => ({
+      ...prev,
+      subjects: [
+        ...prev.subjects,
+        { name: trimmedInput },
+      ],
+    }));
+
+    // Clear input
+    setCustomSubjectInput("");
+    toast.success(`✅ Đã thêm "${trimmedInput}"`);
   };
 
   const handleNext = () => {
@@ -531,6 +561,65 @@ const OnboardingWizard = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Thêm môn học tự nhập */}
+              <div className="custom-subject-input">
+                <label>
+                  ➕ Môn học/Kỹ năng khác không có trong danh sách?
+                </label>
+                <div className="input-with-button">
+                  <input
+                    type="text"
+                    value={customSubjectInput}
+                    onChange={(e) => setCustomSubjectInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomSubject();
+                      }
+                    }}
+                    placeholder="Ví dụ: Tiếng Nhật, Guitar, Vẽ, Lập trình Python..."
+                  />
+                  <button
+                    type="button"
+                    className="btn-add-subject"
+                    onClick={handleAddCustomSubject}
+                  >
+                    ➕ Thêm
+                  </button>
+                </div>
+                <small className="hint">
+                  💡 Nhập tên môn học hoặc kỹ năng và nhấn "Thêm"
+                </small>
+              </div>
+
+              {/* Hiển thị môn đã chọn */}
+              {formData.subjects.length > 0 && (
+                <div className="selected-subjects">
+                  <label>📚 Các môn đã chọn ({formData.subjects.length}):</label>
+                  <div className="subject-tags">
+                    {formData.subjects.map((subject, index) => (
+                      <div key={index} className="subject-tag">
+                        <span>{subject.name}</span>
+                        <button
+                          type="button"
+                          className="remove-tag"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              subjects: prev.subjects.filter(
+                                (_, i) => i !== index
+                              ),
+                            }));
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -688,6 +777,38 @@ const OnboardingWizard = () => {
                   <p>Kéo thả tài liệu vào đây hoặc nhấn để chọn</p>
                 </div>
               </div>
+              {formData.certificateDocument && (
+                <div className="file-preview">
+                  {formData.certificateDocument.type.startsWith("image/") ? (
+                    <div className="preview-image">
+                      <img
+                        src={URL.createObjectURL(formData.certificateDocument)}
+                        alt="Chứng chỉ"
+                      />
+                    </div>
+                  ) : (
+                    <div className="preview-pdf">
+                      <div className="pdf-icon">📄</div>
+                      <p>File PDF đã chọn</p>
+                    </div>
+                  )}
+                  <div className="file-info">
+                    <div className="file-name">
+                      {formData.certificateDocument.name}
+                    </div>
+                    <div className="file-size">
+                      {formatBytes(formData.certificateDocument.size)}
+                    </div>
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      onClick={() => removeSelectedFile("certificateDocument")}
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="note">

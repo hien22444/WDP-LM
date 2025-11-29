@@ -8,6 +8,7 @@ import {
   logoutApi,
 } from "../../services/ApiService";
 import TutorService from "../../services/TutorService";
+import { listMyBookings } from "../../services/BookingService";
 import { toast } from "react-toastify";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -24,6 +25,8 @@ const Profile = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [tutorProfile, setTutorProfile] = useState(null);
+  const [acceptedBookings, setAcceptedBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -61,6 +64,23 @@ const Profile = () => {
         if (localTutorProfile) {
           const parsedProfile = JSON.parse(localTutorProfile);
           setTutorProfile(parsedProfile);
+        }
+      }
+
+      // Fetch accepted bookings for tutors
+      if (response.user?.account?.role === "tutor") {
+        try {
+          setLoadingBookings(true);
+          const bookings = await listMyBookings("tutor");
+          // Filter only accepted bookings with paid status
+          const accepted = bookings.filter(
+            (b) => b.status === "accepted" && b.paymentStatus === "paid"
+          );
+          setAcceptedBookings(accepted);
+        } catch (err) {
+          console.error("Failed to fetch bookings:", err);
+        } finally {
+          setLoadingBookings(false);
         }
       }
     } catch (err) {
@@ -725,6 +745,190 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          {/* Teaching Schedule Section - Only for Tutors */}
+          {role === "tutor" && (
+            <div className="profile-card" style={{ marginTop: "24px" }}>
+              <div className="profile-info" style={{ borderBottom: "2px solid #E5E7EB", paddingBottom: "16px", marginBottom: "24px" }}>
+                <h3 style={{ margin: 0, fontSize: "24px", fontWeight: "700", color: "#111827", display: "flex", alignItems: "center", gap: "12px" }}>
+                  📅 Lịch dạy của tôi
+                </h3>
+                <p style={{ margin: "8px 0 0 0", color: "#6B7280", fontSize: "14px" }}>
+                  Các buổi học đã được chấp nhận và thanh toán
+                </p>
+              </div>
+
+              <div className="teaching-schedule">
+                {loadingBookings ? (
+                  <div style={{ textAlign: "center", padding: "40px", color: "#9CA3AF" }}>
+                    <div className="loading-spinner" style={{ margin: "0 auto 12px" }}></div>
+                    <p>Đang tải lịch dạy...</p>
+                  </div>
+                ) : acceptedBookings.length === 0 ? (
+                  <div style={{
+                    background: "#F9FAFB",
+                    border: "2px dashed #D1D5DB",
+                    borderRadius: "12px",
+                    padding: "48px 24px",
+                    textAlign: "center",
+                    color: "#6B7280"
+                  }}>
+                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>📚</div>
+                    <h4 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "600", color: "#374151" }}>
+                      Chưa có lịch dạy
+                    </h4>
+                    <p style={{ margin: 0, fontSize: "14px" }}>
+                      Các buổi học đã chấp nhận sẽ hiển thị ở đây
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: "16px" }}>
+                    {acceptedBookings.map((booking) => (
+                      <div
+                        key={booking._id}
+                        style={{
+                          background: "linear-gradient(135deg, #667EEA 0%, #764BA2 100%)",
+                          borderRadius: "16px",
+                          padding: "24px",
+                          color: "white",
+                          boxShadow: "0 10px 25px rgba(102, 126, 234, 0.3)",
+                          transition: "all 0.3s",
+                          cursor: "pointer"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-4px)";
+                          e.currentTarget.style.boxShadow = "0 15px 35px rgba(102, 126, 234, 0.4)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "0 10px 25px rgba(102, 126, 234, 0.3)";
+                        }}
+                      >
+                        {/* Header */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+                          <div>
+                            <h4 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span>👨‍🎓</span>
+                              {booking.student?.full_name || "Học viên"}
+                            </h4>
+                            <div style={{ fontSize: "14px", opacity: 0.9 }}>
+                              📚 {booking.subject || "Chưa có môn học"}
+                            </div>
+                          </div>
+                          <div style={{
+                            background: "rgba(255,255,255,0.25)",
+                            padding: "8px 16px",
+                            borderRadius: "20px",
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            backdropFilter: "blur(10px)"
+                          }}>
+                            {booking.type === "recurring" ? "🔄 Định kỳ" : "📌 Đơn lẻ"}
+                          </div>
+                        </div>
+
+                        {/* Recurring Schedule */}
+                        {booking.type === "recurring" && booking.recurrencePattern?.selectedSlots && (
+                          <div style={{
+                            background: "rgba(255,255,255,0.15)",
+                            borderRadius: "12px",
+                            padding: "16px",
+                            marginBottom: "16px",
+                            backdropFilter: "blur(10px)"
+                          }}>
+                            <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "12px", opacity: 0.9 }}>
+                              ⏰ Lịch trong tuần:
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                              {booking.recurrencePattern.selectedSlots.map((slot, idx) => (
+                                <div key={idx} style={{
+                                  background: "rgba(255,255,255,0.3)",
+                                  padding: "8px 14px",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  fontWeight: "600",
+                                  backdropFilter: "blur(5px)",
+                                  border: "1px solid rgba(255,255,255,0.4)"
+                                }}>
+                                  {["CN", "T2", "T3", "T4", "T5", "T6", "T7"][slot.dayOfWeek]} • {slot.start}-{slot.end}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Info Grid */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                          <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
+                            <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📍 Hình thức</div>
+                            <div style={{ fontSize: "15px", fontWeight: "600" }}>
+                              {booking.mode === "offline" ? "Trực tiếp" : "Online"}
+                            </div>
+                          </div>
+                          
+                          {booking.type === "recurring" && booking.recurrencePattern ? (
+                            <>
+                              <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
+                                <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📆 Thời gian</div>
+                                <div style={{ fontSize: "14px", fontWeight: "600" }}>
+                                  {new Date(booking.recurrencePattern.startDate).toLocaleDateString('vi-VN')} - {new Date(booking.recurrencePattern.endDate).toLocaleDateString('vi-VN')}
+                                </div>
+                              </div>
+                              <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
+                                <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📊 Tiến độ</div>
+                                <div style={{ fontSize: "15px", fontWeight: "600" }}>
+                                  {booking.completedSessions || 0}/{booking.totalSessionsPlanned || 0} buổi
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
+                              <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>📆 Ngày học</div>
+                              <div style={{ fontSize: "14px", fontWeight: "600" }}>
+                                {new Date(booking.start).toLocaleDateString('vi-VN')}
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div style={{ background: "rgba(255,255,255,0.15)", padding: "12px", borderRadius: "10px", backdropFilter: "blur(10px)" }}>
+                            <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>💰 Tổng thu nhập</div>
+                            <div style={{ fontSize: "16px", fontWeight: "700" }}>
+                              {(booking.totalPrice || booking.price || 0).toLocaleString()} đ
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{
+                          marginTop: "16px",
+                          paddingTop: "16px",
+                          borderTop: "1px solid rgba(255,255,255,0.2)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center"
+                        }}>
+                          <div style={{ fontSize: "13px", opacity: 0.85 }}>
+                            📧 {booking.student?.email || "Chưa có email"}
+                          </div>
+                          <div style={{
+                            background: "rgba(16, 185, 129, 0.3)",
+                            color: "#D1FAE5",
+                            padding: "6px 14px",
+                            borderRadius: "20px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            border: "1px solid rgba(16, 185, 129, 0.5)"
+                          }}>
+                            ✅ Đã thanh toán
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
